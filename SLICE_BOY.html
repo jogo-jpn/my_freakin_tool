@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SLICE BOY</title>
+    <style>
+        html {
+            touch-action: none;
+            -webkit-text-size-adjust: 100%;
+        }
+
+        body { 
+            font-family: 'Courier New', Courier, monospace; /* レトロな等幅フォント */
+            background-color: #2b2b2b; 
+            color: #333333; 
+            padding: 5px; 
+            max-width: 480px; 
+            margin: 0 auto; 
+            overflow: hidden; 
+        }
+
+        h1 { 
+            text-align: center; 
+            color: #d4cfc4; 
+            font-size: 1.1rem; 
+            margin: 3px 0; 
+            letter-spacing: 2px;
+            text-shadow: 1px 1px #000;
+        }
+
+        /* MPC風のライトグレー筐体 */
+        .container { 
+            background-color: #c8c2b4; 
+            padding: 10px; 
+            border-radius: 4px; 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.7), inset 0 1px 0 #e5e0d5; 
+            border: 2px solid #5a554a;
+        }
+
+        .input-group { margin-bottom: 6px; display: flex; gap: 6px; }
+        
+        input[type="text"] { 
+            flex: 1; 
+            padding: 6px; 
+            border: 1px solid #7a756a; 
+            border-radius: 2px; 
+            background-color: #f0ece1; 
+            color: #222; 
+            font-size: 0.8rem; 
+            font-family: monospace;
+        }
+        
+        .file-input-wrapper { 
+            flex: 1; 
+            display: flex; 
+            align-items: center; 
+            background-color: #f0ece1; 
+            border: 1px solid #7a756a; 
+            border-radius: 2px; 
+            padding: 0 6px; 
+            font-size: 0.8rem; 
+            color: #555; 
+            overflow: hidden; 
+        }
+        .file-input-wrapper input[type="file"] { width: 100%; color: #333; font-size: 0.75rem; }
+
+        /* MPC風のハードボタン（グレー＆オレンジアクセント） */
+        button, select { 
+            padding: 6px 10px; 
+            border: 1px solid #5a554a; 
+            border-radius: 3px; 
+            background-color: #a39e93; 
+            color: #1a1a1a; 
+            font-weight: bold; 
+            cursor: pointer; 
+            font-size: 0.8rem; 
+            box-shadow: inset 0 1px 0 #d4cfc4, 0 1px 2px rgba(0,0,0,0.3);
+        }
+        button:active, select:active {
+            background-color: #8c877d;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.5);
+        }
+        select { background-color: #d4cfc4; }
+        
+        #player-wrapper { 
+            width: 100%; 
+            max-width: 320px; 
+            height: 180px; 
+            margin: 0 auto 6px auto; 
+            overflow: hidden; 
+            background: #111; 
+            border-radius: 2px; 
+            display: block; 
+            position: relative;
+            border: 2px inset #4a453a;
+        }
+
+        #player-wrapper iframe, #player-wrapper video { 
+            width: 100%; 
+            height: 100%; 
+            border: 0; 
+            position: absolute;
+            top: 0;
+            left: 0;
+            object-fit: contain;
+        }
+        
+        #player-wrapper iframe {
+            top: -50px;
+            height: calc(100% + 100px); 
+            pointer-events: none; 
+        }
+
+        .control-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; gap: 6px; }
+        
+        #current-time { 
+            font-family: monospace; 
+            font-size: 0.9rem; 
+            color: #ff5500; /* MPCの液晶風オレンジ文字 */
+            font-weight: bold; 
+            background: #1a1a1a;
+            padding: 2px 6px;
+            border-radius: 2px;
+            border: 1px inset #333;
+            white-space: nowrap; 
+        }
+        
+        .seek-container { margin-bottom: 6px; display: flex; align-items: center; }
+        #seek-slider { width: 100%; accent-color: #cc4400; cursor: pointer; }
+
+        .slider-container { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; color: #444; font-weight: bold; flex: 1; margin-bottom: 4px; }
+        .slider-container input[type="range"] { flex: 1; accent-color: #cc4400; cursor: pointer; }
+        
+        /* MPCのドラムパッド風デザイン（濃いグレーに立体的なフチ） */
+        .pad-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 5px; }
+        .pad-wrapper { position: relative; height: 54px; }
+        
+        .pad { 
+            width: 100%; 
+            height: 100%; 
+            background-color: #55524d; 
+            border: 2px solid #383530; 
+            border-top: 2px solid #6b6760;
+            border-left: 2px solid #6b6760;
+            border-radius: 3px; 
+            color: #ccc; 
+            font-size: 0.8rem; 
+            font-weight: bold; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+            align-items: center; 
+            cursor: pointer; 
+            user-select: none; 
+            touch-action: none; 
+            position: relative; 
+            overflow: hidden; 
+            box-shadow: 0 3px 5px rgba(0,0,0,0.4);
+        }
+        
+        .pad.empty { color: #888; background-color: #4a4742; }
+        
+        /* サンプルがロードされたパッドはMPCのアクセントカラー（少し赤み・茶みがかったヴィンテージ調） */
+        .pad.set { 
+            border-color: #8c3b1e; 
+            border-top-color: #b34d28;
+            border-left-color: #b34d28;
+            background-color: #6b3320; 
+            color: #ffecd0; 
+        }
+        
+        .pad.tweaking { background-color: #1a4d4d !important; border-color: #00ffcc !important; color: #00ffcc !important; }
+        
+        /* 叩いたときは沈み込む演出＆オレンジ発光 */
+        .pad.active { 
+            background-color: #ff5500 !important; 
+            border-color: #ff8833 !important;
+            color: #000; 
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.6); 
+            transform: scale(0.97); 
+        }
+        
+        .pad-text { position: relative; z-index: 5; pointer-events: none; text-align: center; text-shadow: 1px 1px #000; }
+        .pad.active .pad-text { text-shadow: none; }
+        .pad span { font-size: 0.58rem; display: block; margin-top: 1px; color: #bbb; }
+        .pad.set span { color: #ffcc99; }
+        .pad.active span { color: #000; }
+
+        .wave-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; opacity: 0; }
+        .pad.tweaking .wave-canvas { opacity: 0.85; }
+        
+        .delete-btn { 
+            position: absolute; 
+            top: 2px; 
+            right: 2px; 
+            width: 16px; 
+            height: 16px; 
+            background-color: rgba(0, 0, 0, 0.7); 
+            color: #fff; 
+            border-radius: 50%; 
+            font-size: 10px; 
+            display: none; 
+            z-index: 10; 
+            cursor: pointer; 
+            border: 1px solid #777;
+        }
+        .pad.set + .delete-btn { display: flex; justify-content: center; align-items: center; }
+    </style>
+</head>
+<body>
+
+    <h1>SLICE BOY Ver.beta</h1>
+    <div class="container">
+        <div class="input-group">
+            <input type="text" id="youtube-url" placeholder="YouTube URL" value="https://youtu.be/k8NGPF1osYo?si=4NHu-QFWo8ShPrlA">
+            <button id="load-btn">LOAD</button>
+        </div>
+        <div class="input-group">
+            <div class="file-input-wrapper">
+                <input type="file" id="local-file-input" accept="video/*">
+            </div>
+        </div>
+
+        <div id="player-wrapper">
+            <div id="player"></div>
+        </div>
+        
+        <div class="seek-container">
+            <input type="range" id="seek-slider" min="0" max="100" value="0" step="0.1">
+        </div>
+
+        <div class="controls">
+            <div class="control-row">
+                <div>TIME: <span id="current-time">0.00</span>s</div>
+                <select id="speed-select">
+                    <option value="0.25">0.25x</option>
+                    <option value="0.5">0.5x</option>
+                    <option value="0.75">0.75x</option>
+                    <option value="1.0" selected>1.0x</option>
+                    <option value="1.25">1.25x</option>
+                    <option value="1.5">1.5x</option>
+                    <option value="1.75">1.75x</option>
+                    <option value="2.0">2.0x</option>
+                </select>
+                <button id="pip-btn">PiP</button>
+                <button id="clear-all-btn">CLEAR</button>
+            </div>
+            <div class="slider-container"><span>FAST</span><input type="range" id="response-slider" min="0.01" max="0.10" step="0.01" value="0.04"><span>SMOOTH</span></div>
+        </div>
+        <div class="pad-grid" id="pad-container"></div>
+    </div>
+
+    <script>
+        let player = null, localVideo = null, isLocalMode = false;
+        let timestamps = new Array(16).fill(null), padCooldowns = new Array(16).fill(false), audioCtx = null;
+        const keyMap = ['1','2','3','4','q','w','e','r','a','s','d','f','z','x','c','v'];
+        let isDragging = false, startY = 0, dragTargetIndex = null, baseTimestamp = 0, pressTimer = null, soundDuration = 0.04, mockWaveData = [];
+        let isSeeking = false;
+
+        window.addEventListener('DOMContentLoaded', () => {
+            let lastTouchEnd = 0;
+            document.addEventListener('touchend', (e) => {
+                let now = (new Date()).getTime();
+                if (now - lastTouchEnd <= 300) { e.preventDefault(); }
+                lastTouchEnd = now;
+            }, { passive: false });
+
+            const padContainer = document.getElementById('pad-container');
+            for (let i = 0; i < 16; i++) {
+                padContainer.innerHTML += `
+                    <div class="pad-wrapper">
+                        <div class="pad empty" id="pad-${i}" data-index="${i}">
+                            <canvas class="wave-canvas" id="canvas-${i}"></canvas>
+                            <div class="pad-text">PAD ${i + 1}<span>[${keyMap[i].toUpperCase()}] EMPTY</span></div>
+                        </div>
+                        <div class="delete-btn" data-index="${i}">×</div>
+                    </div>
+                `;
+            }
+
+            document.getElementById('speed-select').addEventListener('change', (e) => {
+                let speed = parseFloat(e.target.value);
+                if (isLocalMode && localVideo) { localVideo.playbackRate = speed; } 
+                else if (player && player.setPlaybackRate) { player.setPlaybackRate(speed); }
+            });
+
+            const responseSlider = document.getElementById('response-slider');
+            if (responseSlider) {
+                soundDuration = parseFloat(responseSlider.value);
+                responseSlider.addEventListener('input', (e) => { soundDuration = parseFloat(e.target.value); });
+            }
+
+            const seekSlider = document.getElementById('seek-slider');
+            seekSlider.addEventListener('input', () => {
+                isSeeking = true;
+                let dur = getDuration();
+                if (dur > 0) {
+                    let targetTime = (seekSlider.value / 100) * dur;
+                    document.getElementById('current-time').innerText = targetTime.toFixed(2);
+                }
+            });
+            seekSlider.addEventListener('change', () => {
+                let dur = getDuration();
+                if (dur > 0) {
+                    let targetTime = (seekSlider.value / 100) * dur;
+                    seekTo(targetTime);
+                    playVideo();
+                }
+                isSeeking = false;
+            });
+
+            document.getElementById('load-btn').addEventListener('click', () => {
+                const url = document.getElementById('youtube-url').value;
+                const videoId = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([^&?]+)/)?.[1];
+                if (videoId) initYouTubePlayer(videoId);
+                else alert("正しいYouTube URLを入力してください");
+            });
+
+            document.getElementById('local-file-input').addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const fileURL = URL.createObjectURL(file);
+                    initLocalPlayer(fileURL);
+                }
+            });
+
+            document.querySelectorAll('.pad').forEach(pad => {
+                const index = parseInt(pad.getAttribute('data-index'));
+                pad.addEventListener('pointerdown', (e) => {
+                    if (e.pointerType === 'mouse' && e.button !== 0) return;
+                    e.preventDefault();
+                    if (padCooldowns[index]) return;
+                    
+                    startY = e.clientY;
+                    pressTimer = setTimeout(() => {
+                        isDragging = true; dragTargetIndex = index; baseTimestamp = timestamps[index];
+                        document.getElementById(`pad-${index}`).classList.add('tweaking');
+                        generateMockWaveData(); drawWave(index, 0);
+                    }, 500);
+
+                    if (timestamps[index] === null) {
+                        let t = getCurrentTime();
+                        if (t !== null) {
+                            timestamps[index] = t;
+                            const el = document.getElementById(`pad-${index}`);
+                            el.classList.remove('empty'); el.classList.add('set');
+                            el.querySelector('span').innerText = `[${keyMap[index].toUpperCase()}] ${t.toFixed(2)}s`;
+                            playAttackSound();
+                        }
+                    } else {
+                        playPad(index);
+                    }
+                    padCooldowns[index] = true; setTimeout(() => padCooldowns[index] = false, 50);
+                });
+            });
+
+            window.addEventListener('pointermove', (e) => {
+                if (!isDragging || dragTargetIndex === null) {
+                    if (Math.abs(startY - e.clientY) > 10) clearTimeout(pressTimer);
+                    return;
+                }
+                let delta = startY - e.clientY;
+                timestamps[dragTargetIndex] = Math.max(0, baseTimestamp + delta * 0.01);
+                document.getElementById(`pad-${dragTargetIndex}`).querySelector('span').innerText = `[${keyMap[dragTargetIndex].toUpperCase()}] ${timestamps[dragTargetIndex].toFixed(2)}s`;
+                drawWave(dragTargetIndex, -delta);
+            });
+
+            window.addEventListener('pointerup', () => {
+                if (pressTimer) clearTimeout(pressTimer);
+                if (dragTargetIndex !== null) {
+                    document.getElementById(`pad-${dragTargetIndex}`).classList.remove('tweaking');
+                    seekTo(timestamps[dragTargetIndex]);
+                    playVideo();
+                    dragTargetIndex = null;
+                }
+                isDragging = false;
+            });
+
+            document.getElementById('clear-all-btn').addEventListener('click', () => {
+                if(confirm("全クリアしますか？")){
+                    timestamps.fill(null);
+                    document.querySelectorAll('.pad').forEach((p, i) => {
+                        p.className = 'pad empty';
+                        p.querySelector('span').innerText = `[${keyMap[i].toUpperCase()}] EMPTY`;
+                    });
+                }
+            });
+
+            document.getElementById('pip-btn').addEventListener('click', async () => {
+                const video = document.querySelector('video');
+                if (video) await video.requestPictureInPicture().catch(console.error);
+            });
+
+            document.querySelectorAll('.delete-btn').forEach(btn => btn.addEventListener('pointerdown', (e) => {
+                e.stopPropagation();
+                let i = btn.getAttribute('data-index');
+                timestamps[i] = null;
+                const p = document.getElementById(`pad-${i}`);
+                p.className = 'pad empty';
+                p.querySelector('span').innerText = `[${keyMap[i].toUpperCase()}] EMPTY`;
+            }));
+
+            window.addEventListener('keydown', (e) => {
+                if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+                if (e.repeat) return;
+
+                const keyIndex = keyMap.indexOf(e.key.toLowerCase());
+                if (keyIndex !== -1) {
+                    e.preventDefault();
+                    if (padCooldowns[keyIndex]) return;
+
+                    if (timestamps[keyIndex] === null) {
+                        let t = getCurrentTime();
+                        if (t !== null) {
+                            timestamps[keyIndex] = t;
+                            const el = document.getElementById(`pad-${keyIndex}`);
+                            el.classList.remove('empty'); el.classList.add('set');
+                            el.querySelector('span').innerText = `[${keyMap[keyIndex].toUpperCase()}] ${t.toFixed(2)}s`;
+                            playAttackSound();
+                            el.classList.add('active');
+                            setTimeout(() => el.classList.remove('active'), 100);
+                        }
+                    } else {
+                        playPad(keyIndex);
+                    }
+                    padCooldowns[keyIndex] = true;
+                    setTimeout(() => padCooldowns[keyIndex] = false, 50);
+                }
+            });
+
+            setInterval(() => {
+                let currentTime = getCurrentTime();
+                let duration = getDuration();
+                if (currentTime !== null) {
+                    document.getElementById('current-time').innerText = currentTime.toFixed(2);
+                    if (!isDragging && !isSeeking && duration > 0) {
+                        document.getElementById('seek-slider').value = (currentTime / duration) * 100;
+                    }
+                }
+            }, 100);
+        });
+
+        function getCurrentTime() {
+            if (isLocalMode && localVideo) return localVideo.currentTime;
+            if (player && player.getCurrentTime) return player.getCurrentTime();
+            return null;
+        }
+        function getDuration() {
+            if (isLocalMode && localVideo) return localVideo.duration;
+            if (player && player.getDuration) return player.getDuration();
+            return 0;
+        }
+        function seekTo(sec) {
+            if (isLocalMode && localVideo) localVideo.currentTime = sec;
+            else if (player && player.seekTo) player.seekTo(sec, true);
+        }
+        function playVideo() {
+            if (isLocalMode && localVideo) localVideo.play().catch(()=>{});
+            else if (player && player.playVideo) player.playVideo();
+        }
+
+        function initYouTubePlayer(videoId) {
+            isLocalMode = false;
+            const wrapper = document.getElementById('player-wrapper');
+            wrapper.innerHTML = '<div id="player"></div>';
+            
+            player = new YT.Player('player', {
+                videoId: videoId,
+                playerVars: { 'playsinline': 1, 'controls': 0, 'disablekb': 1, 'fs': 0, 'modestbranding': 1, 'iv_load_policy': 3, 'rel': 0 },
+                events: { 
+                    'onReady': (event) => {
+                        event.target.playVideo();
+                        const speed = parseFloat(document.getElementById('speed-select').value);
+                        event.target.setPlaybackRate(speed);
+                    } 
+                }
+            });
+        }
+
+        function initLocalPlayer(fileURL) {
+            isLocalMode = true;
+            if (player) { player.destroy(); player = null; }
+            
+            const wrapper = document.getElementById('player-wrapper');
+            wrapper.innerHTML = `<video id="local-video" playsinline webkit-playsinline></video>`;
+            localVideo = document.getElementById('local-video');
+            localVideo.src = fileURL;
+            
+            localVideo.addEventListener('loadedmetadata', () => {
+                localVideo.play().catch(()=>{});
+                localVideo.playbackRate = parseFloat(document.getElementById('speed-select').value);
+            });
+        }
+
+        function playPad(index) {
+            playAttackSound();
+            const el = document.getElementById(`pad-${index}`);
+            el.classList.add('active'); setTimeout(() => el.classList.remove('active'), 40);
+            seekTo(timestamps[index]);
+            playVideo();
+        }
+
+        function playAttackSound() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            let now = audioCtx.currentTime;
+            let osc = audioCtx.createOscillator();
+            let gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.frequency.setValueAtTime(220, now); osc.frequency.exponentialRampToValueAtTime(80, now + soundDuration);
+            gain.gain.setValueAtTime(0.25, now); gain.gain.exponentialRampToValueAtTime(0.0001, now + soundDuration);
+            osc.start(now); osc.stop(now + soundDuration);
+        }
+
+        function generateMockWaveData() { mockWaveData = Array.from({length: 300}, () => Math.random()); }
+        function drawWave(index, offset) {
+            const canvas = document.getElementById(`canvas-${index}`);
+            const ctx = canvas.getContext('2d');
+            canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#00ffcc';
+            mockWaveData.forEach((d, i) => ctx.fillRect(i * 3, canvas.height / 2 - d * 20, 2, d * 40));
+        }
+
+        let tag = document.createElement('script'); tag.src = "https://www.youtube.com/iframe_api"; document.body.appendChild(tag);
+    </script>
+</body>
+</html>
