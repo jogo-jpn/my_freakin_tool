@@ -582,7 +582,7 @@
                     if (labelEl) labelEl.innerText = chordName;
                 }
             }
-        }1
+        }
         const PRESET_CATEGORIES = [
             {
                 category: "BASS",
@@ -712,6 +712,7 @@
         let calculatedBpm = 120;
         let recordedNotes = [];
         let undoStack = [];
+        let isUndoSavedForCurrentSession = false; // 録音セッション開始時のUndo保存フラグ
 
         let isMasterFxOn = false;
         let currentFxType = "reverb";
@@ -1654,7 +1655,7 @@
                 };
 
                 if (state === "STANDBY") {
-                    saveUndoState();
+                    saveUndoStateIfNeeded();
                     state = "REC_FREE";
                     freeRecStartAudioTime = audioCtx.currentTime;
                     updateStatusUI("REC FREE", "led-red");
@@ -1663,13 +1664,13 @@
                     recordedNotes.push(noteEvent);
                     updateNotesDisplay();
                 } else if (state === "REC_FREE") {
-                    saveUndoState();
+                    saveUndoStateIfNeeded();
                     noteEvent.timeOffset = audioCtx.currentTime - freeRecStartAudioTime;
                     recordedNotes.push(noteEvent);
                     updateNotesDisplay();
                 } else if (state === "OVERDUB" || state === "WAIT_HEAD") {
                     if (loopDuration > 0) {
-                        saveUndoState();
+                        saveUndoStateIfNeeded();
                         const currentPos = (audioCtx.currentTime - loopStartTime) % loopDuration;
                         noteEvent.timeOffset = currentPos;
                         recordedNotes.push(noteEvent);
@@ -1734,7 +1735,7 @@
             };
 
             if (state === "STANDBY") {
-                saveUndoState();
+                saveUndoStateIfNeeded();
                 state = "REC_FREE";
                 freeRecStartAudioTime = audioCtx.currentTime;
                 updateStatusUI("REC FREE", "led-red");
@@ -1743,13 +1744,13 @@
                 recordedNotes.push(noteEvent);
                 updateNotesDisplay();
             } else if (state === "REC_FREE") {
-                saveUndoState();
+                saveUndoStateIfNeeded();
                 noteEvent.timeOffset = audioCtx.currentTime - freeRecStartAudioTime;
                 recordedNotes.push(noteEvent);
                 updateNotesDisplay();
             } else if (state === "OVERDUB" || state === "WAIT_HEAD") {
                 if (loopDuration > 0) {
-                    saveUndoState();
+                    saveUndoStateIfNeeded();
                     const currentPos = (audioCtx.currentTime - loopStartTime) % loopDuration;
                     noteEvent.timeOffset = currentPos;
                     recordedNotes.push(noteEvent);
@@ -1765,6 +1766,14 @@
             if (undoStack.length > 50) undoStack.shift();
         }
 
+        // 録音セッションでまだUndoが保存されていない場合のみ、録音開始直前の状態を保存
+        function saveUndoStateIfNeeded() {
+            if (!isUndoSavedForCurrentSession) {
+                saveUndoState();
+                isUndoSavedForCurrentSession = true;
+            }
+        }
+
         function performUndo() {
             if (undoStack.length === 0) return;
             
@@ -1775,6 +1784,7 @@
 
             recordedNotes = undoStack.pop();
             updateNotesDisplay();
+            isUndoSavedForCurrentSession = false;
 
             if (recordedNotes.length === 0) {
                 clearScheduledTimeouts();
@@ -1787,7 +1797,7 @@
                 loopInfo.innerText = "BPM: FREE | LENGTH: --";
                 timeDisplay.innerText = "00:00.0";
                 if (touchPrompt) touchPrompt.style.display = "block";
-            } else if (state === "PLAYING" || state === "OVERDUB" || state === "WAIT_HEAD") {
+            } else if (state === "PLAYING" || state === "OVERDUB" || state === "WAIT_HEAD" || state === "REC_FREE" || state === "STANDBY") {
                 startLoopPlayback(currentProgressOffset);
             }
         }
@@ -1796,6 +1806,7 @@
             if (recordedNotes.length === 0 || loopDuration <= 0) return;
             initAudioEngine();
             saveUndoState();
+            isUndoSavedForCurrentSession = false;
 
             let currentProgressOffset = 0;
             const isPlayingOrDubbing = (state === "PLAYING" || state === "OVERDUB" || state === "WAIT_HEAD");
@@ -1877,6 +1888,7 @@
 
         function clearActiveDeckData() {
             saveUndoState();
+            isUndoSavedForCurrentSession = false;
             
             let currentProgressOffset = 0;
             if ((state === "PLAYING" || state === "OVERDUB" || state === "WAIT_HEAD") && loopDuration > 0) {
@@ -2015,6 +2027,7 @@
         const toggleRecState = () => {
             initAudioEngine();
             if (state === "IDLE" || state === "PLAYING") {
+                isUndoSavedForCurrentSession = false;
                 if (recordedNotes.length === 0) {
                     state = "STANDBY";
                     updateStatusUI("STANDBY", "led-yellow");
@@ -2025,6 +2038,7 @@
             } else if (state === "STANDBY") {
                 state = "IDLE";
                 updateStatusUI("IDLE", "led-off");
+                isUndoSavedForCurrentSession = false;
             } else if (state === "REC_FREE") {
                 loopDuration = audioCtx.currentTime - freeRecStartAudioTime;
                 if (loopDuration < 0.5) loopDuration = 0.5;
@@ -2032,9 +2046,11 @@
                 loopInfo.innerText = `BPM: ${calculatedBpm} | ${loopDuration.toFixed(1)}s`;
                 startLoopPlayback(0);
                 updateMasterFxParameters();
+                isUndoSavedForCurrentSession = false;
             } else if (state === "OVERDUB" || state === "WAIT_HEAD") {
                 state = "PLAYING";
                 updateStatusUI("PLAYING", "led-green");
+                isUndoSavedForCurrentSession = false;
             }
         };
 
@@ -2052,12 +2068,15 @@
                 loopInfo.innerText = `BPM: ${calculatedBpm} | ${loopDuration.toFixed(1)}s`;
                 startLoopPlayback(0);
                 updateMasterFxParameters();
+                isUndoSavedForCurrentSession = false;
             } else if (state === "PLAYING" || state === "OVERDUB") {
                 clearScheduledTimeouts();
                 state = "IDLE";
                 updateStatusUI("IDLE", "led-off");
+                isUndoSavedForCurrentSession = false;
             } else if (state === "IDLE" && recordedNotes.length > 0) {
                 startLoopPlayback(0);
+                isUndoSavedForCurrentSession = false;
             }
         });
 
