@@ -1,0 +1,2098 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>SUPER ESELATOR - Dual Deck</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+
+
+
+        /* 拡大・ズームの防止スタイル */
+        *, *::before, *::after {
+            touch-action: manipulation;
+            -webkit-text-size-adjust: 100%;
+            text-size-adjust: 100%;
+        }
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+            background-color: #0b0c10;
+            font-family: 'Inter', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none; /* 全体でのピンチ・パン操作を無効化 */
+        }
+
+
+
+        .snes-shell {
+            background: linear-gradient(165deg, #dcdce2 0%, #c8c8d0 50%, #b2afbe 100%);
+            box-shadow: 
+                0 20px 50px rgba(0,0,0,0.9),
+                0 2px 4px rgba(255,255,255,0.9) inset,
+                -3px -3px 8px rgba(0,0,0,0.3) inset;
+            border-radius: 20px;
+            border: 2px solid #8e8b99;
+        }
+
+        .snes-dark-inset {
+            background: linear-gradient(180deg, #373440 0%, #25232d 100%);
+            box-shadow: inset 0 4px 10px rgba(0,0,0,0.8), 0 1px 2px rgba(255,255,255,0.3);
+            border-radius: 12px;
+        }
+
+        .snes-screen {
+            background-color: #121810;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.9), inset 0 2px 6px rgba(0,0,0,0.9);
+            border: 3px solid #0a0d0a;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .snes-screen::after {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.35) 50%);
+            background-size: 100% 4px;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .snes-btn-purple {
+            background: linear-gradient(180deg, #6c52a1 0%, #4a3478 100%);
+            border: 1px solid #332156;
+            box-shadow: 0 2px 0 #23153d, 0 3px 6px rgba(0,0,0,0.4);
+            border-radius: 6px;
+            color: #e5dbff;
+            transition: all 0.05s ease;
+        }
+        .snes-btn-purple:active, .snes-btn-purple.active {
+            transform: translateY(1px);
+            box-shadow: 0 1px 0 #23153d, 0 2px 3px rgba(0,0,0,0.4);
+        }
+
+        .snes-btn-light-purple {
+            background: linear-gradient(180deg, #9b82cb 0%, #7559a7 100%);
+            border: 2px solid #503977;
+            box-shadow: 0 3px 0 #362453, 0 4px 8px rgba(0,0,0,0.4);
+            border-radius: 8px;
+            color: #ffffff;
+            transition: all 0.05s ease;
+        }
+        .snes-btn-light-purple:active, .snes-btn-light-purple.active {
+            transform: translateY(2px);
+            box-shadow: 0 1px 0 #362453, 0 2px 4px rgba(0,0,0,0.4);
+        }
+
+        .snes-btn-dark {
+            background: linear-gradient(180deg, #4d4a57 0%, #32303b 100%);
+            border: 2px solid #201e26;
+            box-shadow: 0 3px 0 #141318, 0 4px 6px rgba(0,0,0,0.4);
+            border-radius: 8px;
+            color: #e2e0e8;
+            transition: all 0.05s ease;
+        }
+        .snes-btn-dark:active, .snes-btn-dark.active {
+            transform: translateY(2px);
+            box-shadow: 0 1px 0 #141318, 0 2px 4px rgba(0,0,0,0.4);
+        }
+
+        .deck-btn-active {
+            background: linear-gradient(180deg, #22c55e 0%, #15803d 100%) !important;
+            border-color: #166534 !important;
+            color: #ffffff !important;
+            box-shadow: 0 0 8px rgba(34, 197, 94, 0.6) !important;
+        }
+
+        /* Deck sound marquee / horizontal scroll styles */
+        .deck-scroll-container {
+            overflow-x: auto;
+            white-space: nowrap;
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none; /* IE/Edge */
+        }
+        .deck-scroll-container::-webkit-scrollbar {
+            display: none; /* Chrome/Safari/Opera */
+        }
+
+        .led-off { background-color: #2b1212; box-shadow: inset 0 1px 2px rgba(0,0,0,0.9); }
+        .led-red { background-color: #ff2233; box-shadow: 0 0 10px #ff2233, inset 0 1px 2px #ffffff; }
+        .led-yellow { background-color: #ffbb00; box-shadow: 0 0 10px #ffbb00, inset 0 1px 2px #ffffff; }
+        .led-green { background-color: #22ff55; box-shadow: 0 0 10px #22ff55, inset 0 1px 2px #ffffff; }
+        .led-blinking {
+            animation: blink 0.8s infinite;
+        }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.2; }
+        }
+
+        .snes-font {
+            font-family: 'Press Start 2P', monospace;
+        }
+.chord-pad {
+    height: 30px !important; /* min-height ではなく height で固定 */
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    line-height: 1 !important; /* 文字上下の無駄な隙間をなくす */
+}
+
+/* ボタンの中の文字の行高も詰める */
+.chord-pad span {
+    line-height: 1 !important;
+}
+
+
+    </style>
+</head>
+<body class="h-full w-full flex items-center justify-center p-2 sm:p-3">
+
+    <div class="snes-shell w-full max-w-2xl h-full max-h-[96vh] flex flex-col justify-between p-2.5 sm:p-3 text-slate-800 relative select-none overflow-hidden">
+        
+        <!-- Header Branding & Audio Wav Recorder -->
+        <div class="flex justify-between items-center px-1 shrink-0">
+            <div class="flex flex-col">
+                <span class="font-extrabold tracking-widest text-xs sm:text-sm text-slate-800 font-mono leading-none">SUPER ESELATOR</span>
+                <span class="text-[8px] sm:text-[9px] text-purple-900 font-bold font-mono tracking-wider mt-0.5">STARTED IN 2026 / by jogo.jpn</span>
+            </div>
+            <div class="flex items-center space-x-2">
+                <!-- Audio WAV Recording Button -->
+                <button id="btn-wav-rec" class="bg-red-800 hover:bg-red-700 text-white font-mono text-[9px] font-bold px-2 py-0.5 rounded border border-red-500 flex items-center space-x-1 shadow transition">
+                    <span id="rec-wav-led" class="w-2 h-2 rounded-full bg-red-400 inline-block"></span>
+                    <span id="rec-wav-text">REC (WAV)</span>
+                </button>
+
+                <div class="flex items-center space-x-1.5 bg-slate-300/90 px-2 py-0.5 rounded border border-slate-400">
+                    <span class="text-[8px] font-bold text-slate-700 font-mono">POWER</span>
+                    <span id="power-led" class="w-2.5 h-2.5 rounded-full led-red inline-block"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Touch Pad & Screen Display Section -->
+        <div class="snes-dark-inset p-1.5 my-1 flex-1 flex flex-col min-h-0 relative">
+            <div class="flex justify-between items-center text-[10px] font-mono mb-1 px-1 shrink-0">
+                <div class="flex items-center space-x-2">
+                    <span id="status-led" class="w-2.5 h-2.5 rounded-full led-off inline-block"></span>
+                    <span id="status-text" class="text-purple-300 font-bold tracking-wider">IDLE</span>
+                </div>
+                <div id="scale-info-display" class="text-purple-200/90 font-mono font-bold text-[9px] sm:text-[10px]">KEY: F | SCALE: MAJOR</div>
+            </div>
+
+            <!-- Fixed-Width Deck Selector Bar with Horizontal Scroll Sub-labels -->
+            <div class="grid grid-cols-2 gap-1.5 mb-1 shrink-0 font-mono">
+                <button id="btn-deck-a" class="snes-btn-purple deck-btn-active py-1 px-2 flex items-center justify-between rounded overflow-hidden">
+                    <span class="text-[10px] font-black tracking-wider shrink-0 mr-1">DECK A</span>
+                    <div class="deck-scroll-container text-right flex-1">
+                        <span id="deck-a-sound-sub" class="text-[8px] opacity-90 font-bold inline-block">01: SNES SLAP BASS</span>
+                    </div>
+                </button>
+                <button id="btn-deck-b" class="snes-btn-purple py-1 px-2 flex items-center justify-between rounded overflow-hidden">
+                    <span class="text-[10px] font-black tracking-wider shrink-0 mr-1">DECK B</span>
+                    <div class="deck-scroll-container text-right flex-1">
+                        <span id="deck-b-sound-sub" class="text-[8px] opacity-90 font-bold inline-block">51: 8-BIT RETRO KIT</span>
+                    </div>
+                </button>
+            </div>
+
+            <!-- Main Big Touch Pad Canvas -->
+            <div id="touch-pad" class="snes-screen flex-1 w-full rounded-lg relative cursor-crosshair flex flex-col justify-between p-2 min-h-[140px]">
+                <canvas id="lcd-canvas" class="absolute inset-0 w-full h-full z-0"></canvas>
+
+                <!-- Screen Header Info -->
+                <div class="relative z-10 flex justify-between items-start font-mono text-xs text-emerald-400">
+                    <div>
+                        <div id="active-deck-label" class="font-black text-[9px] text-emerald-400 tracking-wider">ACTIVE: DECK A</div>
+                        <div id="preset-title" class="font-bold text-xs sm:text-sm text-yellow-300 tracking-tight leading-tight">01: SNES SLAP BASS</div>
+                        <div id="loop-info" class="text-[10px] opacity-90 text-emerald-300">BPM: FREE | LENGTH: --</div>
+                    </div>
+                    <div id="time-display" class="font-mono text-xs sm:text-sm font-bold tracking-widest bg-black/60 text-emerald-300 px-2 py-0.5 rounded border border-emerald-800/40">
+                        00:00.0
+                    </div>
+                </div>
+
+                <!-- Touch Prompt -->
+                <div id="touch-prompt" class="relative z-10 text-center pointer-events-none my-auto">
+                    <div class="snes-font text-[9px] sm:text-xs text-purple-300 tracking-widest animate-pulse">
+                        TOUCH PAD TO PLAY
+                    </div>
+                    <div class="font-mono text-[10px] text-emerald-400 mt-1 opacity-80">
+                        X: SCALE PITCH | Y: FILTER CUTOFF
+                    </div>
+                </div>
+
+                <!-- Screen Footer Status -->
+                <div class="relative z-10 flex justify-between items-end font-mono text-[9px] sm:text-[10px] text-emerald-400 border-t border-emerald-900/60 pt-0.5">
+                    <span id="fx-display">FX: OFF</span>
+                    <span id="overdub-display">MODE: IDLE</span>
+                    <span id="notes-display">NOTES: 0</span>
+                </div>
+            </div>
+
+            <!-- 演奏パッド直下に配置された5つのコードパッド -->
+            <div id="chord-pads-container" class="grid grid-cols-5 gap-1.5 my-1 shrink-0 font-mono">
+                <button class="chord-pad snes-btn-light-purple py-1.5 px-1 flex flex-col items-center justify-center rounded transition" data-pad-idx="0">
+                    <span class="chord-label text-[10px] font-black tracking-tight text-yellow-200">F</span>
+                    <span class="chord-sub text-[7px] text-purple-200 opacity-80 font-bold">CHORD 1</span>
+                </button>
+                <button class="chord-pad snes-btn-light-purple py-1.5 px-1 flex flex-col items-center justify-center rounded transition" data-pad-idx="1">
+                    <span class="chord-label text-[10px] font-black tracking-tight text-yellow-200">Gm</span>
+                    <span class="chord-sub text-[7px] text-purple-200 opacity-80 font-bold">CHORD 2</span>
+                </button>
+                <button class="chord-pad snes-btn-light-purple py-1.5 px-1 flex flex-col items-center justify-center rounded transition" data-pad-idx="2">
+                    <span class="chord-label text-[10px] font-black tracking-tight text-yellow-200">Am</span>
+                    <span class="chord-sub text-[7px] text-purple-200 opacity-80 font-bold">CHORD 3</span>
+                </button>
+                <button class="chord-pad snes-btn-light-purple py-1.5 px-1 flex flex-col items-center justify-center rounded transition" data-pad-idx="3">
+                    <span class="chord-label text-[10px] font-black tracking-tight text-yellow-200">Bb</span>
+                    <span class="chord-sub text-[7px] text-purple-200 opacity-80 font-bold">CHORD 4</span>
+                </button>
+                <button class="chord-pad snes-btn-light-purple py-1.5 px-1 flex flex-col items-center justify-center rounded transition" data-pad-idx="4">
+                    <span class="chord-label text-[10px] font-black tracking-tight text-yellow-200">C</span>
+                    <span class="chord-sub text-[7px] text-purple-200 opacity-80 font-bold">CHORD 5</span>
+                </button>
+            </div>
+
+            <!-- Deck Master Volume Sliders (Max 100) -->
+            <div class="grid grid-cols-2 gap-2 mt-0.5 px-0.5 font-mono text-[9px] text-slate-300 shrink-0">
+                <!-- DECK A Master Volume -->
+                <div class="bg-slate-900/90 p-1.5 rounded border border-slate-700 flex flex-col space-y-1">
+                    <div class="flex justify-between items-center">
+                        <span class="font-black text-emerald-400 text-[8px]">DECK A MASTER VOL</span>
+                        <span id="vol-val-a" class="text-[8px] text-slate-400 font-bold">100%</span>
+                    </div>
+                    <div class="flex items-center space-x-1.5">
+                        <input id="vol-slider-a" type="range" min="0" max="100" value="100" class="accent-emerald-400 w-full h-1.5 cursor-pointer">
+                    </div>
+                </div>
+
+                <!-- DECK B Master Volume -->
+                <div class="bg-slate-900/90 p-1.5 rounded border border-slate-700 flex flex-col space-y-1">
+                    <div class="flex justify-between items-center">
+                        <span class="font-black text-purple-400 text-[8px]">DECK B MASTER VOL</span>
+                        <span id="vol-val-b" class="text-[8px] text-slate-400 font-bold">100%</span>
+                    </div>
+                    <div class="flex items-center space-x-1.5">
+                        <input id="vol-slider-b" type="range" min="0" max="100" value="100" class="accent-purple-400 w-full h-1.5 cursor-pointer">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Key, Scale & Preset Selection Controls -->
+        <div class="bg-slate-300/80 p-1.5 rounded-xl border border-slate-400 my-0.5 shrink-0 flex flex-col space-y-1 font-mono">
+            <div class="grid grid-cols-12 gap-1.5">
+                <div class="col-span-4 flex flex-col">
+                    <label class="text-[7px] font-extrabold text-slate-700 uppercase">KEY (ROOT)</label>
+                    <select id="keySelect" class="bg-slate-900 text-purple-300 border border-slate-700 text-[10px] rounded p-0.5 outline-none font-bold w-full">
+                        <option value="C">C</option>
+                        <option value="C#">C# / Db</option>
+                        <option value="D">D</option>
+                        <option value="D#">D# / Eb</option>
+                        <option value="E">E</option>
+                        <option value="F" selected>F</option>
+                        <option value="F#">F# / Gb</option>
+                        <option value="G">G</option>
+                        <option value="G#">G# / Ab</option>
+                        <option value="A">A</option>
+                        <option value="A#">A# / Bb</option>
+                        <option value="B">B</option>
+                    </select>
+                </div>
+                <div class="col-span-8 flex flex-col">
+                    <label class="text-[7px] font-extrabold text-slate-700 uppercase">SCALE / MODE</label>
+                    <select id="scaleSelect" class="bg-slate-900 text-emerald-300 border border-slate-700 text-[10px] rounded p-0.5 outline-none font-bold w-full">
+                        <option value="chromatic">CHROMATIC (12-TONE FULL)</option>
+                        <option value="major" selected>MAJOR (IONIAN)</option>
+                        <option value="minor">NATURAL MINOR (AEOLIAN)</option>
+                        <option value="pMaj">PENTATONIC MAJOR</option>
+                        <option value="pMin">PENTATONIC MINOR</option>
+                        <option value="blues">BLUES SCALE</option>
+                        <option value="dorian">DORIAN MODE</option>
+                        <option value="phrygian">PHRYGIAN MODE</option>
+                        <option value="lydian">LYDIAN MODE</option>
+                        <option value="mixolydian">MIXOLYDIAN MODE</option>
+                        <option value="locrian">LOCRIAN MODE</option>
+                        <option value="harmMinor">HARMONIC MINOR</option>
+                        <option value="melMinor">MELODIC MINOR</option>
+                        <option value="insen">JAPANESE INSEN</option>
+                        <option value="hirajoshi">JAPANESE HIRAJOSHI</option>
+                        <option value="arabic">ARABIC / DOUBLE HARMONIC</option>
+                        <option value="wholetone">WHOLE TONE SCALE</option>
+                        <option value="diminished">DIMINISHED SCALE</option>
+                        <option value="chipArp">CHIPTUNE TRIAD ARP</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Active Deck Sound Selector with Side Arrow Buttons -->
+            <div class="flex flex-col">
+                <div class="flex justify-between items-center mb-0.5">
+                    <label id="preset-label" class="text-[7px] font-extrabold text-slate-700 uppercase">SOUND PRESET (DECK A)</label>
+                </div>
+                <div class="flex items-center space-x-1">
+                    <button id="btn-preset-prev" class="snes-btn-light-purple px-2.5 py-1 text-xs font-black shrink-0">◀</button>
+                    <select id="presetSelect" class="bg-slate-900 text-yellow-300 border border-slate-700 text-[10px] rounded p-1 outline-none focus:ring-1 focus:ring-purple-500 w-full font-bold">
+                    </select>
+                    <button id="btn-preset-next" class="snes-btn-light-purple px-2.5 py-1 text-xs font-black shrink-0">►</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Master Effector Panel (Dual Sliders & Real Reverb Engine) -->
+        <div class="bg-slate-900 text-slate-200 p-1.5 rounded-xl border border-slate-700 my-0.5 shrink-0 flex flex-col space-y-1 font-mono">
+            <div class="flex justify-between items-center text-[9px]">
+                <span class="font-bold text-purple-300 tracking-wider">MASTER EFFECTOR ENGINE (15 TYPES)</span>
+                <button id="btn-fx-toggle" class="bg-purple-700 hover:bg-purple-600 active:bg-purple-800 text-purple-100 font-bold px-2 py-0.5 rounded text-[8px] tracking-wider border border-purple-500">
+                    FX: OFF
+                </button>
+            </div>
+            <div class="grid grid-cols-12 gap-1.5 text-[9px] items-center">
+                <!-- Effect Type Selector -->
+                <div class="col-span-4 flex flex-col">
+                    <span class="text-slate-400 text-[7px] mb-0.5">EFFECT TYPE</span>
+                    <select id="fx-type-select" class="bg-slate-950 text-emerald-300 border border-slate-700 rounded p-0.5 text-[9px] outline-none font-bold">
+                        <option value="reverb" selected>1: HALL REVERB (空間残響)</option>
+                        <option value="filter">2: LOWPASS FILTER</option>
+                        <option value="delay">3: CHIPTUNE ECHO DELAY</option>
+                        <option value="bpmDelay">4: BPM SYNC DELAY</option>
+                        <option value="bitcrush">5: 8-BIT BITCRUSHER</option>
+                        <option value="chorus">6: CHORUS</option>
+                        <option value="flanger">7: FLANGER</option>
+                        <option value="phaser">8: PHASER</option>
+                        <option value="ringMod">9: RING MODULATOR</option>
+                        <option value="overdrive">10: OVERDRIVE</option>
+                        <option value="distortion">11: DISTORTION</option>
+                        <option value="autoWah">12: AUTO WAH</option>
+                        <option value="lofiBit">13: LO-FI TOY PIANO</option>
+                        <option value="pitchDelay">14: PITCH SHIFT DELAY</option>
+                        <option value="simReverb">15: RETRO DELAY REVERB</option>
+                    </select>
+                </div>
+                
+                <!-- Slider 1: Parameter 1 -->
+                <div class="col-span-4 flex flex-col justify-center">
+                    <div class="flex justify-between text-[7px] text-slate-400 mb-0.5">
+                        <span id="fx-param-label">REVERB DECAY</span>
+                        <span id="fx-val-text">60%</span>
+                    </div>
+                    <input id="fx-param-slider" type="range" min="0" max="100" value="60" class="accent-purple-400 cursor-pointer w-full h-1.5 bg-slate-800 rounded">
+                </div>
+
+                <!-- Slider 2: Parameter 2 -->
+                <div class="col-span-4 flex flex-col justify-center">
+                    <div class="flex justify-between text-[7px] text-slate-400 mb-0.5">
+                        <span id="fx-param-label2">ROOM SIZE / MIX</span>
+                        <span id="fx-val-text2">50%</span>
+                    </div>
+                    <input id="fx-param-slider2" type="range" min="0" max="100" value="50" class="accent-emerald-400 cursor-pointer w-full h-1.5 bg-slate-800 rounded">
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls Bar -->
+        <div class="bg-slate-300/80 p-1.5 rounded-xl border border-slate-400 my-0.5 shrink-0">
+            <div class="grid grid-cols-7 gap-1">
+                <button id="btn-prev-sound" class="snes-btn-light-purple py-1.5 flex flex-col items-center justify-center">
+                    <span class="text-xs font-extrabold font-mono">◄</span>
+                    <span class="text-[6px] font-mono font-bold">PREV</span>
+                </button>
+                <button id="btn-next-sound" class="snes-btn-light-purple py-1.5 flex flex-col items-center justify-center">
+                    <span class="text-xs font-extrabold font-mono">►</span>
+                    <span class="text-[6px] font-mono font-bold">NEXT</span>
+                </button>
+                <button id="btn-a-rec" class="snes-btn-purple py-1.5 flex flex-col items-center justify-center">
+                    <span class="text-xs font-extrabold font-mono">REC</span>
+                    <span class="text-[6px] font-mono font-bold">ARM/DUB</span>
+                </button>
+                <button id="btn-undo" class="snes-btn-purple py-1.5 flex flex-col items-center justify-center">
+                    <span class="text-xs font-extrabold font-mono">UNDO</span>
+                    <span class="text-[6px] font-mono font-bold">BACK</span>
+                </button>
+                <button id="btn-b-clear" class="snes-btn-purple py-1.5 flex flex-col items-center justify-center">
+                    <span class="text-xs font-extrabold font-mono">CLR</span>
+                    <span class="text-[6px] font-mono font-bold">CLEAR DECK</span>
+                </button>
+                <button id="btn-select" class="snes-btn-dark py-1.5 flex flex-col items-center justify-center">
+                    <span class="text-[10px] font-bold font-mono">SEL</span>
+                    <span class="text-[6px] font-mono font-bold">X2 DUP</span>
+                </button>
+                <button id="btn-start" class="snes-btn-dark py-1.5 flex flex-col items-center justify-center">
+                    <span class="text-[10px] font-bold font-mono">START</span>
+                    <span class="text-[6px] font-mono font-bold">PLAY/STOP</span>
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- 画面拡大・ズーム防止スクリプト ---
+        (function disableZoom() {
+            document.addEventListener('touchstart', function (e) {
+                if (e.touches.length > 1) {
+                    e.preventDefault();
+                }
+            }, { passive: false });
+
+            document.addEventListener('touchmove', function (e) {
+                if (e.touches.length > 1) {
+                    e.preventDefault();
+                }
+            }, { passive: false });
+
+            let lastTouchEnd = 0;
+            document.addEventListener('touchend', function (e) {
+                const now = (new Date()).getTime();
+                if (now - lastTouchEnd <= 300) {
+                    e.preventDefault();
+                }
+                lastTouchEnd = now;
+            }, false);
+
+            document.addEventListener('gesturestart', function (e) { e.preventDefault(); }, { passive: false });
+            document.addEventListener('gesturechange', function (e) { e.preventDefault(); }, { passive: false });
+            document.addEventListener('gestureend', function (e) { e.preventDefault(); }, { passive: false });
+
+            document.addEventListener('wheel', function (e) {
+                if (e.ctrlKey || e.metaKey) {
+                    e.preventDefault();
+                }
+            }, { passive: false });
+
+            document.addEventListener('keydown', function (e) {
+                if ((e.ctrlKey || e.metaKey) && (e.key === '+' || e.key === '-' || e.key === '=' || e.key === '0')) {
+                    e.preventDefault();
+                }
+            });
+        })();
+
+        const KEY_SEMI_MAP = {
+            "C": 0, "C#": 1, "D": 2, "D#": 3, "E": 4, "F": 5,
+            "F#": 6, "G": 7, "G#": 8, "A": 9, "A#": 10, "B": 11
+        };
+
+        const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+
+        const SCALE_INTERVALS = {
+            "chromatic": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+            "major": [0, 2, 4, 5, 7, 9, 11],
+            "minor": [0, 2, 3, 5, 7, 8, 10],
+            "pMaj": [0, 2, 4, 7, 9],
+            "pMin": [0, 3, 5, 7, 10],
+            "blues": [0, 3, 5, 6, 7, 10],
+            "dorian": [0, 2, 3, 5, 7, 9, 10],
+            "phrygian": [0, 1, 3, 5, 7, 8, 10],
+            "lydian": [0, 2, 4, 6, 7, 9, 11],
+            "mixolydian": [0, 2, 4, 5, 7, 9, 10],
+            "locrian": [0, 1, 3, 5, 6, 8, 10],
+            "harmMinor": [0, 2, 3, 5, 7, 8, 11],
+            "melMinor": [0, 2, 3, 5, 7, 9, 11],
+            "insen": [0, 1, 5, 7, 10],
+            "hirajoshi": [0, 2, 3, 7, 8],
+            "arabic": [0, 1, 4, 5, 7, 8, 11],
+            "wholetone": [0, 2, 4, 6, 8, 10],
+            "diminished": [0, 1, 3, 4, 6, 7, 9, 10],
+            "chipArp": [0, 4, 7, 12]
+        };
+
+        let currentKey = "F";
+        let currentScaleKey = "major";
+        let activeScaleFrequencies = [];
+        let chordPadsData = [];
+
+        function getNoteName(midiNumber) {
+            return NOTE_NAMES[((midiNumber % 12) + 12) % 12];
+        }
+
+        function buildScaleFrequencyTable() {
+            const rootSemi = KEY_SEMI_MAP[currentKey] || 0;
+            const intervals = SCALE_INTERVALS[currentScaleKey] || SCALE_INTERVALS["chromatic"];
+            activeScaleFrequencies = [];
+
+            const baseMidiRoot = 48 + rootSemi;
+            for (let octave = 0; octave < 3; octave++) {
+                for (let i = 0; i < intervals.length; i++) {
+                    const midiNote = baseMidiRoot + (octave * 12) + intervals[i];
+                    const freq = 440 * Math.pow(2, (midiNote - 69) / 12);
+                    activeScaleFrequencies.push(freq);
+                }
+            }
+            updateChordPads();
+        }
+
+        // ダイアトニックコードの自動計算とコードパッドの更新
+        function updateChordPads() {
+            const rootSemi = KEY_SEMI_MAP[currentKey] || 0;
+            const intervals = SCALE_INTERVALS[currentScaleKey] || SCALE_INTERVALS["chromatic"];
+            const baseMidiRoot = 60 + rootSemi; // C4オクターブ領域
+
+            chordPadsData = [];
+            const padElements = document.querySelectorAll(".chord-pad");
+
+            for (let i = 0; i < 5; i++) {
+                const idx1 = i % intervals.length;
+                const idx2 = (i + 2) % intervals.length;
+                const idx3 = (i + 4) % intervals.length;
+
+                const oct1 = Math.floor(i / intervals.length);
+                const oct2 = Math.floor((i + 2) / intervals.length);
+                const oct3 = Math.floor((i + 4) / intervals.length);
+
+                const midi1 = baseMidiRoot + intervals[idx1] + (oct1 * 12);
+                const midi2 = baseMidiRoot + intervals[idx2] + (oct2 * 12);
+                const midi3 = baseMidiRoot + intervals[idx3] + (oct3 * 12);
+
+                const freq1 = 440 * Math.pow(2, (midi1 - 69) / 12);
+                const freq2 = 440 * Math.pow(2, (midi2 - 69) / 12);
+                const freq3 = 440 * Math.pow(2, (midi3 - 69) / 12);
+
+                const rootNoteName = getNoteName(midi1);
+                const diff2 = midi2 - midi1;
+                const diff3 = midi3 - midi1;
+
+                let chordType = "";
+                if (diff2 === 4 && diff3 === 7) chordType = "";
+                else if (diff2 === 3 && diff3 === 7) chordType = "m";
+                else if (diff2 === 3 && diff3 === 6) chordType = "dim";
+                else if (diff2 === 4 && diff3 === 8) chordType = "aug";
+                else if (diff2 === 5 && diff3 === 7) chordType = "sus4";
+                else chordType = "";
+
+                const chordName = `${rootNoteName}${chordType}`;
+                const normX = (i + 0.5) / 5;
+
+                chordPadsData.push({
+                    name: chordName,
+                    freqs: [freq1, freq2, freq3],
+                    normX: normX
+                });
+
+                if (padElements[i]) {
+                    const labelEl = padElements[i].querySelector(".chord-label");
+                    if (labelEl) labelEl.innerText = chordName;
+                }
+            }
+        }1
+        const PRESET_CATEGORIES = [
+            {
+                category: "BASS",
+                presets: [
+                    { id: 0, name: "01: SNES SLAP BASS", wave: "sawtooth", attack: 0.002, decay: 0.15, sustain: 0.2, release: 0.08, defaultVol: 1.5, defaultOctave: -1 },
+                    { id: 1, name: "02: 303 ACID RESONANCE", wave: "sawtooth", attack: 0.018, decay: 0.3, sustain: 0.1, release: 0.7, pitchBend: false, defaultVol: 1.2, defaultOctave: -3 },
+                    { id: 2, name: "03: DEEP TRIANGLE SUB", wave: "triangle", attack: 0.01, decay: 0.3, sustain: 0.9, release: 0.5, defaultVol: 1.5, defaultOctave: -3 },
+                    { id: 3, name: "04: 8-BIT SQUARE BASS", wave: "square", attack: 0.1, decay: 0.15, sustain: 0.5, release: 0.1, defaultVol: 0.2, defaultOctave: -3 },
+                    { id: 4, name: "05: FM METALLIC BASS", wave: "sine", attack: 0.001, decay: 0.12, sustain: 0.3, release: 0.08, laser: true, defaultVol: 1.5, defaultOctave: -2 },
+                    { id: 5, name: "06: ORGAN SYNTH BASS", wave: "square", attack: 0.02, decay: 0.2, sustain: 0.8, release: 0.15, chord: [0, 12], defaultVol: 0.5, defaultOctave: -3 },
+                    { id: 6, name: "07: STAB PUNCH BASS", wave: "sawtooth", attack: 0.001, decay: 0.08, sustain: 0.1, release: 0.05, defaultVol: 1.5, defaultOctave: -3 },
+                    { id: 7, name: "08: TAP BASS", wave: "triangle", attack: 0.001, decay: 0.09, sustain: 0.5, release: 0.03, defaultVol: 2.0, defaultOctave: -3 },
+                    { id: 8, name: "09: WOODY PICK BASS", wave: "triangle", attack: 0.002, decay: 0.18, sustain: 0.3, release: 0.08, defaultVol: 1.5, defaultOctave: -2 },
+                    { id: 9, name: "10: FUZZ SAW BASS", wave: "triangle", attack: 0.05, decay: 0.25, sustain: 0.7, release: 0.05, defaultVol: 0.5, defaultOctave: -3 }
+                ]
+            },
+            {
+                category: "LEAD",
+                presets: [
+                    { id: 10, name: "11: 16-BIT BRASS LEAD", wave: "sawtooth", attack: 0.02, decay: 0.2, sustain: 0.7, release: 0.6, defaultVol: 0.3, defaultOctave: 0 },
+                    { id: 11, name: "12: NES PULSE WAVE", wave: "square", attack: 0.003, decay: 0.18, sustain: 0.6, release: 0.9, defaultVol: 0.3, defaultOctave: 0 },
+                    { id: 12, name: "13: RETRO FLUTE", wave: "sine", attack: 0.04, decay: 0.25, sustain: 0.8, release: 0.2, defaultVol: 0.3, defaultOctave: 1 },
+                    { id: 13, name: "14: HYPER TRIAD", wave: "square", attack: 0.001, decay: 0.12, sustain: 0.3, release: 0.9, arpeggio: false, defaultVol: 0.3, defaultOctave: 0 },
+                    { id: 14, name: "15: GLITCH STACCATO", wave: "square", attack: 0.001, decay: 0.05, sustain: 0.1, release: 0.02, defaultVol: 0.3, defaultOctave: 0 },
+                    { id: 15, name: "16: FM VIBES BELL", wave: "sine", attack: 0.001, decay: 0.35, sustain: 0.2, release: 0.25, defaultVol: 0.3, defaultOctave: 1 },
+                    { id: 16, name: "17: SINE PLUCK", wave: "sine", attack: 0.001, decay: 0.15, sustain: 0.1, release: 0.1, defaultVol: 0.3, defaultOctave: 0 },
+                    { id: 17, name: "18: SLIDE AMBI", wave: "square", attack: 0.5, decay: 0.2, sustain: 0.5, release: 0.4, pitchBend: false, defaultVol: 0.04, defaultOctave: 0 },
+                    { id: 18, name: "19: SLIDE PLUCK", wave: "sine", attack: 0.5, decay: 0.15, sustain: 0.1, release: 0.4, defaultVol: 0.2, defaultOctave: 0 },
+                    { id: 19, name: "20: SLIDE TRIANGLE", wave: "triangle", attack: 0.5, decay: 0.4, sustain: 0.9, release: 0.4, defaultVol: 0.05, defaultOctave: 0 }
+                ]
+            },
+            {
+                category: "CHORD / PAD",
+                presets: [
+                    { id: 20, name: "21: MAJOR SYNTH PAD", wave: "sawtooth", attack: 0.08, decay: 0.5, sustain: 0.9, release: 0.8, chord: [0, 4, 7], defaultVol: 0.8, defaultOctave: 0 },
+                    { id: 21, name: "22: MINOR CHORD", wave: "sawtooth", attack: 0.06, decay: 0.5, sustain: 0.85, release: 0.8, chord: [0, 3, 7], defaultVol: 0.8, defaultOctave: 0 },
+                    { id: 22, name: "23: 8-BIT POWER CHORD", wave: "square", attack: 0.5, decay: 0.35, sustain: 0.75, release: 0.8, chord: [0, 7, 12], defaultVol: 0.3, defaultOctave: 0 },
+                    { id: 23, name: "24: CELESTIAL SINE PAD", wave: "sine", attack: 0.12, decay: 0.6, sustain: 0.95, release: 0.8, chord: [0, 4, 7, 11], defaultVol: 0.9, defaultOctave: 0 },
+                    { id: 24, name: "25: SUS4 CYBER CHORD", wave: "square", attack: 0.03, decay: 0.45, sustain: 0.8, release: 0.8, chord: [0, 5, 7], defaultVol: 0.3, defaultOctave: 0 },
+                    { id: 25, name: "26: DIMINISHED TENSION", wave: "sawtooth", attack: 0.04, decay: 0.5, sustain: 0.8, release: 0.8, chord: [0, 3, 6, 9], defaultVol: 0.8, defaultOctave: 0 },
+                    { id: 26, name: "27: SLIDE WARM", wave: "triangle", attack: 0.3, decay: 0.6, sustain: 0.9, release: 0.8, chord: [4, 9], defaultVol: 0.04, defaultOctave: 0 },
+                    { id: 27, name: "28: SLIDE STACK", wave: "square", attack: 0.3, decay: 0.3, sustain: 0.8, release: 0.8, chord: [0, 7], defaultVol: 0.03, defaultOctave: 0 },
+                    { id: 28, name: "29: SLIDE NINTH", wave: "sine", attack: 0.3, decay: 0.5, sustain: 0.9, release: 0.8, chord: [0, 4, 7, 14], defaultVol: 0.03, defaultOctave: 0 },
+                    { id: 29, name: "30: SLIDE HUM", wave: "triangle", attack: 0.3, decay: 0.4, sustain: 0.85, release: 0.9, chord: [0, 4], defaultVol: 0.07, defaultOctave: 0 }
+                ]
+            },
+            {
+                category: "DRUMS & PERCUSSION",
+                presets: [
+                    { id: 30, name: "31: CHIPTUNE SNARE", drumType: "snare", defaultVol: 1.0, defaultOctave: 0 },
+                    { id: 31, name: "32: NOISE CRASH CYMBAL", drumType: "crash", defaultVol: 1.0, defaultOctave: 0 },
+                    { id: 32, name: "33: CLOSED HI-HAT", drumType: "hihat", defaultVol: 0.9, defaultOctave: 0 },
+                    { id: 33, name: "34: RETRO TOM DRUM", drumType: "tom", defaultVol: 1.0, defaultOctave: 0 },
+                    { id: 34, name: "35: SYNTH RIMSHOT", drumType: "rimshot", defaultVol: 1.0, defaultOctave: 0 },
+                    { id: 35, name: "36: WOOD BLOCK PERC", drumType: "woodblock", defaultVol: 1.0, defaultOctave: 0 },
+                    { id: 36, name: "37: 8-BIT CLAP", drumType: "clap", defaultVol: 1.0, defaultOctave: 0 },
+                    { id: 37, name: "38: ATOMIC SUB KICK", drumType: "kick", defaultVol: 1.2, defaultOctave: 0 },
+                    { id: 38, name: "39: AGOGO BELL", drumType: "agogo", defaultVol: 1.0, defaultOctave: 0 },
+                    { id: 39, name: "40: GLITCH CLICK", drumType: "click", defaultVol: 1.0, defaultOctave: 0 }
+                ]
+            },
+            {
+                category: "SFX & FX",
+                presets: [
+                    { id: 40, name: "41: MARIO JUMP SFX", wave: "square", attack: 0.001, decay: 0.15, sustain: 0.1, release: 0.05, pitchBend: true, defaultVol: 0.05, defaultOctave: 0 },
+                    { id: 41, name: "42: LASER GUN", wave: "sawtooth", attack: 0.001, decay: 0.18, sustain: 0.1, release: 0.08, laser: true, defaultVol: 0.05, defaultOctave: 0 },
+                    { id: 42, name: "43: COIN PICKUP SFX", wave: "square", attack: 0.001, decay: 0.12, sustain: 0.3, release: 0.05, arpeggio: true, defaultVol: 0.05, defaultOctave: 0 },
+                    { id: 43, name: "44: SCI-FI WARP", wave: "sawtooth", attack: 0.001, decay: 0.22, sustain: 0.2, release: 0.1, arpeggio: true, defaultVol: 0.05, defaultOctave: 0 },
+                    { id: 44, name: "45: EXPLOSION NOISE", wave: "noise", attack: 0.001, decay: 0.35, sustain: 0.0, release: 0.15, defaultVol: 0.02, defaultOctave: 0 },
+                    { id: 45, name: "46: POWERUP ARP", wave: "square", attack: 0.001, decay: 0.2, sustain: 0.4, release: 0.1, arpeggio: true, defaultVol: 0.05, defaultOctave: 0 },
+                    { id: 46, name: "47: SLIDE SWEEP", wave: "sine", attack: 0.5, decay: 0.25, sustain: 0.2, release: 0.5, laser: true, defaultVol: 0.01, defaultOctave: +1 },
+                    { id: 47, name: "48: ALIEN SIREN", wave: "sawtooth", attack: 0.01, decay: 0.3, sustain: 0.5, release: 0.2, pitchBend: true, defaultVol: 0.05, defaultOctave: 0 },
+                    { id: 48, name: "49: ZAP SHOCK", wave: "square", attack: 0.001, decay: 0.08, sustain: 0.0, release: 0.5, laser: true, defaultVol: 0.05, defaultOctave: 0 },
+                    { id: 49, name: "50: GAME OVER SFX", wave: "triangle", attack: 0.01, decay: 0.35, sustain: 0.4, release: 0.2, pitchBend: true, defaultVol: 0.05, defaultOctave: 0 }
+                ]
+            },
+            {
+                category: "MULTI DRUM KITS",
+                presets: [
+                    { id: 50, name: "51: 8-BIT RETRO KIT", kitStyle: "retro", defaultVol: 2.0, defaultOctave: 0 },
+                    { id: 51, name: "52: HEAVY ROCK KIT", kitStyle: "rock", defaultVol: 1.5, defaultOctave: 0 },
+                    { id: 52, name: "53: CYBER TRAP KIT", kitStyle: "trap", defaultVol: 1.5, defaultOctave: 0 },
+                    { id: 53, name: "54: INDUSTRIAL TECHNO KIT", kitStyle: "techno", defaultVol: 1.5, defaultOctave: 0 },
+                    { id: 54, name: "55: LO-FI CHILL KIT", kitStyle: "lofi", defaultVol: 1.5, defaultOctave: 0 }
+                ]
+            }
+        ];
+
+        const ALL_PRESETS = [];
+        PRESET_CATEGORIES.forEach(cat => {
+            cat.presets.forEach(p => ALL_PRESETS.push(p));
+        });
+
+        let audioCtx = null;
+        let gainNodeA = null;
+        let gainNodeB = null;
+        let voiceMixerBus = null;
+        let dryGainNode = null;
+        let wetGainNode = null;
+        let masterBusGain = null;
+
+        // WAV Recording Nodes & State Variables
+        let streamDestNode = null;
+        let mediaRecorder = null;
+        let recordedAudioChunks = [];
+        let isWavRecording = false;
+
+        // Expanded FX Nodes
+        let fxFilter = null;
+        let fxDelay = null;
+        let fxDelayFeedback = null;
+        let fxDistortion = null;
+
+        // Real Convolver Reverb Node
+        let fxConvolver = null;
+        let cachedImpulseDecay = 0;
+        let cachedImpulseSize = 0;
+
+        let activeDeck = "A";
+        let currentPresetA = ALL_PRESETS[0];
+        let currentPresetB = ALL_PRESETS.find(p => p.id === 50) || ALL_PRESETS[0];
+
+        let state = "IDLE";
+        let freeRecStartAudioTime = 0;
+        let loopStartTime = 0;
+        let loopDuration = 0;
+        let calculatedBpm = 120;
+        let recordedNotes = [];
+        let undoStack = [];
+
+        let isMasterFxOn = false;
+        let currentFxType = "reverb";
+        let fxParamValue = 60;
+        let fxParamValue2 = 50;
+
+        let scheduledTimeouts = [];
+        let renderParticles = [];
+
+        // DOM Elements
+        const touchPad = document.getElementById("touch-pad");
+        const lcdCanvas = document.getElementById("lcd-canvas");
+        const ctx = lcdCanvas.getContext("2d");
+
+        const statusLed = document.getElementById("status-led");
+        const statusText = document.getElementById("status-text");
+        const presetTitle = document.getElementById("preset-title");
+        const loopInfo = document.getElementById("loop-info");
+        const timeDisplay = document.getElementById("time-display");
+        const presetSelect = document.getElementById("presetSelect");
+        const keySelect = document.getElementById("keySelect");
+        const scaleSelect = document.getElementById("scaleSelect");
+        const scaleInfoDisplay = document.getElementById("scale-info-display");
+        const touchPrompt = document.getElementById("touch-prompt");
+        const fxDisplay = document.getElementById("fx-display");
+        const overdubDisplay = document.getElementById("overdub-display");
+        const notesDisplay = document.getElementById("notes-display");
+
+        const btnDeckA = document.getElementById("btn-deck-a");
+        const btnDeckB = document.getElementById("btn-deck-b");
+        const activeDeckLabel = document.getElementById("active-deck-label");
+        const presetLabel = document.getElementById("preset-label");
+        const deckASoundSub = document.getElementById("deck-a-sound-sub");
+        const deckBSoundSub = document.getElementById("deck-b-sound-sub");
+
+        const volSliderA = document.getElementById("vol-slider-a");
+        const volSliderB = document.getElementById("vol-slider-b");
+        const volValA = document.getElementById("vol-val-a");
+        const volValB = document.getElementById("vol-val-b");
+
+        const fxValText = document.getElementById("fx-val-text");
+        const fxParamLabel = document.getElementById("fx-param-label");
+        const fxValText2 = document.getElementById("fx-val-text2");
+        const fxParamLabel2 = document.getElementById("fx-param-label2");
+        const fxTypeSelect = document.getElementById("fx-type-select");
+        const fxParamSlider = document.getElementById("fx-param-slider");
+        const fxParamSlider2 = document.getElementById("fx-param-slider2");
+        const btnFxToggle = document.getElementById("btn-fx-toggle");
+
+        const btnWavRec = document.getElementById("btn-wav-rec");
+        const recWavLed = document.getElementById("rec-wav-led");
+        const recWavText = document.getElementById("rec-wav-text");
+
+        buildScaleFrequencyTable();
+
+        // --- 自然で美しい残響（インパルス応答）を動的生成する関数 ---
+        function generateImpulseResponse(duration, decay) {
+            const sampleRate = audioCtx.sampleRate;
+            const length = Math.max(1, Math.floor(sampleRate * duration));
+            const impulse = audioCtx.createBuffer(2, length, sampleRate);
+            const left = impulse.getChannelData(0);
+            const right = impulse.getChannelData(1);
+
+            for (let i = 0; i < length; i++) {
+                const n = i / length;
+                const e = Math.pow(1 - n, decay);
+                left[i] = (Math.random() * 2 - 1) * e;
+                right[i] = (Math.random() * 2 - 1) * e;
+            }
+            return impulse;
+        }
+
+        function updateReverbImpulseBuffer(durationSec, decayFactor) {
+            if (!audioCtx || !fxConvolver) return;
+            if (Math.abs(cachedImpulseDecay - durationSec) < 0.05 && Math.abs(cachedImpulseSize - decayFactor) < 0.1) {
+                return;
+            }
+            cachedImpulseDecay = durationSec;
+            cachedImpulseSize = decayFactor;
+            fxConvolver.buffer = generateImpulseResponse(durationSec, decayFactor);
+        }
+
+        function initAudioEngine() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+                gainNodeA = audioCtx.createGain();
+                gainNodeB = audioCtx.createGain();
+                voiceMixerBus = audioCtx.createGain();
+                dryGainNode = audioCtx.createGain();
+                wetGainNode = audioCtx.createGain();
+                masterBusGain = audioCtx.createGain();
+
+                masterBusGain.gain.value = 0.9;
+                dryGainNode.gain.value = 1.0;
+                wetGainNode.gain.value = 0.0;
+
+                fxFilter = audioCtx.createBiquadFilter();
+                fxFilter.type = "lowpass";
+                fxFilter.frequency.value = 3000;
+                fxFilter.Q.value = 4.0;
+
+                fxDelay = audioCtx.createDelay();
+                fxDelay.delayTime.value = 0.25;
+                fxDelayFeedback = audioCtx.createGain();
+                fxDelayFeedback.gain.value = 0.4;
+                fxDelay.connect(fxDelayFeedback);
+                fxDelayFeedback.connect(fxDelay);
+
+                fxDistortion = audioCtx.createWaveShaper();
+
+                // Convolver Reverb Node
+                fxConvolver = audioCtx.createConvolver();
+
+                gainNodeA.connect(voiceMixerBus);
+                gainNodeB.connect(voiceMixerBus);
+
+                voiceMixerBus.connect(dryGainNode);
+                dryGainNode.connect(masterBusGain);
+                
+                masterBusGain.connect(audioCtx.destination);
+
+                streamDestNode = audioCtx.createMediaStreamDestination();
+                masterBusGain.connect(streamDestNode);
+
+                updateDeckVolumes();
+                updateMasterFxParameters();
+            }
+            if (audioCtx.state === "suspended") {
+                audioCtx.resume();
+            }
+        }
+
+        // --- WAV Encoder Logic ---
+        function writeString(view, offset, string) {
+            for (let i = 0; i < string.length; i++) {
+                view.setUint8(offset + i, string.charCodeAt(i));
+            }
+        }
+
+        function convertAudioBufferToWavBlob(audioBuffer) {
+            const numChannels = audioBuffer.numberOfChannels;
+            const sampleRate = audioBuffer.sampleRate;
+            const format = 1;
+            const bitDepth = 16;
+            
+            let result;
+            if (numChannels === 2) {
+                const left = audioBuffer.getChannelData(0);
+                const right = audioBuffer.getChannelData(1);
+                result = new Float32Array(left.length + right.length);
+                for (let i = 0; i < left.length; i++) {
+                    result[i * 2] = left[i];
+                    result[i * 2 + 1] = right[i];
+                }
+            } else {
+                result = audioBuffer.getChannelData(0);
+            }
+
+            const bytesPerSample = bitDepth / 8;
+            const blockAlign = numChannels * bytesPerSample;
+            const dataByteLength = result.length * bytesPerSample;
+            const buffer = new ArrayBuffer(44 + dataByteLength);
+            const view = new DataView(buffer);
+
+            writeString(view, 0, 'RIFF');
+            view.setUint32(4, 36 + dataByteLength, true);
+            writeString(view, 8, 'WAVE');
+            writeString(view, 12, 'fmt ');
+            view.setUint32(16, 16, true);
+            view.setUint16(20, format, true);
+            view.setUint16(22, numChannels, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, sampleRate * blockAlign, true);
+            view.setUint16(32, blockAlign, true);
+            view.setUint16(34, bitDepth, true);
+            writeString(view, 36, 'data');
+            view.setUint32(40, dataByteLength, true);
+
+            let offset = 44;
+            for (let i = 0; i < result.length; i++, offset += 2) {
+                const s = Math.max(-1, Math.min(1, result[i]));
+                view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+            }
+
+            return new Blob([buffer], { type: 'audio/wav' });
+        }
+
+        async function exportRawChunksToWavBlob(chunks) {
+            const rawBlob = new Blob(chunks);
+            const arrayBuffer = await rawBlob.arrayBuffer();
+            const tempAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const decodedBuffer = await tempAudioCtx.decodeAudioData(arrayBuffer);
+            return convertAudioBufferToWavBlob(decodedBuffer);
+        }
+
+        function toggleWavRecording() {
+            initAudioEngine();
+
+            if (!isWavRecording) {
+                recordedAudioChunks = [];
+                let mimeType = '';
+                if (MediaRecorder.isTypeSupported('audio/webm')) {
+                    mimeType = 'audio/webm';
+                } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+                    mimeType = 'audio/mp4';
+                }
+
+                mediaRecorder = new MediaRecorder(streamDestNode.stream, mimeType ? { mimeType } : {});
+
+                mediaRecorder.ondataavailable = (e) => {
+                    if (e.data && e.data.size > 0) {
+                        recordedAudioChunks.push(e.data);
+                    }
+                };
+
+                mediaRecorder.onstop = async () => {
+                    if (recordedAudioChunks.length === 0) return;
+                    try {
+                        const wavBlob = await exportRawChunksToWavBlob(recordedAudioChunks);
+                        const url = URL.createObjectURL(wavBlob);
+                        const a = document.createElement('a');
+                        a.style.display = 'none';
+                        a.href = url;
+                        const timestamp = new Date().toISOString().replace(/[-:T.]/g, '').slice(0, 14);
+                        a.download = `SUPER_ESELATOR_${timestamp}.wav`;
+                        document.body.appendChild(a);
+                        a.click();
+                        setTimeout(() => {
+                            document.body.removeChild(a);
+                            URL.revokeObjectURL(url);
+                        }, 100);
+                    } catch (err) {
+                        console.error('Failed to export WAV file:', err);
+                    }
+                };
+
+                mediaRecorder.start(100);
+                isWavRecording = true;
+
+                btnWavRec.classList.replace('bg-red-800', 'bg-red-600');
+                btnWavRec.classList.replace('hover:bg-red-700', 'hover:bg-red-500');
+                recWavLed.classList.add('led-blinking');
+                recWavText.innerText = 'STOP & SAVE';
+            } else {
+                if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                    mediaRecorder.stop();
+                }
+                isWavRecording = false;
+
+                btnWavRec.classList.replace('bg-red-600', 'bg-red-800');
+                btnWavRec.classList.replace('hover:bg-red-500', 'hover:bg-red-700');
+                recWavLed.classList.remove('led-blinking');
+                recWavText.innerText = 'REC (WAV)';
+            }
+        }
+
+        btnWavRec.addEventListener('click', toggleWavRecording);
+
+        function updateDeckVolumes() {
+            if (!audioCtx) return;
+            const vA = parseFloat(volSliderA.value) / 100;
+            const vB = parseFloat(volSliderB.value) / 100;
+            gainNodeA.gain.setValueAtTime(vA, audioCtx.currentTime);
+            gainNodeB.gain.setValueAtTime(vB, audioCtx.currentTime);
+            volValA.innerText = `${Math.round(vA * 100)}%`;
+            volValB.innerText = `${Math.round(vB * 100)}%`;
+        }
+
+        volSliderA.addEventListener("input", updateDeckVolumes);
+        volSliderB.addEventListener("input", updateDeckVolumes);
+
+        function makeDistortionCurve(amount) {
+            const k = typeof amount === 'number' ? amount : 50;
+            const n_samples = 44100;
+            const curve = new Float32Array(n_samples);
+            const deg = Math.PI / 180;
+            for (let i = 0; i < n_samples; ++i) {
+                const x = (i * 2) / n_samples - 1;
+                curve[i] = ((3 + k) * x * 20 * deg) / (Math.PI + k * Math.abs(x));
+            }
+            return curve;
+        }
+
+        function updateMasterFxParameters() {
+            if (!audioCtx) return;
+            const norm1 = fxParamValue / 100;
+            const norm2 = fxParamValue2 / 100;
+
+            fxValText.innerText = `${Math.round(fxParamValue)}%`;
+            fxValText2.innerText = `${Math.round(fxParamValue2)}%`;
+
+            try {
+                voiceMixerBus.disconnect(wetGainNode);
+                wetGainNode.disconnect();
+            } catch(e) {}
+
+            if (!isMasterFxOn) {
+                dryGainNode.gain.setValueAtTime(1.0, audioCtx.currentTime);
+                wetGainNode.gain.setValueAtTime(0.0, audioCtx.currentTime);
+                return;
+            }
+
+            if (currentFxType === "reverb") {
+                fxParamLabel.innerText = "REVERB DECAY";
+                fxParamLabel2.innerText = "ROOM SIZE / MIX";
+
+                const durationSec = 0.2 + norm1 * 4.8;
+                const decayFactor = 1.0 + (1.0 - norm2) * 5.0;
+
+                updateReverbImpulseBuffer(durationSec, decayFactor);
+
+                const dryVol = Math.max(0.2, 1.0 - norm2 * 0.5);
+                const wetVol = 0.2 + norm2 * 0.8;
+                dryGainNode.gain.setValueAtTime(dryVol, audioCtx.currentTime);
+                wetGainNode.gain.setValueAtTime(wetVol, audioCtx.currentTime);
+
+                voiceMixerBus.connect(wetGainNode);
+                wetGainNode.connect(fxConvolver);
+                fxConvolver.connect(masterBusGain);
+
+            } else if (currentFxType === "filter") {
+                fxParamLabel.innerText = "FILTER CUTOFF";
+                fxParamLabel2.innerText = "RESONANCE (Q)";
+
+                dryGainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                wetGainNode.gain.setValueAtTime(0.8, audioCtx.currentTime);
+
+                const cutoff = 80 + norm1 * 9000;
+                fxFilter.type = "lowpass";
+                fxFilter.frequency.setTargetAtTime(cutoff, audioCtx.currentTime, 0.02);
+                fxFilter.Q.setTargetAtTime(0.5 + norm2 * 18.0, audioCtx.currentTime, 0.02);
+
+                voiceMixerBus.connect(wetGainNode);
+                wetGainNode.connect(fxFilter);
+                fxFilter.connect(masterBusGain);
+
+            } else if (currentFxType === "delay") {
+                fxParamLabel.innerText = "ECHO FEEDBACK";
+                fxParamLabel2.innerText = "DELAY TIME";
+
+                dryGainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+                wetGainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+
+                fxDelay.delayTime.setValueAtTime(0.05 + norm2 * 0.5, audioCtx.currentTime);
+                fxDelayFeedback.gain.setValueAtTime(0.1 + norm1 * 0.75, audioCtx.currentTime);
+
+                voiceMixerBus.connect(wetGainNode);
+                wetGainNode.connect(fxDelay);
+                fxDelay.connect(masterBusGain);
+
+            } else if (currentFxType === "bpmDelay") {
+                fxParamLabel.innerText = "FEEDBACK";
+                fxParamLabel2.innerText = "BEAT SUBDIVISION";
+
+                dryGainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+                wetGainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+
+                const beatUnit = 60 / Math.max(40, calculatedBpm);
+                const subdivisions = [0.125, 0.25, 0.375, 0.5, 0.75, 1.0];
+                const selectedSub = subdivisions[Math.floor(norm2 * (subdivisions.length - 1))];
+                const delaySec = Math.min(2.0, beatUnit * selectedSub);
+
+                fxDelay.delayTime.setValueAtTime(delaySec, audioCtx.currentTime);
+                fxDelayFeedback.gain.setValueAtTime(0.2 + norm1 * 0.7, audioCtx.currentTime);
+
+                voiceMixerBus.connect(wetGainNode);
+                wetGainNode.connect(fxDelay);
+                fxDelay.connect(masterBusGain);
+
+            } else if (currentFxType === "bitcrush") {
+                fxParamLabel.innerText = "CUTOFF FREQ";
+                fxParamLabel2.innerText = "RESONANCE";
+
+                dryGainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                wetGainNode.gain.setValueAtTime(0.7, audioCtx.currentTime);
+
+                const cutoff = 200 + norm1 * 5000;
+                fxFilter.type = "lowpass";
+                fxFilter.frequency.setValueAtTime(cutoff, audioCtx.currentTime);
+                fxFilter.Q.setValueAtTime(1.0 + norm2 * 12.0, audioCtx.currentTime);
+
+                voiceMixerBus.connect(wetGainNode);
+                wetGainNode.connect(fxFilter);
+                fxFilter.connect(masterBusGain);
+
+            } else if (currentFxType === "chorus") {
+                fxParamLabel.innerText = "CHORUS DEPTH";
+                fxParamLabel2.innerText = "CHORUS RATE";
+
+                dryGainNode.gain.setValueAtTime(0.6, audioCtx.currentTime);
+                wetGainNode.gain.setValueAtTime(0.4, audioCtx.currentTime);
+
+                fxDelay.delayTime.setValueAtTime(0.010 + norm2 * 0.03, audioCtx.currentTime);
+                fxDelayFeedback.gain.setValueAtTime(0.1 + norm1 * 0.4, audioCtx.currentTime);
+
+                voiceMixerBus.connect(wetGainNode);
+                wetGainNode.connect(fxDelay);
+                fxDelay.connect(masterBusGain);
+
+            } else if (currentFxType === "flanger") {
+                fxParamLabel.innerText = "FLANGER FEEDBACK";
+                fxParamLabel2.innerText = "FLANGE DELAY";
+
+                dryGainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+                wetGainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+
+                fxDelay.delayTime.setValueAtTime(0.001 + norm2 * 0.012, audioCtx.currentTime);
+                fxDelayFeedback.gain.setValueAtTime(0.3 + norm1 * 0.6, audioCtx.currentTime);
+
+                voiceMixerBus.connect(wetGainNode);
+                wetGainNode.connect(fxDelay);
+                fxDelay.connect(masterBusGain);
+
+            } else if (currentFxType === "phaser") {
+                fxParamLabel.innerText = "PHASER FREQ";
+                fxParamLabel2.innerText = "RESONANCE";
+
+                dryGainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+                wetGainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+
+                fxFilter.type = "allpass";
+                fxFilter.frequency.setValueAtTime(150 + norm1 * 4500, audioCtx.currentTime);
+                fxFilter.Q.setValueAtTime(1.0 + norm2 * 10.0, audioCtx.currentTime);
+
+                voiceMixerBus.connect(wetGainNode);
+                wetGainNode.connect(fxFilter);
+                fxFilter.connect(masterBusGain);
+
+            } else if (currentFxType === "simReverb") {
+                fxParamLabel.innerText = "ROOM DECAY";
+                fxParamLabel2.innerText = "ROOM SIZE";
+
+                dryGainNode.gain.setValueAtTime(0.4, audioCtx.currentTime);
+                wetGainNode.gain.setValueAtTime(0.6, audioCtx.currentTime);
+
+                fxDelay.delayTime.setValueAtTime(0.03 + norm2 * 0.15, audioCtx.currentTime);
+                fxDelayFeedback.gain.setValueAtTime(0.3 + norm1 * 0.55, audioCtx.currentTime);
+
+                voiceMixerBus.connect(wetGainNode);
+                wetGainNode.connect(fxDelay);
+                fxDelay.connect(masterBusGain);
+
+            } else if (currentFxType === "ringMod") {
+                fxParamLabel.innerText = "MOD FREQ";
+                fxParamLabel2.innerText = "BANDWIDTH (Q)";
+
+                dryGainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                wetGainNode.gain.setValueAtTime(0.7, audioCtx.currentTime);
+
+                fxFilter.type = "bandpass";
+                fxFilter.frequency.setValueAtTime(200 + norm1 * 3500, audioCtx.currentTime);
+                fxFilter.Q.setValueAtTime(2.0 + norm2 * 18.0, audioCtx.currentTime);
+
+                voiceMixerBus.connect(wetGainNode);
+                wetGainNode.connect(fxFilter);
+                fxFilter.connect(masterBusGain);
+
+            } else if (currentFxType === "overdrive") {
+                fxParamLabel.innerText = "OVERDRIVE GAIN";
+                fxParamLabel2.innerText = "DRY/WET MIX";
+
+                dryGainNode.gain.setValueAtTime(1.0 - norm2 * 0.6, audioCtx.currentTime);
+                wetGainNode.gain.setValueAtTime(norm2, audioCtx.currentTime);
+
+                fxDistortion.curve = makeDistortionCurve(norm1 * 40);
+
+                voiceMixerBus.connect(wetGainNode);
+                wetGainNode.connect(fxDistortion);
+                fxDistortion.connect(masterBusGain);
+
+            } else if (currentFxType === "distortion") {
+                fxParamLabel.innerText = "HARD DISTORTION";
+                fxParamLabel2.innerText = "DRY/WET MIX";
+
+                dryGainNode.gain.setValueAtTime(1.0 - norm2 * 0.7, audioCtx.currentTime);
+                wetGainNode.gain.setValueAtTime(norm2, audioCtx.currentTime);
+
+                fxDistortion.curve = makeDistortionCurve(norm1 * 500);
+
+                voiceMixerBus.connect(wetGainNode);
+                wetGainNode.connect(fxDistortion);
+                fxDistortion.connect(masterBusGain);
+
+            } else if (currentFxType === "autoWah") {
+                fxParamLabel.innerText = "WAH FREQ";
+                fxParamLabel2.innerText = "RESONANCE";
+
+                dryGainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                wetGainNode.gain.setValueAtTime(0.7, audioCtx.currentTime);
+
+                fxFilter.type = "bandpass";
+                fxFilter.frequency.setValueAtTime(100 + norm1 * 6000, audioCtx.currentTime);
+                fxFilter.Q.setValueAtTime(3.0 + norm2 * 12.0, audioCtx.currentTime);
+
+                voiceMixerBus.connect(wetGainNode);
+                wetGainNode.connect(fxFilter);
+                fxFilter.connect(masterBusGain);
+
+            } else if (currentFxType === "lofiBit") {
+                fxParamLabel.innerText = "TOY LOWPASS";
+                fxParamLabel2.innerText = "RESONANCE";
+
+                dryGainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                wetGainNode.gain.setValueAtTime(0.7, audioCtx.currentTime);
+
+                fxFilter.type = "lowpass";
+                fxFilter.frequency.setValueAtTime(500 + norm1 * 3000, audioCtx.currentTime);
+                fxFilter.Q.setValueAtTime(1.0 + norm2 * 8.0, audioCtx.currentTime);
+
+                voiceMixerBus.connect(wetGainNode);
+                wetGainNode.connect(fxFilter);
+                fxFilter.connect(masterBusGain);
+
+            } else if (currentFxType === "pitchDelay") {
+                fxParamLabel.innerText = "ECHO FEEDBACK";
+                fxParamLabel2.innerText = "DELAY TIME";
+
+                dryGainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+                wetGainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+
+                fxDelay.delayTime.setValueAtTime(0.08 + norm2 * 0.55, audioCtx.currentTime);
+                fxDelayFeedback.gain.setValueAtTime(0.2 + norm1 * 0.65, audioCtx.currentTime);
+
+                voiceMixerBus.connect(wetGainNode);
+                wetGainNode.connect(fxDelay);
+                fxDelay.connect(masterBusGain);
+            }
+        }
+
+        PRESET_CATEGORIES.forEach(cat => {
+            const group = document.createElement("optgroup");
+            group.label = `--- ${cat.category} ---`;
+            cat.presets.forEach(p => {
+                const opt = document.createElement("option");
+                opt.value = p.id;
+                opt.innerText = p.name;
+                group.appendChild(opt);
+            });
+            presetSelect.appendChild(group);
+        });
+
+        keySelect.value = currentKey;
+        scaleSelect.value = currentScaleKey;
+
+        function switchActiveDeck(deck) {
+            activeDeck = deck;
+            if (deck === "A") {
+                btnDeckA.classList.add("deck-btn-active");
+                btnDeckB.classList.remove("deck-btn-active");
+                activeDeckLabel.innerText = "ACTIVE: DECK A";
+                presetLabel.innerText = "SOUND PRESET (DECK A)";
+                presetTitle.innerText = currentPresetA.name;
+                presetSelect.value = currentPresetA.id;
+            } else {
+                btnDeckB.classList.add("deck-btn-active");
+                btnDeckA.classList.remove("deck-btn-active");
+                activeDeckLabel.innerText = "ACTIVE: DECK B";
+                presetLabel.innerText = "SOUND PRESET (DECK B)";
+                presetTitle.innerText = currentPresetB.name;
+                presetSelect.value = currentPresetB.id;
+            }
+        }
+
+        btnDeckA.addEventListener("click", () => switchActiveDeck("A"));
+        btnDeckB.addEventListener("click", () => switchActiveDeck("B"));
+
+        presetSelect.addEventListener("change", (e) => {
+            const selectedId = parseInt(e.target.value);
+            const preset = ALL_PRESETS.find(p => p.id === selectedId);
+            if (preset) {
+                if (activeDeck === "A") {
+                    currentPresetA = preset;
+                    presetTitle.innerText = currentPresetA.name;
+                    deckASoundSub.innerText = currentPresetA.name;
+                } else {
+                    currentPresetB = preset;
+                    presetTitle.innerText = currentPresetB.name;
+                    deckBSoundSub.innerText = currentPresetB.name;
+                }
+            }
+        });
+
+        function selectNextSound(step) {
+            let currentP = (activeDeck === "A") ? currentPresetA : currentPresetB;
+            let currentIndex = ALL_PRESETS.findIndex(p => p.id === currentP.id);
+            let nextIndex = currentIndex + step;
+            if (nextIndex >= ALL_PRESETS.length) nextIndex = 0;
+            if (nextIndex < 0) nextIndex = ALL_PRESETS.length - 1;
+            
+            const nextPreset = ALL_PRESETS[nextIndex];
+            if (activeDeck === "A") {
+                currentPresetA = nextPreset;
+                presetTitle.innerText = currentPresetA.name;
+                deckASoundSub.innerText = currentPresetA.name;
+            } else {
+                currentPresetB = nextPreset;
+                presetTitle.innerText = currentPresetB.name;
+                deckBSoundSub.innerText = currentPresetB.name;
+            }
+            presetSelect.value = nextPreset.id;
+        }
+
+        document.getElementById("btn-prev-sound").addEventListener("click", () => selectNextSound(-1));
+        document.getElementById("btn-next-sound").addEventListener("click", () => selectNextSound(1));
+        document.getElementById("btn-preset-prev").addEventListener("click", () => selectNextSound(-1));
+        document.getElementById("btn-preset-next").addEventListener("click", () => selectNextSound(1));
+
+        keySelect.addEventListener("change", (e) => {
+            currentKey = e.target.value;
+            buildScaleFrequencyTable();
+            updateScaleDisplay();
+        });
+
+        scaleSelect.addEventListener("change", (e) => {
+            currentScaleKey = e.target.value;
+            buildScaleFrequencyTable();
+            updateScaleDisplay();
+        });
+
+        function updateScaleDisplay() {
+            const scaleName = scaleSelect.options[scaleSelect.selectedIndex].text.split(' ')[0];
+            scaleInfoDisplay.innerText = `KEY: ${currentKey} | SCALE: ${scaleName}`;
+        }
+        updateScaleDisplay();
+
+        function playCustomDrumSound(drumType, freq, cutoffFreq, kitStyle = "retro", padBus = gainNodeA, presetVol = 1.0) {
+            initAudioEngine();
+            const now = audioCtx.currentTime;
+
+            const drumFilter = audioCtx.createBiquadFilter();
+            drumFilter.type = "lowpass";
+            drumFilter.frequency.setValueAtTime(cutoffFreq, now);
+
+            const pitchRatio = freq / 440;
+            let pitchMult = 1.0;
+            let decayMult = 1.0;
+            if (kitStyle === "rock") { pitchMult = 0.85; decayMult = 1.4; }
+            if (kitStyle === "trap") { pitchMult = 1.25; decayMult = 0.8; }
+            if (kitStyle === "techno") { pitchMult = 1.1; decayMult = 1.1; }
+            if (kitStyle === "lofi") { pitchMult = 0.75; decayMult = 1.2; }
+
+            if (drumType === "kick") {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = (kitStyle === "techno") ? "sawtooth" : "sine";
+                
+                osc.frequency.setValueAtTime(Math.min(800, (160 * pitchMult) * pitchRatio), now);
+                osc.frequency.exponentialRampToValueAtTime(Math.min(250, (30 * pitchMult) * pitchRatio), now + (0.12 * decayMult));
+
+                gain.gain.setValueAtTime(((kitStyle === "lofi") ? 0.7 : 1.0) * presetVol, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + (0.22 * decayMult));
+
+                osc.connect(gain);
+                gain.connect(drumFilter);
+                drumFilter.connect(padBus);
+                osc.start(now);
+                osc.stop(now + (0.25 * decayMult));
+
+            } else if (drumType === "snare") {
+                const bufferSize = Math.floor(audioCtx.sampleRate * (0.15 * decayMult));
+                const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+                const noise = audioCtx.createBufferSource();
+                noise.buffer = buffer;
+                const noiseGain = audioCtx.createGain();
+                noiseGain.gain.setValueAtTime(0.6 * presetVol, now);
+                noiseGain.gain.exponentialRampToValueAtTime(0.001, now + (0.14 * decayMult));
+
+                const bodyOsc = audioCtx.createOscillator();
+                const bodyGain = audioCtx.createGain();
+                bodyOsc.type = (kitStyle === "lofi") ? "sine" : "triangle";
+                bodyOsc.frequency.setValueAtTime(Math.min(1000, (200 * pitchMult) * pitchRatio), now);
+                bodyOsc.frequency.exponentialRampToValueAtTime(Math.min(400, (60 * pitchMult) * pitchRatio), now + 0.08);
+
+                bodyGain.gain.setValueAtTime(0.5 * presetVol, now);
+                bodyGain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+
+                noise.connect(noiseGain);
+                noiseGain.connect(drumFilter);
+                bodyOsc.connect(bodyGain);
+                bodyGain.connect(drumFilter);
+                drumFilter.connect(padBus);
+
+                noise.start(now);
+                bodyOsc.start(now);
+                noise.stop(now + 0.16);
+                bodyOsc.stop(now + 0.10);
+
+            } else if (drumType === "hihat") {
+                const bufferSize = Math.floor(audioCtx.sampleRate * (0.05 * decayMult));
+                const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+                const noise = audioCtx.createBufferSource();
+                noise.buffer = buffer;
+                const gain = audioCtx.createGain();
+                gain.gain.setValueAtTime(((kitStyle === "lofi") ? 0.35 : 0.5) * presetVol, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + (0.035 * decayMult));
+
+                noise.connect(gain);
+                gain.connect(drumFilter);
+                drumFilter.connect(padBus);
+                noise.start(now);
+                noise.stop(now + 0.05);
+
+            } else if (drumType === "crash") {
+                const bufferSize = Math.floor(audioCtx.sampleRate * 0.45);
+                const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+                const noise = audioCtx.createBufferSource();
+                noise.buffer = buffer;
+                const gain = audioCtx.createGain();
+                gain.gain.setValueAtTime(0.6 * presetVol, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.42);
+
+                noise.connect(gain);
+                gain.connect(drumFilter);
+                drumFilter.connect(padBus);
+                noise.start(now);
+                noise.stop(now + 0.45);
+
+            } else if (drumType === "tom") {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = "triangle";
+                osc.frequency.setValueAtTime(Math.min(1000, 280 * pitchRatio), now);
+                osc.frequency.exponentialRampToValueAtTime(Math.min(400, 80 * pitchRatio), now + 0.15);
+
+                gain.gain.setValueAtTime(0.7 * presetVol, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+
+                osc.connect(gain);
+                gain.connect(drumFilter);
+                drumFilter.connect(padBus);
+                osc.start(now);
+                osc.stop(now + 0.18);
+
+            } else if (drumType === "rimshot") {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = "square";
+                osc.frequency.setValueAtTime(Math.min(2500, 850 * pitchRatio), now);
+                osc.frequency.exponentialRampToValueAtTime(Math.min(1000, 320 * pitchRatio), now + 0.03);
+
+                gain.gain.setValueAtTime(0.5 * presetVol, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.035);
+
+                osc.connect(gain);
+                gain.connect(drumFilter);
+                drumFilter.connect(padBus);
+                osc.start(now);
+                osc.stop(now + 0.04);
+
+            } else if (drumType === "woodblock") {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = "sine";
+                osc.frequency.setValueAtTime(Math.min(3000, 1200 * pitchRatio), now);
+
+                gain.gain.setValueAtTime(0.8 * presetVol, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+
+                osc.connect(gain);
+                gain.connect(drumFilter);
+                drumFilter.connect(padBus);
+                osc.start(now);
+                osc.stop(now + 0.06);
+
+            } else if (drumType === "clap") {
+                const bufferSize = Math.floor(audioCtx.sampleRate * 0.18);
+                const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+                const noise = audioCtx.createBufferSource();
+                noise.buffer = buffer;
+                const gain = audioCtx.createGain();
+                gain.gain.setValueAtTime(0.001, now);
+                gain.gain.setValueAtTime(0.6 * presetVol, now);
+                gain.gain.setValueAtTime(0.1 * presetVol, now + 0.015);
+                gain.gain.setValueAtTime(0.6 * presetVol, now + 0.03);
+                gain.gain.setValueAtTime(0.1 * presetVol, now + 0.045);
+                gain.gain.setValueAtTime(0.7 * presetVol, now + 0.06);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+
+                noise.connect(gain);
+                gain.connect(drumFilter);
+                drumFilter.connect(padBus);
+                noise.start(now);
+                noise.stop(now + 0.20);
+
+            } else if (drumType === "agogo") {
+                const osc1 = audioCtx.createOscillator();
+                const osc2 = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc1.type = "sine";
+                osc2.type = "sine";
+                osc1.frequency.setValueAtTime(Math.min(2500, 800 * pitchRatio), now);
+                osc2.frequency.setValueAtTime(Math.min(3500, 1200 * pitchRatio), now);
+
+                gain.gain.setValueAtTime(0.4 * presetVol, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+
+                osc1.connect(gain);
+                osc2.connect(gain);
+                gain.connect(drumFilter);
+                drumFilter.connect(padBus);
+                osc1.start(now);
+                osc2.start(now);
+                osc1.stop(now + 0.25);
+                osc2.stop(now + 0.25);
+
+            } else if (drumType === "click") {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = "square";
+                osc.frequency.setValueAtTime(Math.min(5000, 2500 * pitchRatio), now);
+
+                gain.gain.setValueAtTime(0.4 * presetVol, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.015);
+
+                osc.connect(gain);
+                gain.connect(drumFilter);
+                drumFilter.connect(padBus);
+                osc.start(now);
+                osc.stop(now + 0.02);
+            }
+        }
+
+        function playChiptuneTone(preset, freq, cutoffFreq, duration = 0.22, kitStyle = "retro", padChannel = "A") {
+            initAudioEngine();
+            const padBus = (padChannel === "A") ? gainNodeA : gainNodeB;
+
+            const octShift = preset.defaultOctave !== undefined ? preset.defaultOctave : 0;
+            const presetVol = preset.defaultVol !== undefined ? preset.defaultVol : 1.0;
+            const shiftedFreq = freq * Math.pow(2, octShift);
+
+            if (preset.drumType) {
+                playCustomDrumSound(preset.drumType, shiftedFreq, cutoffFreq, kitStyle, padBus, presetVol);
+                return;
+            }
+
+            const now = audioCtx.currentTime;
+            const voiceFilter = audioCtx.createBiquadFilter();
+            voiceFilter.type = "lowpass";
+            voiceFilter.frequency.setValueAtTime(cutoffFreq, now);
+
+            if (preset.wave === "noise") {
+                const bufferSize = Math.floor(audioCtx.sampleRate * duration);
+                const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+                const noise = audioCtx.createBufferSource();
+                noise.buffer = buffer;
+                const gain = audioCtx.createGain();
+                gain.gain.setValueAtTime(0.7 * presetVol, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+                noise.connect(gain);
+                gain.connect(voiceFilter);
+                voiceFilter.connect(padBus);
+                noise.start(now);
+                return;
+            }
+
+            const chordOffsets = preset.chord || [0];
+            const toneDuration = preset.chord ? Math.max(duration, 0.45) : duration;
+
+            chordOffsets.forEach(semiOffset => {
+                const noteFreq = shiftedFreq * Math.pow(2, semiOffset / 12);
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+
+                osc.type = preset.wave;
+
+                if (preset.laser) {
+                    osc.frequency.setValueAtTime(noteFreq * 2.5, now);
+                    osc.frequency.exponentialRampToValueAtTime(noteFreq * 0.3, now + toneDuration);
+                } else if (preset.arpeggio) {
+                    osc.frequency.setValueAtTime(noteFreq, now);
+                    osc.frequency.setValueAtTime(noteFreq * 1.25, now + toneDuration * 0.33);
+                    osc.frequency.setValueAtTime(noteFreq * 1.5, now + toneDuration * 0.66);
+                } else if (preset.pitchBend) {
+                    osc.frequency.setValueAtTime(noteFreq * 1.5, now);
+                    osc.frequency.linearRampToValueAtTime(noteFreq * 0.5, now + toneDuration);
+                } else {
+                    osc.frequency.setValueAtTime(noteFreq, now);
+                }
+
+                const baseGain = (0.5 / chordOffsets.length) * presetVol;
+                gain.gain.setValueAtTime(0, now);
+                gain.gain.linearRampToValueAtTime(baseGain, now + preset.attack);
+                gain.gain.exponentialRampToValueAtTime(Math.max(0.001, baseGain * preset.sustain), now + preset.attack + preset.decay);
+                gain.gain.exponentialRampToValueAtTime(0.0001, now + preset.attack + preset.decay + preset.release + toneDuration);
+
+                osc.connect(gain);
+                gain.connect(voiceFilter);
+                voiceFilter.connect(padBus);
+
+                osc.start(now);
+                osc.stop(now + preset.attack + preset.decay + preset.release + toneDuration + 0.05);
+            });
+        }
+
+        // --- コードパッド専用の演奏＆録音ロジック ---
+        function playChordPad(padIndex) {
+            initAudioEngine();
+            if (padIndex < 0 || padIndex >= chordPadsData.length) return;
+
+            const padData = chordPadsData[padIndex];
+            const padChannel = activeDeck;
+            const basePreset = (padChannel === "A") ? currentPresetA : currentPresetB;
+            const kitStyle = basePreset.kitStyle || "retro";
+            const filterFreq = 3500;
+            const normX = padData.normX;
+            const normY = 0.5;
+
+            spawnParticle(normX, normY, basePreset.id);
+            if (touchPrompt) touchPrompt.style.display = "none";
+
+            padData.freqs.forEach((freq, fIdx) => {
+                const noteEvent = {
+                    padChannel: padChannel,
+                    presetId: basePreset.id,
+                    targetPreset: basePreset,
+                    kitStyle: kitStyle,
+                    freq: freq,
+                    filterFreq: filterFreq,
+                    normX: normX + (fIdx * 0.02 - 0.02),
+                    normY: normY,
+                    timeOffset: 0,
+                    duration: 0.35
+                };
+
+                if (state === "STANDBY") {
+                    saveUndoState();
+                    state = "REC_FREE";
+                    freeRecStartAudioTime = audioCtx.currentTime;
+                    updateStatusUI("REC FREE", "led-red");
+
+                    noteEvent.timeOffset = 0;
+                    recordedNotes.push(noteEvent);
+                    updateNotesDisplay();
+                } else if (state === "REC_FREE") {
+                    saveUndoState();
+                    noteEvent.timeOffset = audioCtx.currentTime - freeRecStartAudioTime;
+                    recordedNotes.push(noteEvent);
+                    updateNotesDisplay();
+                } else if (state === "OVERDUB" || state === "WAIT_HEAD") {
+                    if (loopDuration > 0) {
+                        saveUndoState();
+                        const currentPos = (audioCtx.currentTime - loopStartTime) % loopDuration;
+                        noteEvent.timeOffset = currentPos;
+                        recordedNotes.push(noteEvent);
+                        updateNotesDisplay();
+                    }
+                }
+
+                playChiptuneTone(basePreset, freq, filterFreq, 0.35, kitStyle, padChannel);
+            });
+
+            const padBtns = document.querySelectorAll(".chord-pad");
+            if (padBtns[padIndex]) {
+                padBtns[padIndex].classList.add("active");
+                setTimeout(() => padBtns[padIndex].classList.remove("active"), 150);
+            }
+        }
+
+        // コードパッドボタンへのイベントバインド
+        document.querySelectorAll(".chord-pad").forEach((btn, idx) => {
+            btn.addEventListener("pointerdown", (e) => {
+                e.preventDefault();
+                playChordPad(idx);
+            });
+        });
+
+        function handleTouchTrigger(normX, normY) {
+            initAudioEngine();
+
+            const padChannel = activeDeck;
+            const basePreset = (padChannel === "A") ? currentPresetA : currentPresetB;
+            let targetPreset = basePreset;
+            let kitStyle = basePreset.kitStyle || "retro";
+            const filterFreq = 300 + (1 - normY) * 7000;
+
+            const scaleIndex = Math.floor(normX * (activeScaleFrequencies.length - 1));
+            const freq = activeScaleFrequencies[Math.min(scaleIndex, activeScaleFrequencies.length - 1)];
+
+            if (basePreset.kitStyle) {
+                if (normX < 0.33) {
+                    targetPreset = { drumType: "kick", defaultVol: basePreset.defaultVol, defaultOctave: basePreset.defaultOctave };
+                } else if (normX < 0.66) {
+                    targetPreset = { drumType: "snare", defaultVol: basePreset.defaultVol, defaultOctave: basePreset.defaultOctave };
+                } else {
+                    targetPreset = { drumType: "hihat", defaultVol: basePreset.defaultVol, defaultOctave: basePreset.defaultOctave };
+                }
+            }
+
+            spawnParticle(normX, normY, targetPreset.id || basePreset.id);
+            if (touchPrompt) touchPrompt.style.display = "none";
+
+            const noteEvent = {
+                padChannel: padChannel,
+                presetId: basePreset.id,
+                targetPreset: targetPreset,
+                kitStyle: kitStyle,
+                freq: freq,
+                filterFreq: filterFreq,
+                normX: normX,
+                normY: normY,
+                timeOffset: 0,
+                duration: 0.22
+            };
+
+            if (state === "STANDBY") {
+                saveUndoState();
+                state = "REC_FREE";
+                freeRecStartAudioTime = audioCtx.currentTime;
+                updateStatusUI("REC FREE", "led-red");
+
+                noteEvent.timeOffset = 0;
+                recordedNotes.push(noteEvent);
+                updateNotesDisplay();
+            } else if (state === "REC_FREE") {
+                saveUndoState();
+                noteEvent.timeOffset = audioCtx.currentTime - freeRecStartAudioTime;
+                recordedNotes.push(noteEvent);
+                updateNotesDisplay();
+            } else if (state === "OVERDUB" || state === "WAIT_HEAD") {
+                if (loopDuration > 0) {
+                    saveUndoState();
+                    const currentPos = (audioCtx.currentTime - loopStartTime) % loopDuration;
+                    noteEvent.timeOffset = currentPos;
+                    recordedNotes.push(noteEvent);
+                    updateNotesDisplay();
+                }
+            }
+
+            playChiptuneTone(targetPreset, freq, filterFreq, 0.22, kitStyle, padChannel);
+        }
+
+        function saveUndoState() {
+            undoStack.push(JSON.parse(JSON.stringify(recordedNotes)));
+            if (undoStack.length > 50) undoStack.shift();
+        }
+
+        function performUndo() {
+            if (undoStack.length === 0) return;
+            
+            let currentProgressOffset = 0;
+            if ((state === "PLAYING" || state === "OVERDUB" || state === "WAIT_HEAD") && loopDuration > 0) {
+                currentProgressOffset = (audioCtx.currentTime - loopStartTime) % loopDuration;
+            }
+
+            recordedNotes = undoStack.pop();
+            updateNotesDisplay();
+
+            if (recordedNotes.length === 0) {
+                clearScheduledTimeouts();
+                state = "IDLE";
+                loopDuration = 0;
+                freeRecStartAudioTime = 0;
+                loopStartTime = 0;
+
+                updateStatusUI("IDLE", "led-off");
+                loopInfo.innerText = "BPM: FREE | LENGTH: --";
+                timeDisplay.innerText = "00:00.0";
+                if (touchPrompt) touchPrompt.style.display = "block";
+            } else if (state === "PLAYING" || state === "OVERDUB" || state === "WAIT_HEAD") {
+                startLoopPlayback(currentProgressOffset);
+            }
+        }
+
+        function performSequenceDouble() {
+            if (recordedNotes.length === 0 || loopDuration <= 0) return;
+            initAudioEngine();
+            saveUndoState();
+
+            let currentProgressOffset = 0;
+            const isPlayingOrDubbing = (state === "PLAYING" || state === "OVERDUB" || state === "WAIT_HEAD");
+            if (isPlayingOrDubbing) {
+                currentProgressOffset = (audioCtx.currentTime - loopStartTime) % loopDuration;
+            }
+
+            const duplicatedNotes = recordedNotes.map(note => {
+                const copy = JSON.parse(JSON.stringify(note));
+                copy.timeOffset += loopDuration;
+                return copy;
+            });
+            recordedNotes = recordedNotes.concat(duplicatedNotes);
+
+            loopDuration *= 2;
+            calculatedBpm = Math.round(60 / (loopDuration / 4));
+            loopInfo.innerText = `BPM: ${calculatedBpm} | ${loopDuration.toFixed(1)}s`;
+
+            updateNotesDisplay();
+
+            if (isPlayingOrDubbing) {
+                startLoopPlayback(currentProgressOffset);
+            }
+        }
+
+        function startLoopPlayback(startOffset = 0) {
+            clearScheduledTimeouts();
+            if (recordedNotes.length === 0 || loopDuration <= 0) return;
+
+            state = "PLAYING";
+            updateStatusUI("PLAYING", "led-green");
+            loopStartTime = audioCtx.currentTime - (startOffset % loopDuration);
+
+            scheduleLoopCycle();
+        }
+
+        function scheduleLoopCycle() {
+            clearScheduledTimeouts();
+            if (state !== "PLAYING" && state !== "WAIT_HEAD" && state !== "OVERDUB") return;
+
+            const now = audioCtx.currentTime;
+            const currentOffset = (now - loopStartTime) % loopDuration;
+
+            if (state === "WAIT_HEAD") {
+                state = "OVERDUB";
+                updateStatusUI("OVERDUB", "led-red");
+            }
+
+            recordedNotes.forEach(note => {
+                let delay = note.timeOffset - currentOffset;
+                if (delay < 0) {
+                    delay += loopDuration;
+                }
+
+                const tId = setTimeout(() => {
+                    if (state === "PLAYING" || state === "OVERDUB" || state === "WAIT_HEAD") {
+                        const preset = note.targetPreset || ALL_PRESETS.find(p => p.id === note.presetId) || ALL_PRESETS[0];
+                        playChiptuneTone(preset, note.freq, note.filterFreq, note.duration, note.kitStyle || "retro", note.padChannel || "A");
+                        spawnParticle(note.normX, note.normY, note.presetId);
+                    }
+                }, delay * 1000);
+                scheduledTimeouts.push(tId);
+            });
+
+            const remainingTimeUntilNextCycle = loopDuration - currentOffset;
+            const nextCycleTimeout = setTimeout(() => {
+                if (state === "PLAYING" || state === "OVERDUB" || state === "WAIT_HEAD") {
+                    loopStartTime = audioCtx.currentTime;
+                    scheduleLoopCycle();
+                }
+            }, remainingTimeUntilNextCycle * 1000);
+            scheduledTimeouts.push(nextCycleTimeout);
+        }
+
+        function clearScheduledTimeouts() {
+            scheduledTimeouts.forEach(id => clearTimeout(id));
+            scheduledTimeouts = [];
+        }
+
+        function clearActiveDeckData() {
+            saveUndoState();
+            
+            let currentProgressOffset = 0;
+            if ((state === "PLAYING" || state === "OVERDUB" || state === "WAIT_HEAD") && loopDuration > 0) {
+                currentProgressOffset = (audioCtx.currentTime - loopStartTime) % loopDuration;
+            }
+
+            recordedNotes = recordedNotes.filter(n => (n.padChannel || "A") !== activeDeck);
+            updateNotesDisplay();
+
+            if (recordedNotes.length === 0) {
+                clearScheduledTimeouts();
+                state = "IDLE";
+                loopDuration = 0;
+                freeRecStartAudioTime = 0;
+                loopStartTime = 0;
+
+                updateStatusUI("IDLE", "led-off");
+                loopInfo.innerText = "BPM: FREE | LENGTH: --";
+                timeDisplay.innerText = "00:00.0";
+                if (touchPrompt) touchPrompt.style.display = "block";
+            } else if (state === "PLAYING" || state === "OVERDUB" || state === "WAIT_HEAD") {
+                startLoopPlayback(currentProgressOffset);
+            }
+        }
+
+        function updateStatusUI(modeText, ledClass) {
+            statusText.innerText = modeText;
+            statusLed.className = `w-2.5 h-2.5 rounded-full inline-block ${ledClass}`;
+            overdubDisplay.innerText = `MODE: ${modeText}`;
+        }
+
+        function updateNotesDisplay() {
+            notesDisplay.innerText = `NOTES: ${recordedNotes.length}`;
+        }
+
+        function resizeCanvas() {
+            lcdCanvas.width = touchPad.clientWidth;
+            lcdCanvas.height = touchPad.clientHeight;
+        }
+        window.addEventListener("resize", resizeCanvas);
+        resizeCanvas();
+
+        function spawnParticle(xNorm, yNorm, presetId) {
+            const px = xNorm * lcdCanvas.width;
+            const py = yNorm * lcdCanvas.height;
+
+            renderParticles.push({
+                x: px,
+                y: py,
+                size: Math.random() * 12 + 6,
+                color: ["#55ff55", "#ffff55", "#aa55ff", "#ff55aa", "#55ffff"][presetId % 5],
+                life: 1.0,
+                presetId: presetId
+            });
+        }
+
+        function drawLCDVisuals() {
+            ctx.clearRect(0, 0, lcdCanvas.width, lcdCanvas.height);
+
+            for (let i = renderParticles.length - 1; i >= 0; i--) {
+                const p = renderParticles[i];
+                ctx.fillStyle = p.color;
+                ctx.globalAlpha = p.life;
+
+                if (p.presetId >= 20 && p.presetId <= 29) {
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, (1.0 - p.life) * 45 + 5, 0, Math.PI * 2);
+                    ctx.strokeStyle = p.color;
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                } else if (p.presetId % 3 === 0) {
+                    ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+                } else {
+                    ctx.fillRect(p.x - 14, p.y, 28, 2);
+                    ctx.fillRect(p.x, p.y - 14, 2, 28);
+                }
+
+                p.life -= 0.035;
+                if (p.life <= 0) renderParticles.splice(i, 1);
+            }
+            ctx.globalAlpha = 1.0;
+
+            if (audioCtx) {
+                if (state === "REC_FREE") {
+                    const elapsed = audioCtx.currentTime - freeRecStartAudioTime;
+                    const secs = Math.floor(elapsed);
+                    const ms = Math.floor((elapsed % 1) * 10);
+                    timeDisplay.innerText = `00:${secs < 10 ? '0' : ''}${secs}.${ms}`;
+                } else if ((state === "PLAYING" || state === "OVERDUB" || state === "WAIT_HEAD") && loopDuration > 0) {
+                    const currentOffset = (audioCtx.currentTime - loopStartTime) % loopDuration;
+                    const secs = Math.floor(currentOffset);
+                    const ms = Math.floor((currentOffset % 1) * 10);
+                    timeDisplay.innerText = `00:${secs < 10 ? '0' : ''}${secs}.${ms}`;
+                }
+            }
+
+            requestAnimationFrame(drawLCDVisuals);
+        }
+        drawLCDVisuals();
+
+        function getNormalizedTouchCoords(clientX, clientY) {
+            const rect = touchPad.getBoundingClientRect();
+            const x = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+            const y = Math.max(0, Math.min(1, (clientY - rect.top) / rect.height));
+            return { x, y };
+        }
+
+        let padPointerId = null;
+
+        touchPad.addEventListener("pointerdown", (e) => {
+            e.preventDefault();
+            padPointerId = e.pointerId;
+            touchPad.setPointerCapture(e.pointerId);
+            const coords = getNormalizedTouchCoords(e.clientX, e.clientY);
+            handleTouchTrigger(coords.x, coords.y);
+        });
+
+        touchPad.addEventListener("pointermove", (e) => {
+            if (padPointerId !== null && e.pointerId === padPointerId) {
+                e.preventDefault();
+                const coords = getNormalizedTouchCoords(e.clientX, e.clientY);
+                handleTouchTrigger(coords.x, coords.y);
+            }
+        });
+
+        const releasePadPointer = (e) => {
+            if (padPointerId !== null && e.pointerId === padPointerId) {
+                try { touchPad.releasePointerCapture(e.pointerId); } catch(err) {}
+                padPointerId = null;
+            }
+        };
+
+        touchPad.addEventListener("pointerup", releasePadPointer);
+        touchPad.addEventListener("pointercancel", releasePadPointer);
+
+        const toggleRecState = () => {
+            initAudioEngine();
+            if (state === "IDLE" || state === "PLAYING") {
+                if (recordedNotes.length === 0) {
+                    state = "STANDBY";
+                    updateStatusUI("STANDBY", "led-yellow");
+                } else {
+                    state = "WAIT_HEAD";
+                    updateStatusUI("WAIT HEAD", "led-yellow");
+                }
+            } else if (state === "STANDBY") {
+                state = "IDLE";
+                updateStatusUI("IDLE", "led-off");
+            } else if (state === "REC_FREE") {
+                loopDuration = audioCtx.currentTime - freeRecStartAudioTime;
+                if (loopDuration < 0.5) loopDuration = 0.5;
+                calculatedBpm = Math.round(60 / (loopDuration / 4));
+                loopInfo.innerText = `BPM: ${calculatedBpm} | ${loopDuration.toFixed(1)}s`;
+                startLoopPlayback(0);
+                updateMasterFxParameters();
+            } else if (state === "OVERDUB" || state === "WAIT_HEAD") {
+                state = "PLAYING";
+                updateStatusUI("PLAYING", "led-green");
+            }
+        };
+
+        document.getElementById("btn-a-rec").addEventListener("click", toggleRecState);
+        document.getElementById("btn-undo").addEventListener("click", performUndo);
+        document.getElementById("btn-select").addEventListener("click", performSequenceDouble);
+        document.getElementById("btn-b-clear").addEventListener("click", clearActiveDeckData);
+
+        document.getElementById("btn-start").addEventListener("click", () => {
+            initAudioEngine();
+            if (state === "REC_FREE") {
+                loopDuration = audioCtx.currentTime - freeRecStartAudioTime;
+                if (loopDuration < 0.5) loopDuration = 0.5;
+                calculatedBpm = Math.round(60 / (loopDuration / 4));
+                loopInfo.innerText = `BPM: ${calculatedBpm} | ${loopDuration.toFixed(1)}s`;
+                startLoopPlayback(0);
+                updateMasterFxParameters();
+            } else if (state === "PLAYING" || state === "OVERDUB") {
+                clearScheduledTimeouts();
+                state = "IDLE";
+                updateStatusUI("IDLE", "led-off");
+            } else if (state === "IDLE" && recordedNotes.length > 0) {
+                startLoopPlayback(0);
+            }
+        });
+
+        // エフェクトトグル & スライダー操作の制御
+        btnFxToggle.addEventListener("click", () => {
+            isMasterFxOn = !isMasterFxOn;
+            if (isMasterFxOn) {
+                btnFxToggle.innerText = "FX: ON";
+                btnFxToggle.classList.replace("bg-purple-700", "bg-emerald-600");
+                fxDisplay.innerText = `FX: ON (${currentFxType.toUpperCase()})`;
+            } else {
+                btnFxToggle.innerText = "FX: OFF";
+                btnFxToggle.classList.replace("bg-emerald-600", "bg-purple-700");
+                fxDisplay.innerText = "FX: OFF";
+            }
+            updateMasterFxParameters();
+        });
+
+        fxTypeSelect.addEventListener("change", (e) => {
+            currentFxType = e.target.value;
+            if (isMasterFxOn) {
+                fxDisplay.innerText = `FX: ON (${currentFxType.toUpperCase()})`;
+            }
+            updateMasterFxParameters();
+        });
+
+        fxParamSlider.addEventListener("input", (e) => {
+            fxParamValue = parseFloat(e.target.value);
+            updateMasterFxParameters();
+        });
+
+        fxParamSlider2.addEventListener("input", (e) => {
+            fxParamValue2 = parseFloat(e.target.value);
+            updateMasterFxParameters();
+        });
+    </script>
+</body>
+</html>
