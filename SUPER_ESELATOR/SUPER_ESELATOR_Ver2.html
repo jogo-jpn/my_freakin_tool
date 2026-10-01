@@ -10,9 +10,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     
     <style>
-
-
-
         /* 拡大・ズームの防止スタイル */
         *, *::before, *::after {
             touch-action: manipulation;
@@ -29,8 +26,6 @@
             -webkit-user-select: none;
             touch-action: none; /* 全体でのピンチ・パン操作を無効化 */
         }
-
-
 
         .snes-shell {
             background: linear-gradient(165deg, #dcdce2 0%, #c8c8d0 50%, #b2afbe 100%);
@@ -139,19 +134,17 @@
         .snes-font {
             font-family: 'Press Start 2P', monospace;
         }
-.chord-pad {
-    height: 30px !important; /* min-height ではなく height で固定 */
-    padding-top: 0 !important;
-    padding-bottom: 0 !important;
-    line-height: 1 !important; /* 文字上下の無駄な隙間をなくす */
-}
+        .chord-pad {
+            height: 30px !important; /* min-height ではなく height で固定 */
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+            line-height: 1 !important; /* 文字上下の無駄な隙間をなくす */
+        }
 
-/* ボタンの中の文字の行高も詰める */
-.chord-pad span {
-    line-height: 1 !important;
-}
-
-
+        /* ボタンの中の文字の行高も詰める */
+        .chord-pad span {
+            line-height: 1 !important;
+        }
     </style>
 </head>
 <body class="h-full w-full flex items-center justify-center p-2 sm:p-3">
@@ -352,9 +345,15 @@
         <div class="bg-slate-900 text-slate-200 p-1.5 rounded-xl border border-slate-700 my-0.5 shrink-0 flex flex-col space-y-1 font-mono">
             <div class="flex justify-between items-center text-[9px]">
                 <span class="font-bold text-purple-300 tracking-wider">MASTER EFFECTOR ENGINE (15 TYPES)</span>
-                <button id="btn-fx-toggle" class="bg-purple-700 hover:bg-purple-600 active:bg-purple-800 text-purple-100 font-bold px-2 py-0.5 rounded text-[8px] tracking-wider border border-purple-500">
-                    FX: OFF
-                </button>
+                <div class="flex items-center space-x-1.5">
+                    <!-- 追加: エフェクターXYダイアログ開くボタン -->
+                    <button id="btn-open-fx-dialog" class="bg-indigo-700 hover:bg-indigo-600 active:bg-indigo-800 text-indigo-100 font-bold px-2 py-0.5 rounded text-[8px] tracking-wider border border-indigo-400 flex items-center space-x-1">
+                        <span>XY PAD</span>
+                    </button>
+                    <button id="btn-fx-toggle" class="bg-purple-700 hover:bg-purple-600 active:bg-purple-800 text-purple-100 font-bold px-2 py-0.5 rounded text-[8px] tracking-wider border border-purple-500">
+                        FX: OFF
+                    </button>
+                </div>
             </div>
             <div class="grid grid-cols-12 gap-1.5 text-[9px] items-center">
                 <!-- Effect Type Selector -->
@@ -383,18 +382,18 @@
                 <div class="col-span-4 flex flex-col justify-center">
                     <div class="flex justify-between text-[7px] text-slate-400 mb-0.5">
                         <span id="fx-param-label">REVERB DECAY</span>
-                        <span id="fx-val-text">60%</span>
+                        <span id="fx-val-text">20%</span>
                     </div>
-                    <input id="fx-param-slider" type="range" min="0" max="100" value="60" class="accent-purple-400 cursor-pointer w-full h-1.5 bg-slate-800 rounded">
+                    <input id="fx-param-slider" type="range" min="0" max="100" value="20" class="accent-purple-400 cursor-pointer w-full h-1.5 bg-slate-800 rounded">
                 </div>
 
                 <!-- Slider 2: Parameter 2 -->
                 <div class="col-span-4 flex flex-col justify-center">
                     <div class="flex justify-between text-[7px] text-slate-400 mb-0.5">
                         <span id="fx-param-label2">ROOM SIZE / MIX</span>
-                        <span id="fx-val-text2">50%</span>
+                        <span id="fx-val-text2">15%</span>
                     </div>
-                    <input id="fx-param-slider2" type="range" min="0" max="100" value="50" class="accent-emerald-400 cursor-pointer w-full h-1.5 bg-slate-800 rounded">
+                    <input id="fx-param-slider2" type="range" min="0" max="100" value="15" class="accent-emerald-400 cursor-pointer w-full h-1.5 bg-slate-800 rounded">
                 </div>
             </div>
         </div>
@@ -433,6 +432,68 @@
             </div>
         </div>
 
+    </div>
+
+    <!-- エフェクター操作用 XYダイアログボックス (Modal) -->
+    <div id="fx-modal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-3">
+        <div class="snes-shell w-full max-w-sm p-3 flex flex-col space-y-2 border-2 border-purple-500 shadow-2xl relative font-mono text-slate-800">
+            <!-- Modal Header -->
+            <div class="flex justify-between items-center border-b border-slate-400 pb-1.5">
+                <div class="flex items-center space-x-2">
+                    <span id="fx-dialog-title" class="font-bold text-xs text-purple-900 tracking-wider">XY EFFECTOR CONTROLLER</span>
+                </div>
+                <button id="btn-close-fx-dialog" class="bg-red-600 hover:bg-red-500 text-white font-bold text-xs px-2 py-0.5 rounded border border-red-800 shadow">
+                    ✕ CLOSE
+                </button>
+            </div>
+
+            <!-- Effect Selection & ON/OFF Toggle in Modal -->
+            <div class="flex items-center justify-between space-x-2 bg-slate-900 p-1.5 rounded-lg border border-slate-700">
+                <select id="modal-fx-type-select" class="bg-slate-950 text-emerald-300 border border-slate-700 rounded p-1 text-[10px] outline-none font-bold flex-1">
+                    <option value="reverb">1: HALL REVERB</option>
+                    <option value="filter">2: LOWPASS FILTER</option>
+                    <option value="delay">3: CHIPTUNE ECHO DELAY</option>
+                    <option value="bpmDelay">4: BPM SYNC DELAY</option>
+                    <option value="bitcrush">5: 8-BIT BITCRUSHER</option>
+                    <option value="chorus">6: CHORUS</option>
+                    <option value="flanger">7: FLANGER</option>
+                    <option value="phaser">8: PHASER</option>
+                    <option value="ringMod">9: RING MODULATOR</option>
+                    <option value="overdrive">10: OVERDRIVE</option>
+                    <option value="distortion">11: DISTORTION</option>
+                    <option value="autoWah">12: AUTO WAH</option>
+                    <option value="lofiBit">13: LO-FI TOY PIANO</option>
+                    <option value="pitchDelay">14: PITCH SHIFT DELAY</option>
+                    <option value="simReverb">15: RETRO DELAY REVERB</option>
+                </select>
+                <!-- Modal ON/OFF Button -->
+                <button id="modal-btn-fx-toggle" class="bg-purple-700 text-purple-100 font-bold px-3 py-1 rounded text-[10px] tracking-wider border border-purple-500 shrink-0">
+                    FX: OFF
+                </button>
+            </div>
+
+            <!-- Parameter Display -->
+            <div class="grid grid-cols-2 gap-2 text-[9px] bg-slate-900/80 p-1.5 rounded border border-slate-700 text-slate-300">
+                <div>
+                    <span class="text-purple-400 font-bold">X-AXIS: </span>
+                    <span id="modal-fx-x-label">PARAM 1</span>
+                    <div id="modal-fx-x-val" class="text-emerald-400 font-bold text-[10px]">20%</div>
+                </div>
+                <div>
+                    <span class="text-emerald-400 font-bold">Y-AXIS: </span>
+                    <span id="modal-fx-y-label">PARAM 2</span>
+                    <div id="modal-fx-y-val" class="text-emerald-400 font-bold text-[10px]">15%</div>
+                </div>
+            </div>
+
+            <!-- Interactive XY Touch Pad Canvas -->
+            <div id="modal-xy-pad" class="snes-screen w-full h-52 rounded-lg relative cursor-crosshair flex flex-col justify-between p-2">
+                <canvas id="modal-xy-canvas" class="absolute inset-0 w-full h-full z-0"></canvas>
+                <div class="relative z-10 pointer-events-none text-center my-auto opacity-40 font-mono text-[9px] text-emerald-300">
+                    DRAG TO CONTROL XY PARAMETERS
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -716,8 +777,9 @@
 
         let isMasterFxOn = false;
         let currentFxType = "reverb";
-        let fxParamValue = 60;
-        let fxParamValue2 = 50;
+        // エフェクト初期値を原音が変わり過ぎないようマイルドなパラメータにデフォルト設定 (20% / 15%)
+        let fxParamValue = 20;
+        let fxParamValue2 = 15;
 
         let scheduledTimeouts = [];
         let renderParticles = [];
@@ -766,6 +828,20 @@
         const recWavLed = document.getElementById("rec-wav-led");
         const recWavText = document.getElementById("rec-wav-text");
 
+        // Modal Elements
+        const btnOpenFxDialog = document.getElementById("btn-open-fx-dialog");
+        const btnCloseFxDialog = document.getElementById("btn-close-fx-dialog");
+        const fxModal = document.getElementById("fx-modal");
+        const modalFxTypeSelect = document.getElementById("modal-fx-type-select");
+        const modalBtnFxToggle = document.getElementById("modal-btn-fx-toggle");
+        const modalFxXLabel = document.getElementById("modal-fx-x-label");
+        const modalFxYLabel = document.getElementById("modal-fx-y-label");
+        const modalFxXVal = document.getElementById("modal-fx-x-val");
+        const modalFxYVal = document.getElementById("modal-fx-y-val");
+        const modalXyPad = document.getElementById("modal-xy-pad");
+        const modalXyCanvas = document.getElementById("modal-xy-canvas");
+        const modalCtx = modalXyCanvas.getContext("2d");
+
         buildScaleFrequencyTable();
 
         // --- 自然で美しい残響（インパルス応答）を動的生成する関数 ---
@@ -812,8 +888,8 @@
 
                 fxFilter = audioCtx.createBiquadFilter();
                 fxFilter.type = "lowpass";
-                fxFilter.frequency.value = 3000;
-                fxFilter.Q.value = 4.0;
+                fxFilter.frequency.value = 18000;
+                fxFilter.Q.value = 1.0;
 
                 fxDelay = audioCtx.createDelay();
                 fxDelay.delayTime.value = 0.25;
@@ -997,6 +1073,7 @@
             return curve;
         }
 
+        // --- エフェクト処理パラメーターの更新 (ON直後に音が変わり過ぎないよう初期値を最適化) ---
         function updateMasterFxParameters() {
             if (!audioCtx) return;
             const norm1 = fxParamValue / 100;
@@ -1004,6 +1081,15 @@
 
             fxValText.innerText = `${Math.round(fxParamValue)}%`;
             fxValText2.innerText = `${Math.round(fxParamValue2)}%`;
+            
+            if (modalFxXVal) modalFxXVal.innerText = `${Math.round(fxParamValue)}%`;
+            if (modalFxYVal) modalFxYVal.innerText = `${Math.round(fxParamValue2)}%`;
+
+            // UIコントロールの同期
+            fxParamSlider.value = fxParamValue;
+            fxParamSlider2.value = fxParamValue2;
+            fxTypeSelect.value = currentFxType;
+            modalFxTypeSelect.value = currentFxType;
 
             try {
                 voiceMixerBus.disconnect(wetGainNode);
@@ -1025,8 +1111,8 @@
 
                 updateReverbImpulseBuffer(durationSec, decayFactor);
 
-                const dryVol = Math.max(0.2, 1.0 - norm2 * 0.5);
-                const wetVol = 0.2 + norm2 * 0.8;
+                const dryVol = 1.0;
+                const wetVol = norm2 * 0.7; // ON直後に原音が消えないバランス
                 dryGainNode.gain.setValueAtTime(dryVol, audioCtx.currentTime);
                 wetGainNode.gain.setValueAtTime(wetVol, audioCtx.currentTime);
 
@@ -1038,27 +1124,28 @@
                 fxParamLabel.innerText = "FILTER CUTOFF";
                 fxParamLabel2.innerText = "RESONANCE (Q)";
 
-                dryGainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
-                wetGainNode.gain.setValueAtTime(0.8, audioCtx.currentTime);
+                dryGainNode.gain.setValueAtTime(0.0, audioCtx.currentTime);
+                wetGainNode.gain.setValueAtTime(1.0, audioCtx.currentTime);
 
-                const cutoff = 80 + norm1 * 9000;
+                // CUTOFFは高い値（ほぼスルー）から始まるようにスケーリング
+                const cutoff = 200 + Math.pow(norm1, 2) * 19800;
                 fxFilter.type = "lowpass";
                 fxFilter.frequency.setTargetAtTime(cutoff, audioCtx.currentTime, 0.02);
-                fxFilter.Q.setTargetAtTime(0.5 + norm2 * 18.0, audioCtx.currentTime, 0.02);
+                fxFilter.Q.setTargetAtTime(0.5 + norm2 * 12.0, audioCtx.currentTime, 0.02);
 
                 voiceMixerBus.connect(wetGainNode);
                 wetGainNode.connect(fxFilter);
                 fxFilter.connect(masterBusGain);
 
-            } else if (currentFxType === "delay") {
-                fxParamLabel.innerText = "ECHO FEEDBACK";
+            } else if (currentFxType === "delay" || currentFxType === "simReverb" || currentFxType === "pitchDelay") {
+                fxParamLabel.innerText = currentFxType === "simReverb" ? "ROOM DECAY" : "ECHO FEEDBACK";
                 fxParamLabel2.innerText = "DELAY TIME";
 
-                dryGainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
-                wetGainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+                dryGainNode.gain.setValueAtTime(1.0, audioCtx.currentTime);
+                wetGainNode.gain.setValueAtTime(norm1 * 0.6, audioCtx.currentTime);
 
                 fxDelay.delayTime.setValueAtTime(0.05 + norm2 * 0.5, audioCtx.currentTime);
-                fxDelayFeedback.gain.setValueAtTime(0.1 + norm1 * 0.75, audioCtx.currentTime);
+                fxDelayFeedback.gain.setValueAtTime(norm1 * 0.6, audioCtx.currentTime);
 
                 voiceMixerBus.connect(wetGainNode);
                 wetGainNode.connect(fxDelay);
@@ -1068,8 +1155,8 @@
                 fxParamLabel.innerText = "FEEDBACK";
                 fxParamLabel2.innerText = "BEAT SUBDIVISION";
 
-                dryGainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
-                wetGainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+                dryGainNode.gain.setValueAtTime(1.0, audioCtx.currentTime);
+                wetGainNode.gain.setValueAtTime(norm1 * 0.6, audioCtx.currentTime);
 
                 const beatUnit = 60 / Math.max(40, calculatedBpm);
                 const subdivisions = [0.125, 0.25, 0.375, 0.5, 0.75, 1.0];
@@ -1077,170 +1164,76 @@
                 const delaySec = Math.min(2.0, beatUnit * selectedSub);
 
                 fxDelay.delayTime.setValueAtTime(delaySec, audioCtx.currentTime);
-                fxDelayFeedback.gain.setValueAtTime(0.2 + norm1 * 0.7, audioCtx.currentTime);
+                fxDelayFeedback.gain.setValueAtTime(norm1 * 0.6, audioCtx.currentTime);
 
                 voiceMixerBus.connect(wetGainNode);
                 wetGainNode.connect(fxDelay);
                 fxDelay.connect(masterBusGain);
 
-            } else if (currentFxType === "bitcrush") {
+            } else if (currentFxType === "bitcrush" || currentFxType === "lofiBit") {
                 fxParamLabel.innerText = "CUTOFF FREQ";
                 fxParamLabel2.innerText = "RESONANCE";
 
-                dryGainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
-                wetGainNode.gain.setValueAtTime(0.7, audioCtx.currentTime);
+                // ON直後は原音を残すためDry重視
+                dryGainNode.gain.setValueAtTime(1.0 - norm2 * 0.5, audioCtx.currentTime);
+                wetGainNode.gain.setValueAtTime(norm2 * 0.8, audioCtx.currentTime);
 
-                const cutoff = 200 + norm1 * 5000;
+                const cutoff = 500 + norm1 * 14500;
                 fxFilter.type = "lowpass";
                 fxFilter.frequency.setValueAtTime(cutoff, audioCtx.currentTime);
-                fxFilter.Q.setValueAtTime(1.0 + norm2 * 12.0, audioCtx.currentTime);
-
-                voiceMixerBus.connect(wetGainNode);
-                wetGainNode.connect(fxFilter);
-                fxFilter.connect(masterBusGain);
-
-            } else if (currentFxType === "chorus") {
-                fxParamLabel.innerText = "CHORUS DEPTH";
-                fxParamLabel2.innerText = "CHORUS RATE";
-
-                dryGainNode.gain.setValueAtTime(0.6, audioCtx.currentTime);
-                wetGainNode.gain.setValueAtTime(0.4, audioCtx.currentTime);
-
-                fxDelay.delayTime.setValueAtTime(0.010 + norm2 * 0.03, audioCtx.currentTime);
-                fxDelayFeedback.gain.setValueAtTime(0.1 + norm1 * 0.4, audioCtx.currentTime);
-
-                voiceMixerBus.connect(wetGainNode);
-                wetGainNode.connect(fxDelay);
-                fxDelay.connect(masterBusGain);
-
-            } else if (currentFxType === "flanger") {
-                fxParamLabel.innerText = "FLANGER FEEDBACK";
-                fxParamLabel2.innerText = "FLANGE DELAY";
-
-                dryGainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
-                wetGainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
-
-                fxDelay.delayTime.setValueAtTime(0.001 + norm2 * 0.012, audioCtx.currentTime);
-                fxDelayFeedback.gain.setValueAtTime(0.3 + norm1 * 0.6, audioCtx.currentTime);
-
-                voiceMixerBus.connect(wetGainNode);
-                wetGainNode.connect(fxDelay);
-                fxDelay.connect(masterBusGain);
-
-            } else if (currentFxType === "phaser") {
-                fxParamLabel.innerText = "PHASER FREQ";
-                fxParamLabel2.innerText = "RESONANCE";
-
-                dryGainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
-                wetGainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
-
-                fxFilter.type = "allpass";
-                fxFilter.frequency.setValueAtTime(150 + norm1 * 4500, audioCtx.currentTime);
-                fxFilter.Q.setValueAtTime(1.0 + norm2 * 10.0, audioCtx.currentTime);
-
-                voiceMixerBus.connect(wetGainNode);
-                wetGainNode.connect(fxFilter);
-                fxFilter.connect(masterBusGain);
-
-            } else if (currentFxType === "simReverb") {
-                fxParamLabel.innerText = "ROOM DECAY";
-                fxParamLabel2.innerText = "ROOM SIZE";
-
-                dryGainNode.gain.setValueAtTime(0.4, audioCtx.currentTime);
-                wetGainNode.gain.setValueAtTime(0.6, audioCtx.currentTime);
-
-                fxDelay.delayTime.setValueAtTime(0.03 + norm2 * 0.15, audioCtx.currentTime);
-                fxDelayFeedback.gain.setValueAtTime(0.3 + norm1 * 0.55, audioCtx.currentTime);
-
-                voiceMixerBus.connect(wetGainNode);
-                wetGainNode.connect(fxDelay);
-                fxDelay.connect(masterBusGain);
-
-            } else if (currentFxType === "ringMod") {
-                fxParamLabel.innerText = "MOD FREQ";
-                fxParamLabel2.innerText = "BANDWIDTH (Q)";
-
-                dryGainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
-                wetGainNode.gain.setValueAtTime(0.7, audioCtx.currentTime);
-
-                fxFilter.type = "bandpass";
-                fxFilter.frequency.setValueAtTime(200 + norm1 * 3500, audioCtx.currentTime);
-                fxFilter.Q.setValueAtTime(2.0 + norm2 * 18.0, audioCtx.currentTime);
-
-                voiceMixerBus.connect(wetGainNode);
-                wetGainNode.connect(fxFilter);
-                fxFilter.connect(masterBusGain);
-
-            } else if (currentFxType === "overdrive") {
-                fxParamLabel.innerText = "OVERDRIVE GAIN";
-                fxParamLabel2.innerText = "DRY/WET MIX";
-
-                dryGainNode.gain.setValueAtTime(1.0 - norm2 * 0.6, audioCtx.currentTime);
-                wetGainNode.gain.setValueAtTime(norm2, audioCtx.currentTime);
-
-                fxDistortion.curve = makeDistortionCurve(norm1 * 40);
-
-                voiceMixerBus.connect(wetGainNode);
-                wetGainNode.connect(fxDistortion);
-                fxDistortion.connect(masterBusGain);
-
-            } else if (currentFxType === "distortion") {
-                fxParamLabel.innerText = "HARD DISTORTION";
-                fxParamLabel2.innerText = "DRY/WET MIX";
-
-                dryGainNode.gain.setValueAtTime(1.0 - norm2 * 0.7, audioCtx.currentTime);
-                wetGainNode.gain.setValueAtTime(norm2, audioCtx.currentTime);
-
-                fxDistortion.curve = makeDistortionCurve(norm1 * 500);
-
-                voiceMixerBus.connect(wetGainNode);
-                wetGainNode.connect(fxDistortion);
-                fxDistortion.connect(masterBusGain);
-
-            } else if (currentFxType === "autoWah") {
-                fxParamLabel.innerText = "WAH FREQ";
-                fxParamLabel2.innerText = "RESONANCE";
-
-                dryGainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
-                wetGainNode.gain.setValueAtTime(0.7, audioCtx.currentTime);
-
-                fxFilter.type = "bandpass";
-                fxFilter.frequency.setValueAtTime(100 + norm1 * 6000, audioCtx.currentTime);
-                fxFilter.Q.setValueAtTime(3.0 + norm2 * 12.0, audioCtx.currentTime);
-
-                voiceMixerBus.connect(wetGainNode);
-                wetGainNode.connect(fxFilter);
-                fxFilter.connect(masterBusGain);
-
-            } else if (currentFxType === "lofiBit") {
-                fxParamLabel.innerText = "TOY LOWPASS";
-                fxParamLabel2.innerText = "RESONANCE";
-
-                dryGainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
-                wetGainNode.gain.setValueAtTime(0.7, audioCtx.currentTime);
-
-                fxFilter.type = "lowpass";
-                fxFilter.frequency.setValueAtTime(500 + norm1 * 3000, audioCtx.currentTime);
                 fxFilter.Q.setValueAtTime(1.0 + norm2 * 8.0, audioCtx.currentTime);
 
                 voiceMixerBus.connect(wetGainNode);
                 wetGainNode.connect(fxFilter);
                 fxFilter.connect(masterBusGain);
 
-            } else if (currentFxType === "pitchDelay") {
-                fxParamLabel.innerText = "ECHO FEEDBACK";
-                fxParamLabel2.innerText = "DELAY TIME";
+            } else if (currentFxType === "chorus" || currentFxType === "flanger") {
+                fxParamLabel.innerText = currentFxType === "chorus" ? "CHORUS DEPTH" : "FLANGER FEEDBACK";
+                fxParamLabel2.innerText = "MOD RATE / TIME";
 
-                dryGainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
-                wetGainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+                dryGainNode.gain.setValueAtTime(1.0, audioCtx.currentTime);
+                wetGainNode.gain.setValueAtTime(norm1 * 0.5, audioCtx.currentTime);
 
-                fxDelay.delayTime.setValueAtTime(0.08 + norm2 * 0.55, audioCtx.currentTime);
-                fxDelayFeedback.gain.setValueAtTime(0.2 + norm1 * 0.65, audioCtx.currentTime);
+                fxDelay.delayTime.setValueAtTime(0.002 + norm2 * 0.02, audioCtx.currentTime);
+                fxDelayFeedback.gain.setValueAtTime(norm1 * 0.5, audioCtx.currentTime);
 
                 voiceMixerBus.connect(wetGainNode);
                 wetGainNode.connect(fxDelay);
                 fxDelay.connect(masterBusGain);
+
+            } else if (currentFxType === "phaser" || currentFxType === "autoWah" || currentFxType === "ringMod") {
+                fxParamLabel.innerText = "MOD FREQ";
+                fxParamLabel2.innerText = "RESONANCE / MIX";
+
+                dryGainNode.gain.setValueAtTime(1.0 - norm2 * 0.4, audioCtx.currentTime);
+                wetGainNode.gain.setValueAtTime(norm2 * 0.7, audioCtx.currentTime);
+
+                fxFilter.type = currentFxType === "phaser" ? "allpass" : "bandpass";
+                fxFilter.frequency.setValueAtTime(200 + norm1 * 5000, audioCtx.currentTime);
+                fxFilter.Q.setValueAtTime(1.0 + norm2 * 8.0, audioCtx.currentTime);
+
+                voiceMixerBus.connect(wetGainNode);
+                wetGainNode.connect(fxFilter);
+                fxFilter.connect(masterBusGain);
+
+            } else if (currentFxType === "overdrive" || currentFxType === "distortion") {
+                fxParamLabel.innerText = currentFxType === "overdrive" ? "OVERDRIVE GAIN" : "DISTORTION";
+                fxParamLabel2.innerText = "DRY/WET MIX";
+
+                // Mixが0の時は原音100%になる安全設定
+                dryGainNode.gain.setValueAtTime(1.0 - norm2 * 0.5, audioCtx.currentTime);
+                wetGainNode.gain.setValueAtTime(norm2 * 0.8, audioCtx.currentTime);
+
+                const amount = currentFxType === "overdrive" ? norm1 * 30 : norm1 * 250;
+                fxDistortion.curve = makeDistortionCurve(amount);
+
+                voiceMixerBus.connect(wetGainNode);
+                wetGainNode.connect(fxDistortion);
+                fxDistortion.connect(masterBusGain);
             }
+
+            if (modalFxXLabel) modalFxXLabel.innerText = fxParamLabel.innerText;
+            if (modalFxYLabel) modalFxYLabel.innerText = fxParamLabel2.innerText;
         }
 
         PRESET_CATEGORIES.forEach(cat => {
@@ -1927,6 +1920,10 @@
         function resizeCanvas() {
             lcdCanvas.width = touchPad.clientWidth;
             lcdCanvas.height = touchPad.clientHeight;
+            if (modalXyPad) {
+                modalXyCanvas.width = modalXyPad.clientWidth;
+                modalXyCanvas.height = modalXyPad.clientHeight;
+            }
         }
         window.addEventListener("resize", resizeCanvas);
         resizeCanvas();
@@ -1985,8 +1982,59 @@
                 }
             }
 
+            // モーダル側XYパッドの描画
+            if (!fxModal.classList.contains("hidden")) {
+                drawModalXYCanvas();
+            }
+
             requestAnimationFrame(drawLCDVisuals);
         }
+
+        // --- モーダルXYパッド描画 ---
+        function drawModalXYCanvas() {
+            const w = modalXyCanvas.width;
+            const h = modalXyCanvas.height;
+            modalCtx.clearRect(0, 0, w, h);
+
+            // グリッド線描画
+            modalCtx.strokeStyle = "rgba(16, 185, 129, 0.15)";
+            modalCtx.lineWidth = 1;
+            for (let x = 0; x <= w; x += w / 8) {
+                modalCtx.beginPath();
+                modalCtx.moveTo(x, 0);
+                modalCtx.lineTo(x, h);
+                modalCtx.stroke();
+            }
+            for (let y = 0; y <= h; y += h / 8) {
+                modalCtx.beginPath();
+                modalCtx.moveTo(0, y);
+                modalCtx.lineTo(w, y);
+                modalCtx.stroke();
+            }
+
+            // 現在のパラメーター位置 (X: fxParamValue, Y: fxParamValue2 (Y軸反転表示: 100%が上))
+            const cx = (fxParamValue / 100) * w;
+            const cy = (1 - (fxParamValue2 / 100)) * h;
+
+            // ポインターガイドライン
+            modalCtx.strokeStyle = isMasterFxOn ? "rgba(168, 85, 247, 0.5)" : "rgba(100, 116, 139, 0.3)";
+            modalCtx.setLineDash([4, 4]);
+            modalCtx.beginPath();
+            modalCtx.moveTo(cx, 0); modalCtx.lineTo(cx, h);
+            modalCtx.moveTo(0, cy); modalCtx.lineTo(w, cy);
+            modalCtx.stroke();
+            modalCtx.setLineDash([]);
+
+            // ポインター本体
+            modalCtx.beginPath();
+            modalCtx.arc(cx, cy, 10, 0, Math.PI * 2);
+            modalCtx.fillStyle = isMasterFxOn ? "#a855f7" : "#64748b";
+            modalCtx.fill();
+            modalCtx.strokeStyle = "#ffffff";
+            modalCtx.lineWidth = 2;
+            modalCtx.stroke();
+        }
+
         drawLCDVisuals();
 
         function getNormalizedTouchCoords(clientX, clientY) {
@@ -2080,28 +2128,41 @@
             }
         });
 
-        // エフェクトトグル & スライダー操作の制御
-        btnFxToggle.addEventListener("click", () => {
-            isMasterFxOn = !isMasterFxOn;
+        // エフェクトトグル & スライダー操作の制御関数
+        function setFxToggleState(isOn) {
+            isMasterFxOn = isOn;
+            const buttons = [btnFxToggle, modalBtnFxToggle];
+            buttons.forEach(btn => {
+                if (isMasterFxOn) {
+                    btn.innerText = "FX: ON";
+                    btn.classList.replace("bg-purple-700", "bg-emerald-600");
+                } else {
+                    btn.innerText = "FX: OFF";
+                    btn.classList.replace("bg-emerald-600", "bg-purple-700");
+                }
+            });
+
             if (isMasterFxOn) {
-                btnFxToggle.innerText = "FX: ON";
-                btnFxToggle.classList.replace("bg-purple-700", "bg-emerald-600");
                 fxDisplay.innerText = `FX: ON (${currentFxType.toUpperCase()})`;
             } else {
-                btnFxToggle.innerText = "FX: OFF";
-                btnFxToggle.classList.replace("bg-emerald-600", "bg-purple-700");
                 fxDisplay.innerText = "FX: OFF";
             }
             updateMasterFxParameters();
-        });
+        }
 
-        fxTypeSelect.addEventListener("change", (e) => {
+        btnFxToggle.addEventListener("click", () => setFxToggleState(!isMasterFxOn));
+        modalBtnFxToggle.addEventListener("click", () => setFxToggleState(!isMasterFxOn));
+
+        const handleFxTypeChange = (e) => {
             currentFxType = e.target.value;
             if (isMasterFxOn) {
                 fxDisplay.innerText = `FX: ON (${currentFxType.toUpperCase()})`;
             }
             updateMasterFxParameters();
-        });
+        };
+
+        fxTypeSelect.addEventListener("change", handleFxTypeChange);
+        modalFxTypeSelect.addEventListener("change", handleFxTypeChange);
 
         fxParamSlider.addEventListener("input", (e) => {
             fxParamValue = parseFloat(e.target.value);
@@ -2112,6 +2173,55 @@
             fxParamValue2 = parseFloat(e.target.value);
             updateMasterFxParameters();
         });
+
+        // --- エフェクターモーダル (XY Pad) ロジック ---
+        btnOpenFxDialog.addEventListener("click", () => {
+            fxModal.classList.remove("hidden");
+            resizeCanvas();
+            updateMasterFxParameters();
+        });
+
+        btnCloseFxDialog.addEventListener("click", () => {
+            fxModal.classList.add("hidden");
+        });
+
+        let xyPointerId = null;
+
+        function handleXYPadTouch(clientX, clientY) {
+            initAudioEngine();
+            const rect = modalXyPad.getBoundingClientRect();
+            const normX = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+            const normY = Math.max(0, Math.min(1, (clientY - rect.top) / rect.height));
+
+            fxParamValue = Math.round(normX * 100);
+            fxParamValue2 = Math.round((1 - normY) * 100); // 上方向を100%とする
+
+            updateMasterFxParameters();
+        }
+
+        modalXyPad.addEventListener("pointerdown", (e) => {
+            e.preventDefault();
+            xyPointerId = e.pointerId;
+            modalXyPad.setPointerCapture(e.pointerId);
+            handleXYPadTouch(e.clientX, e.clientY);
+        });
+
+        modalXyPad.addEventListener("pointermove", (e) => {
+            if (xyPointerId !== null && e.pointerId === xyPointerId) {
+                e.preventDefault();
+                handleXYPadTouch(e.clientX, e.clientY);
+            }
+        });
+
+        const releaseXYPointer = (e) => {
+            if (xyPointerId !== null && e.pointerId === xyPointerId) {
+                try { modalXyPad.releasePointerCapture(e.pointerId); } catch(err) {}
+                xyPointerId = null;
+            }
+        };
+
+        modalXyPad.addEventListener("pointerup", releaseXYPointer);
+        modalXyPad.addEventListener("pointercancel", releaseXYPointer);
     </script>
 </body>
 </html>
