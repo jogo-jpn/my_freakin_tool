@@ -1493,12 +1493,40 @@ document.getElementById("btn-preset-next").addEventListener("click", () => {
 });
 
 
-        function updateScaleDisplay() {
-            const scaleName = scaleSelect.options[scaleSelect.selectedIndex].text.split(' ')[0];
-            scaleInfoDisplay.innerText = `KEY: ${currentKey} | SCALE: ${scaleName}`;
-        }
-        updateScaleDisplay();
+       function updateScaleDisplay() {
+    const selectedScaleText =
+        scaleSelect.options[scaleSelect.selectedIndex].text;
 
+    const shortScaleName = selectedScaleText
+        .replace(/\s*\(.*?\)\s*/g, "")
+        .trim();
+
+    scaleInfoDisplay.innerText =
+        `KEY: ${currentKey} | SCALE: ${shortScaleName}`;
+}
+
+keySelect.addEventListener("change", (e) => {
+    currentKey = e.target.value;
+    buildScaleFrequencyTable();
+    updateScaleDisplay();
+});
+
+scaleSelect.addEventListener("change", (e) => {
+    currentScaleKey = e.target.value;
+    buildScaleFrequencyTable();
+    updateScaleDisplay();
+});
+
+updateScaleDisplay();
+});
+
+// SCALE変更時：音階テーブル、コードパッド、右上表示を更新
+scaleSelect.addEventListener("change", (e) => {
+    currentScaleKey = e.target.value;
+
+    buildScaleFrequencyTable();
+    updateScaleDisplay();
+});
         function playCustomDrumSound(drumType, freq, cutoffFreq, kitStyle = "retro", padBus = gainNodeA, presetVol = 1.0) {
             initAudioEngine();
             const now = audioCtx.currentTime;
