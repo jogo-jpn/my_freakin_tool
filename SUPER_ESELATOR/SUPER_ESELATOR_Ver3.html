@@ -1518,7 +1518,6 @@ scaleSelect.addEventListener("change", (e) => {
 });
 
 updateScaleDisplay();
-});
 
 // SCALE変更時：音階テーブル、コードパッド、右上表示を更新
 scaleSelect.addEventListener("change", (e) => {
@@ -2120,8 +2119,6 @@ function playAmbientSound(soundType, freq, cutoffFreq, soundDuration, padBus, pr
     return;
 }
 
-    const octShift = preset.defaultOctave !== undefined ? preset.defaultOctave : 0;
-            const shiftedFreq = freq * Math.pow(2, octShift);
 const octShift = preset.defaultOctave !== undefined ? preset.defaultOctave : 0;
 const shiftedFreq = freq * Math.pow(2, octShift);
 
