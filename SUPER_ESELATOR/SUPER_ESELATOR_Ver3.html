@@ -1430,7 +1430,22 @@ btnDeckD.addEventListener("click", () => switchActiveDeck("D"));
     deckSoundLabels[activeDeck].innerText = nextPreset.name;
     presetSelect.value = nextPreset.id;
 }
+document.getElementById("btn-prev-sound").addEventListener("click", () => {
+    selectNextSound(-1);
+});
 
+document.getElementById("btn-next-sound").addEventListener("click", () => {
+    selectNextSound(1);
+});
+
+// 音色変更ボタン（セレクトボックス横の ◀ / ►）
+document.getElementById("btn-preset-prev").addEventListener("click", () => {
+    selectNextSound(-1);
+});
+
+document.getElementById("btn-preset-next").addEventListener("click", () => {
+    selectNextSound(1);
+});
 
 
         function updateScaleDisplay() {
