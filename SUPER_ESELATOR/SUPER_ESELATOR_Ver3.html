@@ -764,40 +764,46 @@
     category: "AMBIENT / NATURE",
     presets: [
         {
-            id: 60,
-            name: "61: CASSETTE TAPE HISS",
-            soundType: "cassetteNoise",
-            defaultVol: 0.20,
-            defaultOctave: 0
-        },
-        {
-            id: 61,
-            name: "62: VINYL RECORD CRACKLE",
-            soundType: "recordNoise",
-            defaultVol: 0.28,
-            defaultOctave: 0
-        },
-        {
-            id: 62,
-            name: "63: BIRD CHIRPS",
-            soundType: "bird",
-            defaultVol: 0.34,
-            defaultOctave: 0
-        },
-        {
-            id: 63,
-            name: "64: OCEAN WAVES",
-            soundType: "waves",
-            defaultVol: 0.38,
-            defaultOctave: 0
-        },
-        {
-            id: 64,
-            name: "65: GENTLE RAIN",
-            soundType: "rain",
-            defaultVol: 0.30,
-            defaultOctave: 0
-        }
+    id: 60,
+    name: "61: CASSETTE TAPE HISS",
+    soundType: "cassetteNoise",
+    defaultVol: 0.20,
+    ambientDuration: 8,
+    defaultOctave: 0
+},
+{
+    id: 61,
+    name: "62: VINYL RECORD CRACKLE",
+    soundType: "recordNoise",
+    defaultVol: 0.28,
+    ambientDuration: 7,
+    defaultOctave: 0
+},
+{
+    id: 62,
+    name: "63: BIRD CHIRPS",
+    soundType: "bird",
+    defaultVol: 0.34,
+    ambientDuration: 1.2,
+    defaultOctave: 0
+},
+{
+    id: 63,
+    name: "64: OCEAN WAVES",
+    soundType: "waves",
+    defaultVol: 0.38,
+    ambientDuration: 10,
+    defaultOctave: 0
+},
+{
+    id: 64,
+    name: "65: GENTLE RAIN",
+    soundType: "rain",
+    defaultVol: 0.30,
+    ambientDuration: 9,
+    defaultOctave: 0
+}
+
     ]
 }
         ];
@@ -1702,11 +1708,10 @@ document.getElementById("btn-preset-next").addEventListener("click", () => {
                 osc.stop(now + 0.02);
             }
         }
-function playAmbientSound(soundType, freq, cutoffFreq, duration, padBus, presetVol) {
+ffunction playAmbientSound(soundType, freq, cutoffFreq, soundDuration, padBus, presetVol) {
     const now = audioCtx.currentTime;
 
-    // パッドを触ったときに鳴る環境音の長さ
-    const soundDuration = Math.max(0.7, duration * 5);
+    soundDuration = Math.max(0.1, soundDuration);
 
     // ノイズ用バッファを作る共通関数
     function createNoiseBuffer(seconds, generator) {
@@ -1994,13 +1999,14 @@ function playAmbientSound(soundType, freq, cutoffFreq, duration, padBus, presetV
     // 環境音・ノイズ系プリセット
     if (preset.soundType) {
         playAmbientSound(
-            preset.soundType,
-            freq,
-            cutoffFreq,
-            duration,
-            padBus,
-            presetVol
-        );
+    preset.soundType,
+    freq,
+    cutoffFreq,
+    preset.ambientDuration || duration * 5,
+    padBus,
+    presetVol
+);
+
         return;
     }
 
