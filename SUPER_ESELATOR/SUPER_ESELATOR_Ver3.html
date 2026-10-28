@@ -757,7 +757,48 @@
                     { id: 51, name: "52: HEAVY ROCK KIT", kitStyle: "rock", defaultVol: 1.5, defaultOctave: 0 },
                     { id: 52, name: "53: CYBER TRAP KIT", kitStyle: "trap", defaultVol: 1.5, defaultOctave: 0 },
                     { id: 53, name: "54: INDUSTRIAL TECHNO KIT", kitStyle: "techno", defaultVol: 1.5, defaultOctave: 0 },
-                    { id: 54, name: "55: LO-FI CHILL KIT", kitStyle: "lofi", defaultVol: 1.5, defaultOctave: 0 }
+                    { id: 54, name: "55: LO-FI CHILL KIT", kitStyle: "lofi", defaultVol: 1.5, defaultOctave: 0 },
+                    {
+    category: "AMBIENT / NATURE",
+    presets: [
+        {
+            id: 60,
+            name: "61: CASSETTE TAPE HISS",
+            soundType: "cassetteNoise",
+            defaultVol: 0.20,
+            defaultOctave: 0
+        },
+        {
+            id: 61,
+            name: "62: VINYL RECORD CRACKLE",
+            soundType: "recordNoise",
+            defaultVol: 0.28,
+            defaultOctave: 0
+        },
+        {
+            id: 62,
+            name: "63: BIRD CHIRPS",
+            soundType: "bird",
+            defaultVol: 0.34,
+            defaultOctave: 0
+        },
+        {
+            id: 63,
+            name: "64: OCEAN WAVES",
+            soundType: "waves",
+            defaultVol: 0.38,
+            defaultOctave: 0
+        },
+        {
+            id: 64,
+            name: "65: GENTLE RAIN",
+            soundType: "rain",
+            defaultVol: 0.30,
+            defaultOctave: 0
+        }
+    ]
+}
+
                 ]
             }
         ];
@@ -1662,14 +1703,309 @@ document.getElementById("btn-preset-next").addEventListener("click", () => {
                 osc.stop(now + 0.02);
             }
         }
+function playAmbientSound(soundType, freq, cutoffFreq, duration, padBus, presetVol) {
+    const now = audioCtx.currentTime;
 
+    // パッドを触ったときに鳴る環境音の長さ
+    const soundDuration = Math.max(0.7, duration * 5);
+
+    // ノイズ用バッファを作る共通関数
+    function createNoiseBuffer(seconds, generator) {
+        const size = Math.floor(audioCtx.sampleRate * seconds);
+        const buffer = audioCtx.createBuffer(1, size, audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+
+        for (let i = 0; i < size; i++) {
+            data[i] = generator(i, size);
+        }
+
+        return buffer;
+    }
+
+    // ノイズを鳴らす共通関数
+    function playNoise(buffer, filterType, filterFreq, gainValue, fadeTime) {
+        const source = audioCtx.createBufferSource();
+        const filter = audioCtx.createBiquadFilter();
+        const gain = audioCtx.createGain();
+
+        filter.type = filterType;
+        filter.frequency.setValueAtTime(filterFreq, now);
+
+        gain.gain.setValueAtTime(0.001, now);
+        gain.gain.linearRampToValueAtTime(gainValue, now + 0.03);
+        gain.gain.exponentialRampToValueAtTime(
+            0.001,
+            now + fadeTime
+        );
+
+        source.buffer = buffer;
+        source.connect(filter);
+        filter.connect(gain);
+        gain.connect(padBus);
+
+        source.start(now);
+        source.stop(now + fadeTime + 0.05);
+    }
+
+    // 1. カセットテープのヒスノイズ
+    if (soundType === "cassetteNoise") {
+        const buffer = createNoiseBuffer(soundDuration, (i) => {
+            const whiteNoise = Math.random() * 2 - 1;
+
+            // 微妙にゆっくり揺れるヒス音量
+            const flutter =
+                0.72 +
+                Math.sin(i / audioCtx.sampleRate * Math.PI * 2 * 0.55) * 0.18;
+
+            return whiteNoise * flutter * 0.22;
+        });
+
+        playNoise(
+            buffer,
+            "highpass",
+            1700,
+            presetVol,
+            soundDuration
+        );
+
+        // カセットらしい低いハム
+        const hum = audioCtx.createOscillator();
+        const humGain = audioCtx.createGain();
+
+        hum.type = "sine";
+        hum.frequency.setValueAtTime(60, now);
+
+        humGain.gain.setValueAtTime(presetVol * 0.045, now);
+        humGain.gain.exponentialRampToValueAtTime(
+            0.001,
+            now + soundDuration
+        );
+
+        hum.connect(humGain);
+        humGain.connect(padBus);
+
+        hum.start(now);
+        hum.stop(now + soundDuration);
+
+        return;
+    }
+
+    // 2. レコードのサーフェスノイズ・パチパチ音
+    if (soundType === "recordNoise") {
+        const buffer = createNoiseBuffer(soundDuration, (i) => {
+            let sample = (Math.random() * 2 - 1) * 0.11;
+
+            // 小さなクラックル
+            if (Math.random() > 0.997) {
+                sample += (Math.random() > 0.5 ? 1 : -1) * 0.8;
+            }
+
+            // たまに大きめのプチノイズ
+            if (Math.random() > 0.9994) {
+                sample += (Math.random() > 0.5 ? 1 : -1) * 1.0;
+            }
+
+            // レコードの低い回転感
+            sample += Math.sin(
+                i / audioCtx.sampleRate * Math.PI * 2 * 33.3
+            ) * 0.018;
+
+            return sample;
+        });
+
+        const source = audioCtx.createBufferSource();
+        const highpass = audioCtx.createBiquadFilter();
+        const lowpass = audioCtx.createBiquadFilter();
+        const gain = audioCtx.createGain();
+
+        highpass.type = "highpass";
+        highpass.frequency.value = 80;
+
+        lowpass.type = "lowpass";
+        lowpass.frequency.value = Math.min(cutoffFreq, 7000);
+
+        gain.gain.setValueAtTime(0.001, now);
+        gain.gain.linearRampToValueAtTime(presetVol, now + 0.02);
+        gain.gain.exponentialRampToValueAtTime(
+            0.001,
+            now + soundDuration
+        );
+
+        source.buffer = buffer;
+        source.connect(highpass);
+        highpass.connect(lowpass);
+        lowpass.connect(gain);
+        gain.connect(padBus);
+
+        source.start(now);
+        source.stop(now + soundDuration);
+
+        return;
+    }
+
+    // 3. 鳥のさえずり
+    if (soundType === "bird") {
+        // タッチ位置から得た音程を鳥の音域に変換
+        const baseFreq = Math.max(1300, Math.min(5200, freq * 8));
+        const chirpCount = 2 + Math.floor(Math.random() * 3);
+
+        for (let i = 0; i < chirpCount; i++) {
+            const startTime = now + i * (0.09 + Math.random() * 0.06);
+            const chirpDuration = 0.06 + Math.random() * 0.06;
+
+            const osc = audioCtx.createOscillator();
+            const filter = audioCtx.createBiquadFilter();
+            const gain = audioCtx.createGain();
+
+            osc.type = "sine";
+
+            filter.type = "bandpass";
+            filter.frequency.setValueAtTime(baseFreq, startTime);
+            filter.Q.setValueAtTime(7, startTime);
+
+            // 上がって少し下がる、鳥らしいピッチカーブ
+            osc.frequency.setValueAtTime(baseFreq * 0.70, startTime);
+            osc.frequency.exponentialRampToValueAtTime(
+                baseFreq * (1.40 + Math.random() * 0.25),
+                startTime + chirpDuration * 0.55
+            );
+            osc.frequency.exponentialRampToValueAtTime(
+                baseFreq * 1.02,
+                startTime + chirpDuration
+            );
+
+            gain.gain.setValueAtTime(0.001, startTime);
+            gain.gain.linearRampToValueAtTime(
+                presetVol * 0.55,
+                startTime + 0.01
+            );
+            gain.gain.exponentialRampToValueAtTime(
+                0.001,
+                startTime + chirpDuration
+            );
+
+            osc.connect(filter);
+            filter.connect(gain);
+            gain.connect(padBus);
+
+            osc.start(startTime);
+            osc.stop(startTime + chirpDuration + 0.02);
+        }
+
+        return;
+    }
+
+    // 4. 波の音
+    if (soundType === "waves") {
+        const buffer = createNoiseBuffer(soundDuration, (i) => {
+            const t = i / audioCtx.sampleRate;
+
+            // 波が寄せては返すような、大きな音量変化
+            const swell =
+                0.22 +
+                Math.pow(
+                    (Math.sin(t * Math.PI * 2 * 0.42) + 1) / 2,
+                    1.8
+                ) * 0.78;
+
+            const noise = Math.random() * 2 - 1;
+
+            return noise * swell * 0.42;
+        });
+
+        const source = audioCtx.createBufferSource();
+        const lowpass = audioCtx.createBiquadFilter();
+        const gain = audioCtx.createGain();
+
+        lowpass.type = "lowpass";
+        lowpass.frequency.setValueAtTime(
+            Math.min(Math.max(cutoffFreq, 900), 2800),
+            now
+        );
+        lowpass.Q.value = 0.7;
+
+        gain.gain.setValueAtTime(0.001, now);
+        gain.gain.linearRampToValueAtTime(presetVol, now + 0.12);
+        gain.gain.exponentialRampToValueAtTime(
+            0.001,
+            now + soundDuration
+        );
+
+        source.buffer = buffer;
+        source.connect(lowpass);
+        lowpass.connect(gain);
+        gain.connect(padBus);
+
+        source.start(now);
+        source.stop(now + soundDuration);
+
+        return;
+    }
+
+    // 5. 雨の音
+    if (soundType === "rain") {
+        const buffer = createNoiseBuffer(soundDuration, () => {
+            let sample = (Math.random() * 2 - 1) * 0.14;
+
+            // 雨粒のランダムな細かい当たり
+            if (Math.random() > 0.985) {
+                sample += (Math.random() * 2 - 1) * 0.65;
+            }
+
+            return sample;
+        });
+
+        const source = audioCtx.createBufferSource();
+        const highpass = audioCtx.createBiquadFilter();
+        const lowpass = audioCtx.createBiquadFilter();
+        const gain = audioCtx.createGain();
+
+        highpass.type = "highpass";
+        highpass.frequency.value = 600;
+
+        lowpass.type = "lowpass";
+        lowpass.frequency.value = Math.min(
+            Math.max(cutoffFreq, 2500),
+            8500
+        );
+
+        gain.gain.setValueAtTime(0.001, now);
+        gain.gain.linearRampToValueAtTime(presetVol, now + 0.05);
+        gain.gain.exponentialRampToValueAtTime(
+            0.001,
+            now + soundDuration
+        );
+
+        source.buffer = buffer;
+        source.connect(highpass);
+        highpass.connect(lowpass);
+        lowpass.connect(gain);
+        gain.connect(padBus);
+
+        source.start(now);
+        source.stop(now + soundDuration);
+    }
+}
         function playChiptuneTone(preset, freq, cutoffFreq, duration = 0.22, kitStyle = "retro", padChannel = "A") {
             initAudioEngine();
-           const padBus = getGainNodeForDeck(padChannel);
+           
+    const padBus = getGainNodeForDeck(padChannel);
+    const presetVol = preset.defaultVol !== undefined ? preset.defaultVol : 1.0;
 
+    // 環境音・ノイズ系プリセット
+    if (preset.soundType) {
+        playAmbientSound(
+            preset.soundType,
+            freq,
+            cutoffFreq,
+            duration,
+            padBus,
+            presetVol
+        );
+        return;
+    }
 
-            const octShift = preset.defaultOctave !== undefined ? preset.defaultOctave : 0;
-            const presetVol = preset.defaultVol !== undefined ? preset.defaultVol : 1.0;
+    const octShift = preset.defaultOctave !== undefined ? preset.defaultOctave : 0;
             const shiftedFreq = freq * Math.pow(2, octShift);
 
             if (preset.drumType) {
