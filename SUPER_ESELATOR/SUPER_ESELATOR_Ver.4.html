@@ -207,7 +207,7 @@
                 <!-- Audio WAV Recording Button -->
                 <button id="btn-wav-rec" class="bg-red-800 hover:bg-red-700 text-white font-mono text-[9px] font-bold px-2 py-0.5 rounded border border-red-500 flex items-center space-x-1 shadow transition">
                     <span id="rec-wav-led" class="w-2 h-2 rounded-full bg-red-400 inline-block"></span>
-                    <span id="rec-wav-text">REC (WAV)</span>
+                    <span id="rec-wav-text">REC</span>
                 </button>
 
 <button id="btn-save-project"
@@ -1301,7 +1301,7 @@ gainNodeD.connect(voiceMixerBus);
                 btnWavRec.classList.replace('bg-red-800', 'bg-red-600');
                 btnWavRec.classList.replace('hover:bg-red-700', 'hover:bg-red-500');
                 recWavLed.classList.add('led-blinking');
-                recWavText.innerText = 'STOP & SAVE';
+                recWavText.innerText = 'STOP';
             } else {
                 if (mediaRecorder && mediaRecorder.state !== 'inactive') {
                     mediaRecorder.stop();
