@@ -1,0 +1,210 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350">
+  <defs>
+    <linearGradient id="shell" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#e6e6ec"/>
+      <stop offset="55%" stop-color="#c8c8d0"/>
+      <stop offset="100%" stop-color="#aaa7b8"/>
+    </linearGradient>
+
+    <linearGradient id="screen" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1a281c"/>
+      <stop offset="100%" stop-color="#071008"/>
+    </linearGradient>
+
+    <linearGradient id="purple" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#8e70be"/>
+      <stop offset="100%" stop-color="#4a3478"/>
+    </linearGradient>
+
+    <linearGradient id="darkKey" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#5b5865"/>
+      <stop offset="100%" stop-color="#292731"/>
+    </linearGradient>
+
+    <pattern id="scanlines" width="8" height="8" patternUnits="userSpaceOnUse">
+      <rect width="8" height="4" fill="rgba(0,0,0,0)"/>
+      <rect y="4" width="8" height="4" fill="rgba(0,0,0,.22)"/>
+    </pattern>
+
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <style>
+      .title { font-family: Arial, sans-serif; font-weight: 900; letter-spacing: 5px; }
+      .mono { font-family: monospace; }
+      .label { font-family: monospace; font-size: 23px; font-weight: bold; fill: #b6f7c8; }
+      .sub { font-family: monospace; font-size: 15px; font-weight: bold; fill: #78c88f; }
+      .keyText { font-family: monospace; font-size: 26px; font-weight: bold; fill: #f4edff; text-anchor: middle; }
+      .keySmall { font-family: monospace; font-size: 15px; font-weight: bold; fill: #d8c9ee; text-anchor: middle; }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1080" height="1350" fill="#080a0d"/>
+
+  <!-- Console shell -->
+  <rect x="50" y="45" width="980" height="1260" rx="42" fill="url(#shell)" stroke="#85828f" stroke-width="5"/>
+  <rect x="68" y="63" width="944" height="1224" rx="30" fill="none" stroke="#fff" stroke-opacity=".45" stroke-width="3"/>
+
+  <!-- Header -->
+  <text x="95" y="120" class="title" font-size="35" fill="#252331">SUPER ESELATOR</text>
+  <text x="97" y="148" class="mono" font-size="15" font-weight="bold" fill="#5b267a">KEYBOARD SHORTCUTS / LIVE MODE</text>
+
+  <rect x="828" y="91" width="145" height="42" rx="7" fill="#79222a" stroke="#e67272" stroke-width="2"/>
+  <circle cx="850" cy="112" r="7" fill="#ff4253"/>
+  <text x="867" y="118" class="mono" font-size="15" font-weight="bold" fill="#fff">LIVE CTRL</text>
+
+  <!-- Screen -->
+  <rect x="78" y="180" width="924" height="1040" rx="18" fill="#25232d" stroke="#46414e" stroke-width="4"/>
+  <rect x="96" y="198" width="888" height="1004" rx="12" fill="url(#screen)" stroke="#050805" stroke-width="5"/>
+
+  <!-- scanline -->
+  <rect x="96" y="198" width="888" height="1004" rx="12" fill="url(#scanlines)" opacity=".65"/>
+
+  <!-- Screen labels -->
+  <circle cx="132" cy="240" r="8" fill="#22ff55" filter="url(#glow)"/>
+  <text x="151" y="247" class="mono" font-size="18" font-weight="bold" fill="#a7f3bd">KEYBOARD PERFORMANCE MAP</text>
+  <text x="947" y="247" class="mono" font-size="15" text-anchor="end" fill="#fbe76c">READY</text>
+
+  <!-- Section divider -->
+  <line x1="125" y1="275" x2="955" y2="275" stroke="#2c8050" stroke-opacity=".6"/>
+
+  <!-- Key component function represented manually -->
+
+ <!-- DECK section -->
+<text x="128" y="320" class="label">DECK SELECT / MUTE</text>
+<text x="128" y="345" class="sub">SELECT DECKS AND TOGGLE EACH CHANNEL MUTE</text>
+
+<!-- 1 - 8: Same key size (100 x 72) -->
+<g>
+  <!-- 1: DECK A -->
+  <rect x="110" y="375" width="100" height="72" rx="10" fill="url(#purple)" stroke="#b69ce2" stroke-width="2"/>
+  <text x="160" y="407" class="keyText">1</text>
+  <text x="160" y="432" class="keySmall">DECK A</text>
+
+  <!-- 2: DECK B -->
+  <rect x="218" y="375" width="100" height="72" rx="10" fill="url(#purple)" stroke="#b69ce2" stroke-width="2"/>
+  <text x="268" y="407" class="keyText">2</text>
+  <text x="268" y="432" class="keySmall">DECK B</text>
+
+  <!-- 3: DECK C -->
+  <rect x="326" y="375" width="100" height="72" rx="10" fill="url(#purple)" stroke="#b69ce2" stroke-width="2"/>
+  <text x="376" y="407" class="keyText">3</text>
+  <text x="376" y="432" class="keySmall">DECK C</text>
+
+  <!-- 4: DECK D -->
+  <rect x="434" y="375" width="100" height="72" rx="10" fill="url(#purple)" stroke="#b69ce2" stroke-width="2"/>
+  <text x="484" y="407" class="keyText">4</text>
+  <text x="484" y="432" class="keySmall">DECK D</text>
+
+  <!-- 5: DECK A MUTE -->
+  <rect x="542" y="375" width="100" height="72" rx="10" fill="url(#darkKey)" stroke="#777482" stroke-width="2"/>
+  <text x="592" y="402" class="keyText">5</text>
+  <text x="592" y="426" class="keySmall">DECK A</text>
+  <text x="592" y="442" class="keySmall">MUTE</text>
+
+  <!-- 6: DECK B MUTE -->
+  <rect x="650" y="375" width="100" height="72" rx="10" fill="url(#darkKey)" stroke="#777482" stroke-width="2"/>
+  <text x="700" y="402" class="keyText">6</text>
+  <text x="700" y="426" class="keySmall">DECK B</text>
+  <text x="700" y="442" class="keySmall">MUTE</text>
+
+  <!-- 7: DECK C MUTE -->
+  <rect x="758" y="375" width="100" height="72" rx="10" fill="url(#darkKey)" stroke="#777482" stroke-width="2"/>
+  <text x="808" y="402" class="keyText">7</text>
+  <text x="808" y="426" class="keySmall">DECK C</text>
+  <text x="808" y="442" class="keySmall">MUTE</text>
+
+  <!-- 8: DECK D MUTE -->
+  <rect x="866" y="375" width="100" height="72" rx="10" fill="url(#darkKey)" stroke="#777482" stroke-width="2"/>
+  <text x="916" y="402" class="keyText">8</text>
+  <text x="916" y="426" class="keySmall">DECK D</text>
+  <text x="916" y="442" class="keySmall">MUTE</text>
+</g>
+
+
+  <!-- Pad section -->
+  <text x="128" y="505" class="label">TOUCH PAD / 8 NOTES</text>
+  <text x="128" y="530" class="sub">PLAY THE 8 PAD CELLS FROM LEFT TO RIGHT</text>
+
+  <g>
+    <rect x="130" y="560" width="92" height="80" rx="9" fill="url(#purple)" stroke="#c7a8ee" stroke-width="2"/>
+    <text x="176" y="603" class="keyText">A</text>
+    <rect x="232" y="560" width="92" height="80" rx="9" fill="url(#purple)" stroke="#c7a8ee" stroke-width="2"/>
+    <text x="278" y="603" class="keyText">S</text>
+    <rect x="334" y="560" width="92" height="80" rx="9" fill="url(#purple)" stroke="#c7a8ee" stroke-width="2"/>
+    <text x="380" y="603" class="keyText">D</text>
+    <rect x="436" y="560" width="92" height="80" rx="9" fill="url(#purple)" stroke="#c7a8ee" stroke-width="2"/>
+    <text x="482" y="603" class="keyText">F</text>
+    <rect x="538" y="560" width="92" height="80" rx="9" fill="url(#purple)" stroke="#c7a8ee" stroke-width="2"/>
+    <text x="584" y="603" class="keyText">G</text>
+    <rect x="640" y="560" width="92" height="80" rx="9" fill="url(#purple)" stroke="#c7a8ee" stroke-width="2"/>
+    <text x="686" y="603" class="keyText">H</text>
+    <rect x="742" y="560" width="92" height="80" rx="9" fill="url(#purple)" stroke="#c7a8ee" stroke-width="2"/>
+    <text x="788" y="603" class="keyText">J</text>
+    <rect x="844" y="560" width="92" height="80" rx="9" fill="url(#purple)" stroke="#c7a8ee" stroke-width="2"/>
+    <text x="890" y="603" class="keyText">K</text>
+  </g>
+
+  <line x1="130" y1="659" x2="936" y2="659" stroke="#38d876" stroke-opacity=".28"/>
+
+  <!-- Transport / edit -->
+  <text x="128" y="707" class="label">LIVE RECORD / TRANSPORT</text>
+  <text x="128" y="732" class="sub">RECORD, UNDO, CLEAR AND PLAYBACK</text>
+
+  <g>
+    <rect x="130" y="760" width="116" height="72" rx="10" fill="url(#purple)" stroke="#c7a8ee" stroke-width="2"/>
+    <text x="188" y="793" class="keyText">R</text>
+    <text x="188" y="818" class="keySmall">REC / DUB</text>
+
+    <rect x="260" y="760" width="116" height="72" rx="10" fill="url(#purple)" stroke="#c7a8ee" stroke-width="2"/>
+    <text x="318" y="793" class="keyText">U</text>
+    <text x="318" y="818" class="keySmall">UNDO</text>
+
+    <rect x="390" y="760" width="116" height="72" rx="10" fill="url(#purple)" stroke="#c7a8ee" stroke-width="2"/>
+    <text x="448" y="793" class="keyText">C</text>
+    <text x="448" y="818" class="keySmall">CLEAR</text>
+
+    <rect x="522" y="760" width="275" height="72" rx="10" fill="url(#darkKey)" stroke="#777482" stroke-width="2"/>
+    <text x="660" y="793" class="keyText">SPACE</text>
+    <text x="660" y="818" class="keySmall">PLAY / STOP</text>
+  </g>
+
+  <!-- FX / sound / octave -->
+  <text x="128" y="895" class="label">SOUND / FX / OCTAVE</text>
+  <text x="128" y="920" class="sub">CHANGE SOUND, ENABLE FX AND SHIFT OCTAVES</text>
+
+  <g>
+    <rect x="130" y="948" width="95" height="72" rx="10" fill="url(#purple)" stroke="#c7a8ee" stroke-width="2"/>
+    <text x="177" y="981" class="keyText">Z</text>
+    <text x="177" y="1006" class="keySmall">PREV</text>
+
+    <rect x="238" y="948" width="95" height="72" rx="10" fill="url(#purple)" stroke="#c7a8ee" stroke-width="2"/>
+    <text x="285" y="981" class="keyText">X</text>
+    <text x="285" y="1006" class="keySmall">NEXT</text>
+
+    <rect x="365" y="948" width="95" height="72" rx="10" fill="#185b48" stroke="#53e99a" stroke-width="2"/>
+    <text x="412" y="981" class="keyText">E</text>
+    <text x="412" y="1006" class="keySmall">FX ON/OFF</text>
+
+    <rect x="555" y="948" width="125" height="72" rx="10" fill="url(#darkKey)" stroke="#777482" stroke-width="2"/>
+    <text x="617" y="981" class="keyText">Q</text>
+    <text x="617" y="1006" class="keySmall">OCT −</text>
+
+    <rect x="696" y="948" width="125" height="72" rx="10" fill="url(#darkKey)" stroke="#777482" stroke-width="2"/>
+    <text x="758" y="981" class="keyText">W</text>
+    <text x="758" y="1006" class="keySmall">OCT +</text>
+  </g>
+
+  <!-- Footer display -->
+  <rect x="125" y="1080" width="830" height="75" rx="8" fill="#07170c" stroke="#1b7043" stroke-width="2"/>
+  <text x="150" y="1112" class="mono" font-size="16" font-weight="bold" fill="#55ff91">TIP: A–K = 8 NOTE PAD / Q,W = OCTAVE ±3</text>
+  <text x="150" y="1138" class="mono" font-size="14" fill="#7cbf95">USE WITH LIVE LOOP, DECK MUTE AND MASTER EFFECTOR</text>
+
+  <text x="540" y="1258" text-anchor="middle" class="title" font-size="17" fill="#363342">SUPER ESELATOR / KEYBOARD PERFORMANCE GUIDE</text>
+</svg>
