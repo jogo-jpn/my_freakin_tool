@@ -4236,7 +4236,7 @@ function updateGamepadControls() {
     // -------------------------------------------------
     if (isStartHeld) {
         // Start + Select : 再生、停止
-        if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.SELECT)) {
+        if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.L)) {
             document.getElementById("btn-start").click();
             flashGamepadButton("btn-start");
         }
