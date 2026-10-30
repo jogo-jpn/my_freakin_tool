@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en" class="h-full">
 <head>
@@ -246,7 +247,7 @@
         <div class="flex justify-between items-center px-1 shrink-0">
             <div class="flex flex-col">
                 <span class="font-extrabold tracking-widest text-xs sm:text-sm text-slate-800 font-mono leading-none">SUPER ESELATOR</span>
-                <span class="text-[8px] sm:text-[9px] text-purple-900 font-bold font-mono tracking-wider mt-0.5">version 4.2 / by jogo.jpn</span>
+                <span class="text-[8px] sm:text-[9px] text-purple-900 font-bold font-mono tracking-wider mt-0.5">version 4.5 / by jogo.jpn</span>
             </div>
             <div class="flex items-center space-x-2">
                 <!-- Audio WAV Recording Button -->
@@ -521,7 +522,7 @@
         <!-- Master Effector Panel (Dual Sliders & Real Reverb Engine) -->
         <div class="bg-slate-900 text-slate-200 p-1.5 rounded-xl border border-slate-700 my-0.5 shrink-0 flex flex-col space-y-1 font-mono">
             <div class="flex justify-between items-center text-[9px]">
-               <span class="font-bold text-purple-300 tracking-wider">MASTER EFFECTOR ENGINE (4 TYPES)</span>
+               <span class="font-bold text-purple-300 tracking-wider">Master FX (4 TYPES)</span>
 <!-- LOOP STUTTER FX -->
 <div class="flex items-center space-x-1">
     <button
@@ -1519,7 +1520,6 @@ function stopStutterLoop() {
 function setStutterLoop(division) {
     initAudioEngine();
 
-    // 録音済みループがない場合はSTUTTERしない
     if (loopDuration <= 0 || recordedNotes.length === 0) {
         return;
     }
@@ -1529,15 +1529,11 @@ function setStutterLoop(division) {
         state === "OVERDUB" ||
         state === "WAIT_HEAD";
 
-    // 停止中にはSTUTTERしない
     if (!isPlaying) {
         return;
     }
 
-    /*
-      ダブルアップ前のループ長を基準にする。
-      初めてSTUTTERを使う時点のloopDurationを保存。
-    */
+    // 最初のループ長をSTUTTER基準として保持
     if (stutterReferenceLoopDuration <= 0) {
         stutterReferenceLoopDuration = loopDuration;
     }
@@ -1550,15 +1546,13 @@ function setStutterLoop(division) {
 
     stutterDivision = division;
     stutterStartOffset = currentOffset;
-
-    // 1/4 / 1/8 / 1/16 の長さ
     stutterDuration = stutterBaseDuration / division;
 
     pendingStutterDivision = division;
 
     updateStutterButtons();
 
-    // クオンタイズなし：押した瞬間から開始
+    // クオンタイズなしで即時開始
     scheduleStutterCycle();
 }
 function bindStutterButton(button, division) {
@@ -1597,110 +1591,173 @@ bindStutterButton(btnStutter4, 4);
 bindStutterButton(btnStutter8, 8);
 bindStutterButton(btnStutter16, 16);
 
+function getPlaybackPreset(note) {
+    if (note.drumType) {
+        const basePreset =
+            ALL_PRESETS.find(p => p.id === note.presetId)
+            || ALL_PRESETS[0];
+
+        return {
+            drumType: note.drumType,
+            defaultVol:
+                note.targetPreset?.defaultVol
+                ?? basePreset.defaultVol
+                ?? 1.0,
+            defaultOctave:
+                note.targetPreset?.defaultOctave
+                ?? basePreset.defaultOctave
+                ?? 0
+        };
+    }
+
+    return (
+        note.targetPreset
+        || ALL_PRESETS.find(p => p.id === note.presetId)
+        || ALL_PRESETS[0]
+    );
+}
+
+function playStutterNote(note, durationOverride = null) {
+    const preset = getPlaybackPreset(note);
+
+    playChiptuneTone(
+        preset,
+        note.freq,
+        note.filterFreq,
+        durationOverride ?? note.duration ?? 0.22,
+        note.kitStyle || "retro",
+        note.padChannel || "A"
+    );
+
+    spawnParticle(
+        note.normX,
+        note.normY,
+        note.presetId
+    );
+}
+
 function scheduleStutterCycle() {
     clearScheduledTimeouts();
 
     if (
         stutterDivision === 0 ||
         stutterDuration <= 0 ||
-        loopDuration <= 0
+        loopDuration <= 0 ||
+        recordedNotes.length === 0
     ) {
         return;
     }
 
-    if (
-        state !== "PLAYING" &&
-        state !== "OVERDUB" &&
-        state !== "WAIT_HEAD"
-    ) {
-        return;
-    }
+    const isPlaying =
+        state === "PLAYING" ||
+        state === "OVERDUB" ||
+        state === "WAIT_HEAD";
 
-    const now = audioCtx.currentTime;
+    if (!isPlaying) return;
+
     const sliceStart = stutterStartOffset;
     const sliceEnd = sliceStart + stutterDuration;
 
-    // STUTTER区間に入っているノートだけを再生
+    /*
+      STUTTER区間に入っているノートを取得する。
+      ループ終端をまたぐ場合も対応する。
+    */
+    const sliceNotes = [];
+
     recordedNotes.forEach(note => {
         let noteOffset = note.timeOffset;
 
-        // 押下位置を起点にするため、全体ループをまたぐノート位置を補正
         if (noteOffset < sliceStart) {
             noteOffset += loopDuration;
         }
 
-        // 今回のスライス区間に存在するノートだけ予約
         if (noteOffset >= sliceStart && noteOffset < sliceEnd) {
-            const delay = noteOffset - sliceStart;
-
-            const timeoutId = setTimeout(() => {
-                if (
-                    state !== "PLAYING" &&
-                    state !== "OVERDUB" &&
-                    state !== "WAIT_HEAD"
-                ) {
-                    return;
-                }
-
-                let preset;
-
-                if (note.drumType) {
-                    const basePreset =
-                        ALL_PRESETS.find(p => p.id === note.presetId)
-                        || ALL_PRESETS[0];
-
-                    preset = {
-                        drumType: note.drumType,
-                        defaultVol:
-                            note.targetPreset?.defaultVol
-                            ?? basePreset.defaultVol
-                            ?? 1.0,
-                        defaultOctave:
-                            note.targetPreset?.defaultOctave
-                            ?? basePreset.defaultOctave
-                            ?? 0
-                    };
-                } else {
-                    preset =
-                        note.targetPreset
-                        || ALL_PRESETS.find(p => p.id === note.presetId)
-                        || ALL_PRESETS[0];
-                }
-
-                playChiptuneTone(
-                    preset,
-                    note.freq,
-                    note.filterFreq,
-                    note.duration,
-                    note.kitStyle || "retro",
-                    note.padChannel || "A"
-                );
-
-                spawnParticle(
-                    note.normX,
-                    note.normY,
-                    note.presetId
-                );
-            }, delay * 1000);
-
-            scheduledTimeouts.push(timeoutId);
+            sliceNotes.push({
+                note,
+                delay: noteOffset - sliceStart
+            });
         }
     });
 
-    // STUTTER区間を繰り返す
+    /*
+      区間内にノート開始がない場合、
+      押した瞬間より前で最も近いノートを使う。
+      これによりSTUTTERが無音になりにくい。
+    */
+    let fallbackNote = null;
+    let nearestDistance = Infinity;
+
+    recordedNotes.forEach(note => {
+        let distance = sliceStart - note.timeOffset;
+
+        if (distance < 0) {
+            distance += loopDuration;
+        }
+
+        if (distance < nearestDistance) {
+            nearestDistance = distance;
+            fallbackNote = note;
+        }
+    });
+
+    /*
+      区間の先頭で鳴らす音：
+      - 区間内ノートがある場合も最初の音を先頭で再トリガー
+      - 区間内ノートがない場合は直近ノートを再トリガー
+    */
+    const anchorNote =
+        sliceNotes.length > 0
+            ? sliceNotes[0].note
+            : fallbackNote;
+
+    if (anchorNote) {
+        playStutterNote(
+            anchorNote,
+            Math.min(
+                anchorNote.duration || 0.22,
+                stutterDuration
+            )
+        );
+    }
+
+    /*
+      STUTTER区間内のノートを、元のタイミングで再生。
+      先頭ノートはすでに鳴らしているため、
+      delayがほぼ0のものは重複再生しない。
+    */
+    sliceNotes.forEach(({ note, delay }) => {
+        if (delay < 0.015) return;
+
+        const timeoutId = setTimeout(() => {
+            const stillPlaying =
+                state === "PLAYING" ||
+                state === "OVERDUB" ||
+                state === "WAIT_HEAD";
+
+            if (!stillPlaying || stutterDivision === 0) return;
+
+            playStutterNote(note);
+        }, delay * 1000);
+
+        scheduledTimeouts.push(timeoutId);
+    });
+
+    /*
+      短い区間を繰り返す。
+    */
     const nextCycleId = setTimeout(() => {
-        if (
+        const stillPlaying =
             state === "PLAYING" ||
             state === "OVERDUB" ||
-            state === "WAIT_HEAD"
-        ) {
+            state === "WAIT_HEAD";
+
+        if (stillPlaying && stutterDivision > 0) {
             scheduleStutterCycle();
         }
     }, stutterDuration * 1000);
 
     scheduledTimeouts.push(nextCycleId);
 }
-
 ////////////////////////////////////////////////////////////////
         // --- WAV Encoder Logic ---
         function writeString(view, offset, string) {
