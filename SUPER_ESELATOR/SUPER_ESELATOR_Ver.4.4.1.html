@@ -4311,23 +4311,23 @@ function updateGamepadControls() {
         }
         // L + Y: deckA mute
         else if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.Y)) {
-            toggleDeckMute("A");
-            flashGamepadButton("btn-mute-a");
-        }
-        // L + X: deckB mute
-        else if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.X)) {
             toggleDeckMute("B");
             flashGamepadButton("btn-mute-b");
         }
+        // L + X: deckB mute
+        else if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.X)) {
+            toggleDeckMute("A");
+            flashGamepadButton("btn-mute-a");
+        }
         // L + A: deckC mute
         else if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.A)) {
-            toggleDeckMute("C");
-            flashGamepadButton("btn-mute-c");
+            toggleDeckMute("D");
+            flashGamepadButton("btn-mute-d");
         }
         // L + B: deckD mute
         else if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.B)) {
-            toggleDeckMute("D");
-            flashGamepadButton("btn-mute-d");
+            toggleDeckMute("C");
+            flashGamepadButton("btn-mute-c");
         }
 
         const direction = getGamepadDirection(gamepad);
