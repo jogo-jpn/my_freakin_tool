@@ -4263,12 +4263,22 @@ function updateGamepadControls() {
         }
         previousGamepadDirection = direction;
     }
-    // -------------------------------------------------
+        // -------------------------------------------------
     // SELECT + 組み合わせ操作
     // -------------------------------------------------
     else if (isSelectHeld) {
+        // SELECT + L: 選択中のdeckの音色変更（prev）
+        if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.L)) {
+            selectNextSound(-1);
+            flashGamepadButton("btn-prev-sound");
+        }
+        // SELECT + R: 選択中のdeckの音色変更（next）
+        else if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.R)) {
+            selectNextSound(1);
+            flashGamepadButton("btn-next-sound");
+        }
         // SELECT + Y: FX ON/off
-        if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.Y)) {
+        else if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.Y)) {
             setFxToggleState(!isMasterFxOn);
             flashGamepadButton("btn-fx-toggle");
         }
@@ -4289,6 +4299,7 @@ function updateGamepadControls() {
         }
         previousGamepadDirection = "";
     }
+
     // -------------------------------------------------
     // L + 組み合わせ操作
     // -------------------------------------------------
