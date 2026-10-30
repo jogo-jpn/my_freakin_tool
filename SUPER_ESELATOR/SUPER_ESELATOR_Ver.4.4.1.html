@@ -4168,14 +4168,10 @@ function getGamepadDirection(gamepad) {
 
 function playGamepadScaleNote(direction) {
     const noteMap = {
-        up: 0,
-        "up-right": 1,
-        right: 2,
-        "down-right": 3,
-        down: 4,
-        "down-left": 5,
-        left: 6,
-        "up-left": 7
+        up: 1,      // 音階2
+        right: 2,   // 音階3
+        down: 4,    // 音階8
+        left: 0     // 音階1
     };
 
     const noteIndex = noteMap[direction];
@@ -4187,25 +4183,6 @@ function playGamepadScaleNote(direction) {
     const normY = 0.5;
 
     handleTouchTrigger(normX, normY);
-}
-
-function selectNextGamepadDeck() {
-    const decks = ["A", "B", "C", "D"];
-
-    gamepadDeckIndex = (gamepadDeckIndex + 1) % decks.length;
-
-    switchActiveDeck(decks[gamepadDeckIndex]);
-
-    const deckButtonId = {
-        A: "btn-deck-a",
-        B: "btn-deck-b",
-        C: "btn-deck-c",
-        D: "btn-deck-d"
-    }[decks[gamepadDeckIndex]];
-
-    if (typeof flashKeyboardButton === "function") {
-        flashKeyboardButton(deckButtonId);
-    }
 }
 
 function flashGamepadButton(buttonId) {
@@ -4245,112 +4222,143 @@ function updateGamepadControls() {
         gamepad,
         GAMEPAD_BUTTONS.SELECT
     );
+    const isStartHeld = isGamepadButtonPressed(
+        gamepad,
+        GAMEPAD_BUTTONS.START
+    );
+    const isLHeld = isGamepadButtonPressed(
+        gamepad,
+        GAMEPAD_BUTTONS.L
+    );
 
     // -------------------------------------------------
-    // 通常操作
+    // START + 組み合わせ操作
     // -------------------------------------------------
-    if (!isSelectHeld) {
-        // L: DECK選択
-        if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.L)) {
-            selectNextGamepadDeck();
+    if (isStartHeld) {
+        // Start + Select : 再生、停止
+        if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.SELECT)) {
+            document.getElementById("btn-start").click();
+            flashGamepadButton("btn-start");
         }
-
-        // R: REC / STOP / OVERDUB
-        if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.R)) {
-            toggleRecState();
-            flashGamepadButton("btn-a-rec");
+        // Start + 左 : 選択中のdeckの音色変更（prev）
+        else if (isGamepadButtonPressed(gamepad, GAMEPAD_BUTTONS.LEFT) && (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.UP) || isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.DOWN) || isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.LEFT) || isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.RIGHT))) {
+            // D-Padの方向判定を正確に行うため個別にJustPressedをチェック
         }
-
-        // A: OCTAVE UP
-        if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.A)) {
-            shiftScaleRange(1);
-            flashGamepadButton("btn-scale-up");
+        
+        const direction = getGamepadDirection(gamepad);
+        if (direction && direction !== previousGamepadDirection) {
+            if (direction === "left") {
+                selectNextSound(-1);
+                flashGamepadButton("btn-prev-sound");
+            } else if (direction === "right") {
+                selectNextSound(1);
+                flashGamepadButton("btn-next-sound");
+            } else if (direction === "up") {
+                shiftScaleRange(1);
+                flashGamepadButton("btn-scale-up");
+            } else if (direction === "down") {
+                shiftScaleRange(-1);
+                flashGamepadButton("btn-scale-down");
+            }
         }
-
-        // B: OCTAVE DOWN
-        if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.B)) {
-            shiftScaleRange(-1);
-            flashGamepadButton("btn-scale-down");
-        }
-
-        // X: CLEAR ACTIVE DECK
-        if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.X)) {
-            clearActiveDeckData();
-            flashGamepadButton("btn-b-clear");
-        }
-
-        // Y: FX ON / OFF
+        previousGamepadDirection = direction;
+    }
+    // -------------------------------------------------
+    // SELECT + 組み合わせ操作
+    // -------------------------------------------------
+    else if (isSelectHeld) {
+        // SELECT + Y: FX ON/off
         if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.Y)) {
             setFxToggleState(!isMasterFxOn);
             flashGamepadButton("btn-fx-toggle");
         }
-
-        // START: PLAY / STOP
-        if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.START)) {
-            document.getElementById("btn-start").click();
-            flashGamepadButton("btn-start");
+        // SELECT + X: ダブルアップ
+        else if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.X)) {
+            performSequenceDouble();
+            flashGamepadButton("btn-select");
         }
-
-        // 十字キー / 左スティック: 音階1〜8
-        const direction = getGamepadDirection(gamepad);
-
-        // 同方向の押しっぱなしは連続発音しない。
-        // 方向を変えた瞬間には発音する。
-        if (direction && direction !== previousGamepadDirection) {
-            playGamepadScaleNote(direction);
+        // SELECT + A: UNDO
+        else if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.A)) {
+            performUndo();
+            flashGamepadButton("btn-undo");
         }
-
-        previousGamepadDirection = direction;
+        // SELECT + B: 選択中のdeckをクリア
+        else if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.B)) {
+            clearActiveDeckData();
+            flashGamepadButton("btn-b-clear");
+        }
+        previousGamepadDirection = "";
     }
-
     // -------------------------------------------------
-    // SELECTを押しながらのコンボ操作
+    // L + 組み合わせ操作
     // -------------------------------------------------
-    else {
-        // SELECT + L: NEXT SOUND
-        if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.L)) {
-            selectNextSound(1);
-            flashGamepadButton("btn-next-sound");
-        }
-
-        // SELECT + R: PREVIOUS SOUND
+    else if (isLHeld) {
+        // L + R: コード5
         if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.R)) {
-            selectNextSound(-1);
-            flashGamepadButton("btn-prev-sound");
+            playChordPad(4);
         }
-
-        // SELECT + A: DECK A MUTE
-        if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.A)) {
+        // L + Y: deckA mute
+        else if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.Y)) {
             toggleDeckMute("A");
             flashGamepadButton("btn-mute-a");
         }
-
-        // SELECT + B: DECK B MUTE
-        if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.B)) {
+        // L + X: deckB mute
+        else if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.X)) {
             toggleDeckMute("B");
             flashGamepadButton("btn-mute-b");
         }
-
-        // SELECT + X: DECK C MUTE
-        if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.X)) {
+        // L + A: deckC mute
+        else if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.A)) {
             toggleDeckMute("C");
             flashGamepadButton("btn-mute-c");
         }
-
-        // SELECT + Y: DECK D MUTE
-        if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.Y)) {
+        // L + B: deckD mute
+        else if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.B)) {
             toggleDeckMute("D");
             flashGamepadButton("btn-mute-d");
         }
 
-        // SELECT + START: UNDO
-        if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.START)) {
-            performUndo();
-            flashGamepadButton("btn-undo");
+        const direction = getGamepadDirection(gamepad);
+        if (direction && direction !== previousGamepadDirection) {
+            if (direction === "left") playChordPad(0);      // L + 左: コード1
+            else if (direction === "up") playChordPad(1);     // L + 上: コード2
+            else if (direction === "right") playChordPad(2);  // L + 右: コード3
+            else if (direction === "down") playChordPad(3);   // L + 下: コード4
+        }
+        previousGamepadDirection = direction;
+    }
+    // -------------------------------------------------
+    // 単体ボタン・通常操作
+    // -------------------------------------------------
+    else {
+        // R: 録音、停止
+        if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.R)) {
+            toggleRecState();
+            flashGamepadButton("btn-a-rec");
+        }
+        // Y: 音階4
+        else if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.Y)) {
+            handleTouchTrigger((3 + 0.5) / 8, 0.5);
+        }
+        // X: 音階5
+        else if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.X)) {
+            handleTouchTrigger((4 + 0.5) / 8, 0.5);
+        }
+        // A: 音階6
+        else if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.A)) {
+            handleTouchTrigger((5 + 0.5) / 8, 0.5);
+        }
+        // B: 音階7
+        else if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.B)) {
+            handleTouchTrigger((6 + 0.5) / 8, 0.5);
         }
 
-        // SELECT中は音階演奏を無効
-        previousGamepadDirection = "";
+        // 十字キー / 左スティック: 音階1, 2, 3, 8
+        const direction = getGamepadDirection(gamepad);
+        if (direction && direction !== previousGamepadDirection) {
+            playGamepadScaleNote(direction);
+        }
+        previousGamepadDirection = direction;
     }
 
     // 次フレームのため、ボタン状態を保存
@@ -4358,6 +4366,7 @@ function updateGamepadControls() {
 
     requestAnimationFrame(updateGamepadControls);
 }
+
 
 // 接続イベントはiPhone Safariでは発火しない場合もあるが、PCでは有効
 window.addEventListener("gamepadconnected", (event) => {
