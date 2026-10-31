@@ -767,7 +767,7 @@ function updateChordPads() {
     const intervals = SCALE_INTERVALS[currentScaleKey] || SCALE_INTERVALS["chromatic"];
 
 // タッチパッドのオクターブ変更にコードパッドも追従する
-const baseMidiRoot = 60 + rootSemi + ((octaveShift -1) * 12);
+const baseMidiRoot = 60 + rootSemi + ((octaveShift -2) * 12);
 
 
     chordPadsData = [];
