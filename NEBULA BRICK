@@ -1,0 +1,1072 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>NEBULA GRAIN Mobile Edition</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;height:100dvh;width:100%;overflow:hidden;position:fixed;touch-action:manipulation;font-family:'JetBrains Mono',monospace;background:#07090e;color:#e2e8f0}
+body{padding:max(8px,env(safe-area-inset-top)) max(10px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left))}
+.font-orbitron{font-family:Orbitron,sans-serif}
+.glass-card{background:rgba(15,20,31,.88);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.08);box-shadow:0 4px 20px rgba(0,0,0,.4)}
+.glow-cyan{box-shadow:0 0 12px rgba(6,182,212,.4)}
+input[type=range]{-webkit-appearance:none;background:transparent;width:100%;height:28px;margin:0}
+input[type=range]::-webkit-slider-runnable-track{height:8px;background:#151d2a;border-radius:4px;border:1px solid rgba(255,255,255,.08)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:#06b6d4;margin-top:-7px;box-shadow:0 0 10px #06b6d4}
+input[type=range].slider-amber::-webkit-slider-thumb{background:#f59e0b;box-shadow:0 0 10px #f59e0b}
+canvas{touch-action:none}
+button:disabled{opacity:.5}
+</style>
+</head>
+
+<body class="flex flex-col justify-between select-none">
+
+<header class="flex justify-between items-center h-10 px-3 glass-card rounded-xl mb-1.5 shrink-0">
+ <div class="flex items-center gap-2">
+  <div class="w-6 h-6 rounded-md bg-gradient-to-tr from-cyan-500 to-amber-500 flex items-center justify-center">
+   <i class="fa-solid fa-wave-square text-black text-xs"></i>
+  </div>
+  <h1 class="font-orbitron font-extrabold text-sm tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-amber-400">NEBULA GRAIN</h1>
+ </div>
+ <div class="flex items-center gap-2">
+  <div id="gamepad-badge" class="px-2 py-0.5 rounded-md bg-slate-800 border border-slate-700 text-slate-500 text-[10px]">
+   <i class="fa-solid fa-gamepad"></i> <span id="gamepad-status">PAD</span>
+  </div>
+  <button id="btn-audio-init" class="px-2.5 py-1 rounded-md bg-cyan-500/10 border border-cyan-500/40 text-cyan-400 text-[11px] font-bold">
+   <i class="fa-solid fa-power-off mr-1"></i><span id="txt-audio-status">START</span>
+  </button>
+ </div>
+</header>
+
+<div class="relative glass-card rounded-xl p-1.5 flex-1 min-h-[160px] max-h-[220px] flex flex-col overflow-hidden mb-1.5 shrink-0">
+ <div class="absolute top-2 left-2 right-2 flex justify-between items-center z-10 pointer-events-none">
+  <span class="px-2 py-0.5 rounded bg-black/70 text-cyan-400 border border-cyan-500/30 text-[9px] truncate max-w-[150px]">
+   <i class="fa-solid fa-compact-disc mr-1"></i><span id="lbl-sample-name">AMBIENT PAD</span>
+  </span>
+  <div class="flex gap-1 text-[9px]">
+   <span id="lbl-zoom-level" class="px-1.5 py-0.5 rounded bg-black/70 text-slate-300 border border-slate-700">1.0x</span>
+   <span id="lbl-grain-count" class="px-1.5 py-0.5 rounded bg-black/70 text-amber-400 border border-amber-500/30">G:0</span>
+  </div>
+ </div>
+
+ <canvas id="canvas-visualizer" class="w-full h-full rounded-lg cursor-crosshair"></canvas>
+
+ <div class="absolute bottom-2 left-2 right-2 flex justify-between items-center z-10 pointer-events-none">
+  <div class="flex gap-1 pointer-events-auto">
+   <button id="btn-record" class="px-2.5 py-1 rounded-lg bg-red-500/20 border border-red-500/50 text-red-400 font-bold text-[10px]">
+    <i class="fa-solid fa-circle text-[8px]"></i> REC
+   </button>
+   <label class="px-2.5 py-1 rounded-lg bg-slate-800/90 border border-slate-700 text-slate-300 font-bold text-[10px] cursor-pointer">
+    <i class="fa-solid fa-upload"></i> FILE
+    <input type="file" id="file-input" accept="audio/*" class="hidden">
+   </label>
+  </div>
+  <button id="btn-reset-zoom" class="px-2 py-1 rounded-lg bg-slate-800/90 border border-slate-700 text-slate-400 text-[10px] pointer-events-auto">
+   <i class="fa-solid fa-magnifying-glass-minus"></i> RESET
+  </button>
+ </div>
+</div>
+
+<div class="grid grid-cols-12 gap-1.5 mb-1.5 shrink-0">
+ <button id="btn-play-toggle" class="col-span-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-black font-extrabold text-xs glow-cyan">
+  <i class="fa-solid fa-play"></i> PLAY
+ </button>
+ <div class="col-span-5 flex items-center bg-slate-900 p-1 rounded-xl border border-slate-800">
+  <button id="mode-fwd" class="flex-1 py-1 rounded-lg bg-cyan-950 text-cyan-400 font-bold text-[10px]">FWD</button>
+  <button id="mode-rev" class="flex-1 py-1 rounded-lg bg-slate-800 text-slate-400 font-bold text-[10px]">REV</button>
+  <button id="mode-pingpong" class="flex-1 py-1 rounded-lg bg-slate-800 text-slate-400 font-bold text-[10px]">P-PONG</button>
+ </div>
+ <button id="btn-freeze" class="col-span-2 py-2.5 rounded-xl bg-slate-800 text-slate-400 font-bold text-[10px] border border-slate-700">FREEZE</button>
+</div>
+
+<div class="flex bg-slate-900 p-1 rounded-xl border border-slate-800 mb-1.5 shrink-0 text-xs font-bold">
+ <button id="tab-btn-engine" class="flex-1 py-1.5 rounded-lg bg-cyan-500/20 text-cyan-400">ENGINE</button>
+ <button id="tab-btn-loop" class="flex-1 py-1.5 rounded-lg text-slate-400">LOOP (A-B)</button>
+ <button id="tab-btn-fx" class="flex-1 py-1.5 rounded-lg text-slate-400">LO-FI FX</button>
+</div>
+
+<div class="glass-card rounded-xl p-3 flex-1 overflow-y-auto border border-slate-800 flex flex-col justify-between">
+
+ <div id="tab-content-engine" class="flex flex-col justify-around h-full gap-1">
+  <div>
+   <div class="flex justify-between text-[11px] mb-0.5"><span class="text-slate-400">Position Scrub</span><span id="val-position" class="text-cyan-400">50.0 %</span></div>
+   <input type="range" id="param-position" min="0" max="100" value="50" step=".1">
+  </div>
+  <div class="grid grid-cols-2 gap-3">
+   <div>
+    <div class="flex justify-between text-[10px]"><span>Grain Size</span><span id="val-size" class="text-cyan-400">120 ms</span></div>
+    <input type="range" id="param-size" min="20" max="500" value="120">
+   </div>
+   <div>
+    <div class="flex justify-between text-[10px]"><span>Density</span><span id="val-density" class="text-cyan-400">25 /s</span></div>
+    <input type="range" id="param-density" min="5" max="80" value="25">
+   </div>
+  </div>
+  <div>
+   <div class="flex justify-between text-[11px]"><span>Spray</span><span id="val-spray" class="text-cyan-400">15 %</span></div>
+   <input type="range" id="param-spray" min="0" max="100" value="15">
+  </div>
+  <div class="grid grid-cols-2 gap-3">
+   <div>
+    <div class="flex justify-between text-[10px]"><span>Pitch Shift</span><span id="val-pitch" class="text-cyan-400">0 st</span></div>
+    <input type="range" id="param-pitch" min="-24" max="24" value="0">
+   </div>
+   <div>
+    <div class="flex justify-between text-[10px]"><span>Tape Warble</span><span id="val-warble" class="text-cyan-400">20 %</span></div>
+    <input type="range" id="param-warble" min="0" max="100" value="20">
+   </div>
+  </div>
+ </div>
+
+ <div id="tab-content-loop" class="hidden flex flex-col justify-around h-full gap-2">
+  <div>
+   <div class="flex justify-between text-[11px]"><span>Waveform Zoom</span><span id="val-zoom" class="text-cyan-400">1.0 x</span></div>
+   <input type="range" id="param-zoom" min="1" max="10" value="1" step=".1">
+  </div>
+  <div>
+   <div class="flex justify-between text-[11px]"><span class="text-cyan-400 font-bold">Loop Start (A)</span><span id="val-start-point" class="text-cyan-400">0.0 %</span></div>
+   <input type="range" id="param-start-point" min="0" max="100" value="0" step=".1">
+  </div>
+  <div>
+   <div class="flex justify-between text-[11px]"><span class="text-amber-400 font-bold">Loop End (B)</span><span id="val-end-point" class="text-amber-400">100.0 %</span></div>
+   <input type="range" id="param-end-point" class="slider-amber" min="0" max="100" value="100" step=".1">
+  </div>
+  <p class="text-[10px] text-slate-500 text-center">波形上のA/Bラインをドラッグして編集</p>
+ </div>
+
+ <div id="tab-content-fx" class="hidden flex flex-col justify-around h-full gap-1">
+  <div>
+   <div class="flex justify-between text-[11px]"><span>Low-Pass Filter</span><span id="val-filter" class="text-amber-400">3500 Hz</span></div>
+   <input type="range" id="param-filter" class="slider-amber" min="200" max="12000" value="3500">
+  </div>
+  <div>
+   <div class="flex justify-between text-[11px]"><span>Vinyl Crackle & Hiss</span><span id="val-noise" class="text-amber-400">25 %</span></div>
+   <input type="range" id="param-noise" class="slider-amber" min="0" max="100" value="25">
+  </div>
+  <div class="grid grid-cols-2 gap-3">
+   <div>
+    <div class="flex justify-between text-[10px]"><span>Delay</span><span id="val-delay" class="text-amber-400">40 %</span></div>
+    <input type="range" id="param-delay" class="slider-amber" min="0" max="90" value="40">
+   </div>
+   <div>
+    <div class="flex justify-between text-[10px]"><span>Reverb</span><span id="val-reverb" class="text-amber-400">55 %</span></div>
+    <input type="range" id="param-reverb" class="slider-amber" min="0" max="100" value="55">
+   </div>
+  </div>
+ </div>
+</div>
+
+<script>
+"use strict";
+
+class NebulaEngine {
+ constructor(){
+  this.ctx=null;
+  this.sampleBuffer=null;
+  this.reverseBuffer=null;
+  this.isPlaying=false;
+  this.isFreezed=false;
+  this.isRecording=false;
+  this.loopMode="fwd";
+  this.pingPongDirection=1;
+  this.mediaRecorder=null;
+  this.recordedChunks=[];
+  this.recordingStream=null;
+  this.masterGain=null;
+  this.filterNode=null;
+  this.delayNode=null;
+  this.delayFeedback=null;
+  this.reverbNode=null;
+  this.reverbGain=null;
+  this.noiseNode=null;
+  this.noiseGain=null;
+  this.params={
+   position:.5,startPoint:0,endPoint:1,
+   zoom:1,scrollOffset:0,
+   spray:.15,size:.12,density:25,
+   pitch:0,warble:.2,filterFreq:3500,
+   noiseLevel:.25,delayAmount:.4,reverbAmount:.55
+  };
+  this.activeGrains=[];
+  this.timerId=null;
+ }
+
+ init(){
+  if(this.ctx){
+   if(this.ctx.state==="suspended") this.ctx.resume();
+   return;
+  }
+
+  const AC=window.AudioContext||window.webkitAudioContext;
+  if(!AC) throw new Error("Web Audio API非対応です");
+
+  this.ctx=new AC();
+
+  this.masterGain=this.ctx.createGain();
+  this.masterGain.gain.value=.85;
+
+  this.filterNode=this.ctx.createBiquadFilter();
+  this.filterNode.type="lowpass";
+  this.filterNode.frequency.value=this.params.filterFreq;
+
+  this.delayNode=this.ctx.createDelay(2);
+  this.delayNode.delayTime.value=.35;
+
+  this.delayFeedback=this.ctx.createGain();
+  this.delayFeedback.gain.value=this.params.delayAmount*.7;
+
+  this.delayNode.connect(this.delayFeedback);
+  this.delayFeedback.connect(this.delayNode);
+
+  this.reverbNode=this.ctx.createConvolver();
+  this.reverbNode.buffer=this.createImpulseResponse(3,2);
+
+  this.reverbGain=this.ctx.createGain();
+  this.reverbGain.gain.value=this.params.reverbAmount;
+
+  this.filterNode.connect(this.masterGain);
+  this.filterNode.connect(this.delayNode);
+  this.delayNode.connect(this.masterGain);
+  this.filterNode.connect(this.reverbNode);
+  this.reverbNode.connect(this.reverbGain);
+  this.reverbGain.connect(this.masterGain);
+
+  this.masterGain.connect(this.ctx.destination);
+
+  this.createNoiseGenerator();
+  this.createAmbientPresetBuffer();
+ }
+
+ createImpulseResponse(duration,decay){
+  const sr=this.ctx.sampleRate;
+  const length=Math.floor(sr*duration);
+  const buffer=this.ctx.createBuffer(2,length,sr);
+
+  for(let ch=0;ch<2;ch++){
+   const data=buffer.getChannelData(ch);
+   for(let i=0;i<length;i++){
+    data[i]=(Math.random()*2-1)*Math.pow(1-i/length,decay);
+   }
+  }
+  return buffer;
+ }
+
+ createNoiseGenerator(){
+  const length=this.ctx.sampleRate*2;
+  const buffer=this.ctx.createBuffer(1,length,this.ctx.sampleRate);
+  const data=buffer.getChannelData(0);
+  let last=0;
+
+  for(let i=0;i<length;i++){
+   const white=Math.random()*2-1;
+   data[i]=(last+.02*white)/1.02;
+   last=data[i];
+   if(Math.random()<.00015)data[i]+=(Math.random()*2-1)*.7;
+  }
+
+  this.noiseNode=this.ctx.createBufferSource();
+  this.noiseNode.buffer=buffer;
+  this.noiseNode.loop=true;
+
+  this.noiseGain=this.ctx.createGain();
+  this.noiseGain.gain.value=this.params.noiseLevel*.15;
+
+  this.noiseNode.connect(this.noiseGain);
+  this.noiseGain.connect(this.filterNode);
+  this.noiseNode.start();
+ }
+
+ createAmbientPresetBuffer(){
+  const sr=this.ctx.sampleRate;
+  const duration=4;
+  const buffer=this.ctx.createBuffer(2,sr*duration,sr);
+  const freqs=[130.81,164.81,196,246.94,293.66];
+
+  for(let i=0;i<buffer.length;i++){
+   const t=i/sr;
+   let l=0,r=0;
+
+   freqs.forEach((f,idx)=>{
+    const detune=Math.sin(t*.5+idx)*.8;
+    l+=Math.sin(2*Math.PI*(f+detune)*t)*.15;
+    r+=Math.sin(2*Math.PI*(f-detune)*t+.5)*.15;
+   });
+
+   const fade=Math.sin(Math.PI*i/buffer.length);
+   buffer.getChannelData(0)[i]=l*fade;
+   buffer.getChannelData(1)[i]=r*fade;
+  }
+
+  this.setSampleBuffer(buffer);
+ }
+
+ // 逆再生用バッファを生成
+ buildReverseBuffer(){
+  if(!this.sampleBuffer)return;
+
+  const original=this.sampleBuffer;
+  const reversed=this.ctx.createBuffer(
+   original.numberOfChannels,
+   original.length,
+   original.sampleRate
+  );
+
+  for(let ch=0;ch<original.numberOfChannels;ch++){
+   const src=original.getChannelData(ch);
+   const dst=reversed.getChannelData(ch);
+
+   for(let i=0;i<src.length;i++){
+    dst[i]=src[src.length-1-i];
+   }
+  }
+
+  this.reverseBuffer=reversed;
+ }
+
+ setSampleBuffer(buffer){
+  this.sampleBuffer=buffer;
+  this.buildReverseBuffer();
+  this.params.position=0;
+  this.params.startPoint=0;
+  this.params.endPoint=1;
+  this.pingPongDirection=1;
+  updateLoopRangeUI();
+ }
+
+ start(){
+  if(this.isPlaying)return;
+  this.init();
+
+  if(this.ctx.state==="suspended")this.ctx.resume();
+
+  this.isPlaying=true;
+  this.scheduleGrains();
+ }
+
+ stop(){
+  this.isPlaying=false;
+  if(this.timerId)clearTimeout(this.timerId);
+  this.timerId=null;
+ }
+
+ scheduleGrains(){
+  if(!this.isPlaying)return;
+
+  if(this.sampleBuffer){
+   if(!this.isFreezed){
+    const a=Math.min(this.params.startPoint,this.params.endPoint);
+    const b=Math.max(this.params.startPoint,this.params.endPoint);
+
+    const step=.002*(this.loopMode==="rev"?-1:this.pingPongDirection);
+
+    this.params.position+=step;
+
+    if(this.loopMode==="pingpong"){
+     if(this.params.position>=b){
+      this.params.position=b;
+      this.pingPongDirection=-1;
+     }else if(this.params.position<=a){
+      this.params.position=a;
+      this.pingPongDirection=1;
+     }
+    }else if(this.loopMode==="fwd"){
+     if(this.params.position>b)this.params.position=a;
+     if(this.params.position<a)this.params.position=a;
+    }else{
+     if(this.params.position<a)this.params.position=b;
+     if(this.params.position>b)this.params.position=b;
+    }
+
+    updatePositionUI();
+   }
+
+   this.spawnGrain();
+  }
+
+  this.timerId=setTimeout(
+   ()=>this.scheduleGrains(),
+   1000/this.params.density
+  );
+ }
+
+ spawnGrain(){
+  if(!this.sampleBuffer||!this.ctx)return;
+
+  const original=this.sampleBuffer;
+  const duration=original.duration;
+  const grainDur=Math.min(this.params.size,duration*.95);
+
+  const a=Math.min(this.params.startPoint,this.params.endPoint);
+  const b=Math.max(this.params.startPoint,this.params.endPoint);
+
+  const jitter=(Math.random()*2-1)*this.params.spray*.3;
+
+  let center=this.params.position+jitter;
+  center=Math.max(a,Math.min(b,center));
+
+  let grainOffset=center*duration-grainDur/2;
+
+  const minOffset=a*duration;
+  const maxOffset=Math.max(minOffset,b*duration-grainDur);
+
+  grainOffset=Math.max(minOffset,Math.min(maxOffset,grainOffset));
+
+  const isReverse=
+   this.loopMode==="rev"||
+   (this.loopMode==="pingpong"&&this.pingPongDirection===-1);
+
+  // REV時は逆順バッファを使用する
+  const source=this.ctx.createBufferSource();
+
+  if(isReverse&&this.reverseBuffer){
+   source.buffer=this.reverseBuffer;
+   source.playbackRate.value=Math.pow(
+    2,(this.params.pitch+(Math.random()*2-1)*this.params.warble*.08)/12
+   );
+
+   // 元音源の範囲と逆バッファの範囲を対応させる
+   const reverseOffset=duration-(grainOffset+grainDur);
+
+   source.start(
+    this.ctx.currentTime,
+    Math.max(0,reverseOffset),
+    grainDur
+   );
+  }else{
+   source.buffer=original;
+   source.playbackRate.value=Math.pow(
+    2,(this.params.pitch+(Math.random()*2-1)*this.params.warble*.08)/12
+   );
+
+   source.start(
+    this.ctx.currentTime,
+    Math.max(0,grainOffset),
+    grainDur
+   );
+  }
+
+  const now=this.ctx.currentTime;
+
+  const envelope=this.ctx.createGain();
+  envelope.gain.setValueAtTime(0,now);
+  envelope.gain.linearRampToValueAtTime(.6,now+grainDur*.4);
+  envelope.gain.linearRampToValueAtTime(0,now+grainDur);
+
+  const panner=this.ctx.createStereoPanner();
+  panner.pan.value=(Math.random()*2-1)*.7;
+
+  source.connect(envelope);
+  envelope.connect(panner);
+  panner.connect(this.filterNode);
+
+  const grainInfo={
+   offsetNorm:grainOffset/duration,
+   duration:grainDur,
+   spawnTime:performance.now(),
+   pan:panner.pan.value
+  };
+
+  this.activeGrains.push(grainInfo);
+
+  source.onended=()=>{
+   const idx=this.activeGrains.indexOf(grainInfo);
+   if(idx!==-1)this.activeGrains.splice(idx,1);
+   try{source.disconnect();envelope.disconnect();panner.disconnect()}catch(e){}
+  };
+ }
+
+ updateParams(key,value){
+  this.params[key]=value;
+  if(!this.ctx)return;
+
+  const now=this.ctx.currentTime;
+
+  if(key==="filterFreq"){
+   this.filterNode.frequency.setTargetAtTime(value,now,.05);
+  }
+  if(key==="noiseLevel"){
+   this.noiseGain.gain.setTargetAtTime(value*.15,now,.05);
+  }
+  if(key==="delayAmount"){
+   this.delayFeedback.gain.setTargetAtTime(value*.7,now,.05);
+  }
+  if(key==="reverbAmount"){
+   this.reverbGain.gain.setTargetAtTime(value,now,.05);
+  }
+ }
+
+ async startMicrophoneRecording(){
+  try{
+   this.init();
+
+   if(this.ctx.state==="suspended")await this.ctx.resume();
+
+   if(!navigator.mediaDevices?.getUserMedia){
+    throw new Error("マイク機能が利用できません。HTTPS接続を確認してください。");
+   }
+
+   if(typeof MediaRecorder==="undefined"){
+    throw new Error("このブラウザはMediaRecorderに対応していません。");
+   }
+
+   const stream=await navigator.mediaDevices.getUserMedia({
+    audio:{
+     echoCancellation:false,
+     noiseSuppression:false,
+     autoGainControl:false
+    }
+   });
+
+   this.recordingStream=stream;
+   this.recordedChunks=[];
+
+   const types=[
+    "audio/mp4",
+    "audio/webm;codecs=opus",
+    "audio/webm",
+    "audio/ogg;codecs=opus"
+   ];
+
+   let mime="";
+
+   for(const type of types){
+    if(MediaRecorder.isTypeSupported?.(type)){
+     mime=type;
+     break;
+    }
+   }
+
+   this.mediaRecorder=mime?
+    new MediaRecorder(stream,{mimeType:mime}):
+    new MediaRecorder(stream);
+
+   this.mediaRecorder.ondataavailable=e=>{
+    if(e.data&&e.data.size>0){
+     this.recordedChunks.push(e.data);
+    }
+   };
+
+   this.mediaRecorder.onerror=e=>{
+    console.error("Recorder error",e);
+   };
+
+   this.mediaRecorder.onstop=async()=>{
+    try{
+     const actualMime=this.mediaRecorder.mimeType||mime||"audio/mp4";
+
+     const blob=new Blob(this.recordedChunks,{type:actualMime});
+
+     if(!blob.size)throw new Error("録音データが空です");
+
+     const arrayBuffer=await blob.arrayBuffer();
+
+     const decoded=await this.ctx.decodeAudioData(arrayBuffer);
+
+     this.setSampleBuffer(decoded);
+
+     document.getElementById("lbl-sample-name").textContent="MIC SAMPLE";
+
+    }catch(error){
+     console.error("Decode error:",error);
+     alert("録音データの読み込みに失敗しました。\n"+error.message);
+    }finally{
+     this.recordingStream?.getTracks().forEach(track=>track.stop());
+     this.recordingStream=null;
+     this.recordedChunks=[];
+     this.isRecording=false;
+     updateRecordButton(false);
+    }
+   };
+
+   this.mediaRecorder.start(250);
+   this.isRecording=true;
+   return true;
+
+  }catch(error){
+   console.error("Microphone error:",error);
+   this.isRecording=false;
+   this.recordingStream?.getTracks().forEach(t=>t.stop());
+   this.recordingStream=null;
+
+   alert("録音を開始できませんでした。\n"+error.message);
+   return false;
+  }
+ }
+
+ stopMicrophoneRecording(){
+  if(this.mediaRecorder&&this.isRecording&&this.mediaRecorder.state!=="inactive"){
+   this.mediaRecorder.stop();
+   this.isRecording=false;
+  }
+ }
+
+ async loadAudioFile(file){
+  this.init();
+  if(this.ctx.state==="suspended")await this.ctx.resume();
+
+  const arrayBuffer=await file.arrayBuffer();
+  const decoded=await this.ctx.decodeAudioData(arrayBuffer);
+
+  this.setSampleBuffer(decoded);
+  document.getElementById("lbl-sample-name").textContent=file.name.toUpperCase();
+ }
+}
+
+const engine=new NebulaEngine();
+
+const canvas=document.getElementById("canvas-visualizer");
+const ctx2d=canvas.getContext("2d");
+
+function resizeCanvas(){
+ const rect=canvas.getBoundingClientRect();
+ const dpr=Math.min(window.devicePixelRatio||1,2);
+
+ canvas.width=Math.max(1,Math.floor(rect.width*dpr));
+ canvas.height=Math.max(1,Math.floor(rect.height*dpr));
+
+ ctx2d.setTransform(dpr,0,0,dpr,0,0);
+}
+window.addEventListener("resize",resizeCanvas);
+resizeCanvas();
+
+function canvasSize(){
+ const rect=canvas.getBoundingClientRect();
+ return {w:rect.width,h:rect.height};
+}
+
+function normToCanvasX(norm){
+ const {w}=canvasSize();
+ const zoom=engine.params.zoom;
+ return (norm-engine.params.scrollOffset)*zoom*w;
+}
+
+function canvasXToNorm(x){
+ const {w}=canvasSize();
+ return x/(w*engine.params.zoom)+engine.params.scrollOffset;
+}
+
+function renderVisualizer(){
+ const {w,h}=canvasSize();
+
+ ctx2d.clearRect(0,0,w,h);
+
+ const centerY=h/2;
+ const zoom=engine.params.zoom;
+ const viewWidth=1/zoom;
+
+ let scrollLeft=engine.params.scrollOffset;
+ scrollLeft=Math.max(0,Math.min(1-viewWidth,scrollLeft));
+ engine.params.scrollOffset=scrollLeft;
+
+ // Waveform
+ if(engine.sampleBuffer){
+  const data=engine.sampleBuffer.getChannelData(0);
+  const total=data.length;
+  const amp=h*.38;
+  const start=Math.floor(scrollLeft*total);
+  const end=Math.min(total,Math.floor((scrollLeft+viewWidth)*total));
+  const visible=Math.max(1,end-start);
+
+  ctx2d.fillStyle="rgba(6,182,212,.32)";
+  ctx2d.beginPath();
+  ctx2d.moveTo(0,centerY);
+
+  for(let x=0;x<w;x+=2){
+   const index=Math.min(total-1,start+Math.floor(x/w*visible));
+   ctx2d.lineTo(x,centerY+data[index]*amp);
+  }
+
+  for(let x=w-1;x>=0;x-=2){
+   const index=Math.min(total-1,start+Math.floor(x/w*visible));
+   ctx2d.lineTo(x,centerY-data[index]*amp);
+  }
+
+  ctx2d.closePath();
+  ctx2d.fill();
+ }
+
+ // A-B range
+ const startX=normToCanvasX(engine.params.startPoint);
+ const endX=normToCanvasX(engine.params.endPoint);
+
+ ctx2d.fillStyle="rgba(245,158,11,.15)";
+ ctx2d.fillRect(Math.min(startX,endX),0,Math.abs(endX-startX),h);
+
+ // A marker
+ ctx2d.strokeStyle="#06b6d4";
+ ctx2d.lineWidth=2;
+ ctx2d.beginPath();
+ ctx2d.moveTo(startX,0);
+ ctx2d.lineTo(startX,h);
+ ctx2d.stroke();
+
+ // B marker
+ ctx2d.strokeStyle="#f59e0b";
+ ctx2d.beginPath();
+ ctx2d.moveTo(endX,0);
+ ctx2d.lineTo(endX,h);
+ ctx2d.stroke();
+
+ // Marker labels
+ ctx2d.font="bold 11px monospace";
+ ctx2d.fillStyle="#06b6d4";
+ if(startX>=0&&startX<w)ctx2d.fillText("A",startX+4,18);
+
+ ctx2d.fillStyle="#f59e0b";
+ if(endX>=0&&endX<w)ctx2d.fillText("B",endX+4,18);
+
+ // Playhead
+ const playX=normToCanvasX(engine.params.position);
+
+ if(playX>=0&&playX<=w){
+  ctx2d.strokeStyle="#fff";
+  ctx2d.lineWidth=2;
+  ctx2d.shadowColor="#fff";
+  ctx2d.shadowBlur=8;
+  ctx2d.beginPath();
+  ctx2d.moveTo(playX,0);
+  ctx2d.lineTo(playX,h);
+  ctx2d.stroke();
+  ctx2d.shadowBlur=0;
+ }
+
+ // Grains
+ const now=performance.now();
+
+ engine.activeGrains.forEach(g=>{
+  const progress=(now-g.spawnTime)/1000/g.duration;
+  if(progress>1)return;
+
+  const gx=normToCanvasX(g.offsetNorm);
+  if(gx<0||gx>w)return;
+
+  const gy=centerY+g.pan*h*.35;
+  const size=(1-Math.abs(progress-.5)*2)*10+2;
+
+  ctx2d.fillStyle=progress<.5?"#f59e0b":"#06b6d4";
+  ctx2d.beginPath();
+  ctx2d.arc(gx,gy,size,0,Math.PI*2);
+  ctx2d.fill();
+ });
+
+ document.getElementById("lbl-grain-count").textContent="G:"+engine.activeGrains.length;
+ document.getElementById("lbl-zoom-level").textContent=zoom.toFixed(1)+"x";
+
+ requestAnimationFrame(renderVisualizer);
+}
+requestAnimationFrame(renderVisualizer);
+
+// Waveform pointer control
+// A/Bマーカーに近い位置ならマーカーをドラッグ。
+// それ以外は再生位置を変更する。
+let dragMode=null;
+const HIT_DISTANCE=24;
+
+canvas.addEventListener("pointerdown",e=>{
+ e.preventDefault();
+
+ const rect=canvas.getBoundingClientRect();
+ const x=e.clientX-rect.left;
+
+ const ax=normToCanvasX(engine.params.startPoint);
+ const bx=normToCanvasX(engine.params.endPoint);
+
+ const da=Math.abs(x-ax);
+ const db=Math.abs(x-bx);
+
+ if(da<HIT_DISTANCE||db<HIT_DISTANCE){
+  dragMode=da<=db?"A":"B";
+ }else{
+  dragMode="position";
+ }
+
+ canvas.setPointerCapture?.(e.pointerId);
+ updateCanvasPointer(x);
+});
+
+canvas.addEventListener("pointermove",e=>{
+ if(!dragMode)return;
+
+ const rect=canvas.getBoundingClientRect();
+ updateCanvasPointer(e.clientX-rect.left);
+});
+
+canvas.addEventListener("pointerup",()=>{
+ dragMode=null;
+});
+
+canvas.addEventListener("pointercancel",()=>{
+ dragMode=null;
+});
+
+function updateCanvasPointer(x){
+ const norm=Math.max(0,Math.min(1,canvasXToNorm(x)));
+
+ if(dragMode==="A"){
+  engine.params.startPoint=norm;
+ }else if(dragMode==="B"){
+  engine.params.endPoint=norm;
+ }else if(dragMode==="position"){
+  engine.params.position=norm;
+ }
+
+ updateLoopRangeUI();
+}
+
+// Tabs
+const tabButtons={
+ engine:document.getElementById("tab-btn-engine"),
+ loop:document.getElementById("tab-btn-loop"),
+ fx:document.getElementById("tab-btn-fx")
+};
+
+const tabContents={
+ engine:document.getElementById("tab-content-engine"),
+ loop:document.getElementById("tab-content-loop"),
+ fx:document.getElementById("tab-content-fx")
+};
+
+function switchTab(name){
+ Object.keys(tabButtons).forEach(key=>{
+  tabButtons[key].className="flex-1 py-1.5 rounded-lg text-slate-400 text-center";
+  tabContents[key].classList.add("hidden");
+ });
+
+ tabButtons[name].className=name==="fx"?
+  "flex-1 py-1.5 rounded-lg bg-amber-500/20 text-amber-400 text-center":
+  "flex-1 py-1.5 rounded-lg bg-cyan-500/20 text-cyan-400 text-center";
+
+ tabContents[name].classList.remove("hidden");
+}
+
+tabButtons.engine.addEventListener("click",()=>switchTab("engine"));
+tabButtons.loop.addEventListener("click",()=>switchTab("loop"));
+tabButtons.fx.addEventListener("click",()=>switchTab("fx"));
+
+// Loop modes
+const modeButtons={
+ fwd:document.getElementById("mode-fwd"),
+ rev:document.getElementById("mode-rev"),
+ pingpong:document.getElementById("mode-pingpong")
+};
+
+function setLoopMode(mode){
+ engine.loopMode=mode;
+
+ Object.keys(modeButtons).forEach(key=>{
+  modeButtons[key].className=
+   "flex-1 py-1 rounded-lg bg-slate-800 text-slate-400 font-bold text-[10px]";
+ });
+
+ modeButtons[mode].className=mode==="pingpong"?
+  "flex-1 py-1 rounded-lg bg-amber-950 text-amber-400 font-bold text-[10px]":
+  "flex-1 py-1 rounded-lg bg-cyan-950 text-cyan-400 font-bold text-[10px]";
+
+ if(mode==="pingpong")engine.pingPongDirection=1;
+}
+
+modeButtons.fwd.addEventListener("click",()=>setLoopMode("fwd"));
+modeButtons.rev.addEventListener("click",()=>setLoopMode("rev"));
+modeButtons.pingpong.addEventListener("click",()=>setLoopMode("pingpong"));
+
+// Slider binding
+function bindSlider(id,key,unit="",scale=1,formatter=null){
+ const slider=document.getElementById(id);
+ const display=document.getElementById("val-"+id.replace("param-",""));
+
+ slider.addEventListener("input",e=>{
+  const value=parseFloat(e.target.value);
+  engine.updateParams(key,value*scale);
+
+  if(formatter)display.textContent=formatter(value);
+  else display.textContent=value+" "+unit;
+
+  if(key==="zoom"){
+   engine.params.scrollOffset=Math.min(
+    engine.params.scrollOffset,
+    1-1/engine.params.zoom
+   );
+  }
+
+  if(key==="startPoint"||key==="endPoint")updateLoopRangeUI();
+ });
+}
+
+bindSlider("param-zoom","zoom","x",1,v=>v.toFixed(1)+" x");
+bindSlider("param-position","position","%",.01,v=>v.toFixed(1)+" %");
+bindSlider("param-start-point","startPoint","%",.01,v=>v.toFixed(1)+" %");
+bindSlider("param-end-point","endPoint","%",.01,v=>v.toFixed(1)+" %");
+bindSlider("param-spray","spray","%",.01);
+bindSlider("param-size","size","ms",.001);
+bindSlider("param-density","density"," /s");
+bindSlider("param-pitch","pitch"," st");
+bindSlider("param-warble","warble","%",.01);
+bindSlider("param-filter","filterFreq"," Hz");
+bindSlider("param-noise","noiseLevel","%",.01);
+bindSlider("param-delay","delayAmount","%",.01);
+bindSlider("param-reverb","reverbAmount","%",.01);
+
+function updatePositionUI(){
+ const v=engine.params.position*100;
+ document.getElementById("param-position").value=v;
+ document.getElementById("val-position").textContent=v.toFixed(1)+" %";
+}
+
+function updateLoopRangeUI(){
+ const a=engine.params.startPoint*100;
+ const b=engine.params.endPoint*100;
+
+ document.getElementById("param-start-point").value=a;
+ document.getElementById("val-start-point").textContent=a.toFixed(1)+" %";
+
+ document.getElementById("param-end-point").value=b;
+ document.getElementById("val-end-point").textContent=b.toFixed(1)+" %";
+
+ updatePositionUI();
+}
+
+// Reset zoom
+document.getElementById("btn-reset-zoom").addEventListener("click",()=>{
+ engine.params.zoom=1;
+ engine.params.scrollOffset=0;
+ engine.params.startPoint=0;
+ engine.params.endPoint=1;
+
+ document.getElementById("param-zoom").value=1;
+ document.getElementById("val-zoom").textContent="1.0 x";
+
+ updateLoopRangeUI();
+});
+
+// Audio start
+document.getElementById("btn-audio-init").addEventListener("click",async()=>{
+ try{
+  engine.init();
+  await engine.ctx.resume();
+
+  document.getElementById("txt-audio-status").textContent="READY";
+  document.getElementById("btn-audio-init").classList.replace("text-cyan-400","text-emerald-400");
+ }catch(e){
+  alert("Audio初期化エラー: "+e.message);
+ }
+});
+
+// Play / Stop
+const btnPlay=document.getElementById("btn-play-toggle");
+
+btnPlay.addEventListener("click",async()=>{
+ try{
+  if(engine.isPlaying){
+   engine.stop();
+   btnPlay.innerHTML='<i class="fa-solid fa-play"></i> PLAY';
+   btnPlay.classList.replace("from-amber-500","from-cyan-500");
+  }else{
+   engine.init();
+   await engine.ctx.resume();
+   engine.start();
+
+   btnPlay.innerHTML='<i class="fa-solid fa-stop"></i> STOP';
+   btnPlay.classList.replace("from-cyan-500","from-amber-500");
+  }
+ }catch(e){
+  console.error(e);
+  alert("再生エラー: "+e.message);
+ }
+});
+
+// Freeze
+const btnFreeze=document.getElementById("btn-freeze");
+
+btnFreeze.addEventListener("click",()=>{
+ engine.isFreezed=!engine.isFreezed;
+ btnFreeze.classList.toggle("text-cyan-400");
+ btnFreeze.classList.toggle("border-cyan-500");
+});
+
+// Recording
+const btnRecord=document.getElementById("btn-record");
+
+function updateRecordButton(recording){
+ if(recording){
+  btnRecord.innerHTML='<i class="fa-solid fa-square text-[8px]"></i> STOP';
+  btnRecord.classList.add("bg-red-600","text-white");
+ }else{
+  btnRecord.innerHTML='<i class="fa-solid fa-circle text-[8px] animate-pulse"></i> REC';
+  btnRecord.classList.remove("bg-red-600","text-white");
+  btnRecord.disabled=false;
+ }
+}
+
+btnRecord.addEventListener("click",async()=>{
+ if(!engine.isRecording){
+  btnRecord.disabled=true;
+
+  const success=await engine.startMicrophoneRecording();
+
+  if(success){
+   updateRecordButton(true);
+  }else{
+   updateRecordButton(false);
+  }
+
+  btnRecord.disabled=false;
+ }else{
+  btnRecord.disabled=true;
+  engine.stopMicrophoneRecording();
+ }
+});
+
+// File load
+document.getElementById("file-input").addEventListener("change",async e=>{
+ const file=e.target.files?.[0];
+ if(!file)return;
+
+ try{
+  await engine.loadAudioFile(file);
+ }catch(error){
+  console.error(error);
+  alert("ファイルを読み込めませんでした。\n"+error.message);
+ }
+
+ e.target.value="";
+});
+
+// Gamepad
+let gamepadIndex=null;
+
+window.addEventListener("gamepadconnected",e=>{
+ gamepadIndex=e.gamepad.index;
+ document.getElementById("gamepad-status").textContent="PAD ON";
+ document.getElementById("gamepad-badge").classList.replace("text-slate-500","text-cyan-400");
+});
+
+window.addEventListener("gamepaddisconnected",()=>{
+ gamepadIndex=null;
+ document.getElementById("gamepad-status").textContent="PAD";
+ document.getElementById("gamepad-badge").classList.replace("text-cyan-400","text-slate-500");
+});
+
+function pollGamepad(){
+ if(gamepadIndex!==null){
+  const gp=navigator.getGamepads?.()[gamepadIndex];
+
+  if(gp&&Math.abs(gp.axes[0])>.15){
+   const newPos=Math.max(0,Math.min(1,engine.params.position+gp.axes[0]*.008));
+   engine.params.position=newPos;
+   updatePositionUI();
+  }
+ }
+
+ requestAnimationFrame(pollGamepad);
+}
+pollGamepad();
+
+</script>
+</body>
+</html>
