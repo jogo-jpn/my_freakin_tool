@@ -239,11 +239,56 @@
 .strum-range {
     accent-color: #a855f7;
 }
+/* =====================================================
+   メインSNES本体のみを画面中央に固定
+   左右の余白を常に1mmにする
+   ===================================================== */
+
+html,
+body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0 !important;
+}
+
+/* body の Tailwind flex の影響を受けない */
+body {
+    position: relative;
+    display: block !important;
+    overflow: hidden;
+}
+
+/*
+  left/right を直接指定するため、
+  横幅がずれず、必ず左右1mmずつになる。
+*/
+#main-snes-shell {7
+    position: absolute !important;
+
+    left: 1mm !important;
+    right: 1mm !important;
+
+    width: auto !important;
+    max-width: none !important;
+
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+
+    height: calc(100dvh - 2mm) !important;
+    max-height: calc(100dvh - 2mm) !important;
+
+    margin: 0 !important;
+    box-sizing: border-box !important;
+}
+
     </style>
 </head>
-<body class="h-full w-full flex items-center justify-center p-2 sm:p-3">
-
-    <div class="snes-shell w-full max-w-2xl h-full max-h-[96vh] flex flex-col justify-between p-2.5 sm:p-3 text-slate-800 relative select-none overflow-hidden">
+<body class="h-full w-full flex items-center justify-center">
+<div
+    id="main-snes-shell"
+    class="snes-shell h-full flex flex-col justify-between p-2.5 sm:p-3 text-slate-800 relative select-none overflow-hidden"
+>
         
         <!-- Header Branding & Audio Wav Recorder -->
         <div class="flex justify-between items-center px-1 shrink-0">
@@ -3950,13 +3995,17 @@ function stopPlaybackChords(fadeTime = 0.035) {
     playbackChordGroups = {};
 }
 
-function startLoopPlayback(startOffset = 0) {
+function startLoopPlayback(startOffset = 0, options = {}) {
     initAudioEngine();
     clearScheduledTimeouts();
 
+    const keepLiveChord = Boolean(options.keepLiveChord);
+
     // 録音中に手弾きしていた最後のコードを停止する。
-    // これをしないと、録音終了直後だけライブ音とループ1周目が重なる。
-    stopActiveChord(0.01);
+    // ただし、録音終了→再生開始の切り替え時は止めない。
+    if (!keepLiveChord) {
+        stopActiveChord(0.01);
+    }
 
     // 以前のループ再生コードも停止する。
     stopPlaybackChords(0.02);
@@ -3968,8 +4017,7 @@ function startLoopPlayback(startOffset = 0) {
     state = "PLAYING";
     updateStatusUI("PLAYING", "led-green");
 
-    loopStartTime =
-        audioCtx.currentTime - (startOffset % loopDuration);
+    loopStartTime = audioCtx.currentTime - (startOffset % loopDuration);
 
     scheduleLoopCycle();
 }
