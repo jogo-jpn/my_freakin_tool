@@ -1,4 +1,4 @@
-
+　
 <!DOCTYPE html>
 <html lang="en" class="h-full">
 <head>
@@ -224,19 +224,21 @@
     transform: translateX(-1px);
     transition: left 0.03s linear;
 }
-
-/* STUTTER FX 有効中 */
-.stutter-btn.stutter-active {
-    background: #15803d !important;
-    border-color: #a3e635 !important;
-    color: #ecfccb !important;
-    box-shadow:
-        inset 0 2px 4px rgba(0, 0, 0, 0.65),
-        0 0 8px rgba(163, 230, 53, 0.70) !important;
-    transform: translateY(1px);
+/* コード拡張／ストラム操作 */
+.chord-fx-modal {
+    max-width: 360px;
 }
 
+.chord-option-active {
+    background: linear-gradient(180deg, #22c55e 0%, #15803d 100%) !important;
+    border-color: #166534 !important;
+    color: #ffffff !important;
+    box-shadow: 0 0 8px rgba(34, 197, 94, 0.55) !important;
+}
 
+.strum-range {
+    accent-color: #a855f7;
+}
     </style>
 </head>
 <body class="h-full w-full flex items-center justify-center p-2 sm:p-3">
@@ -412,29 +414,46 @@
             </div>
 
             <!-- 演奏パッド直下に配置された5つのコードパッド -->
-            <div id="chord-pads-container" class="grid grid-cols-5 gap-1.5 my-1 shrink-0 font-mono">
-                <button class="chord-pad snes-btn-light-purple py-1.5 px-1 flex flex-col items-center justify-center rounded transition" data-pad-idx="0">
-                    <span class="chord-label text-[10px] font-black tracking-tight text-yellow-200">F</span>
-                    <span class="chord-sub text-[7px] text-purple-200 opacity-80 font-bold">CHORD 1</span>
-                </button>
-                <button class="chord-pad snes-btn-light-purple py-1.5 px-1 flex flex-col items-center justify-center rounded transition" data-pad-idx="1">
-                    <span class="chord-label text-[10px] font-black tracking-tight text-yellow-200">Gm</span>
-                    <span class="chord-sub text-[7px] text-purple-200 opacity-80 font-bold">CHORD 2</span>
-                </button>
-                <button class="chord-pad snes-btn-light-purple py-1.5 px-1 flex flex-col items-center justify-center rounded transition" data-pad-idx="2">
-                    <span class="chord-label text-[10px] font-black tracking-tight text-yellow-200">Am</span>
-                    <span class="chord-sub text-[7px] text-purple-200 opacity-80 font-bold">CHORD 3</span>
-                </button>
-                <button class="chord-pad snes-btn-light-purple py-1.5 px-1 flex flex-col items-center justify-center rounded transition" data-pad-idx="3">
-                    <span class="chord-label text-[10px] font-black tracking-tight text-yellow-200">Bb</span>
-                    <span class="chord-sub text-[7px] text-purple-200 opacity-80 font-bold">CHORD 4</span>
-                </button>
-                <button class="chord-pad snes-btn-light-purple py-1.5 px-1 flex flex-col items-center justify-center rounded transition" data-pad-idx="4">
-                    <span class="chord-label text-[10px] font-black tracking-tight text-yellow-200">C</span>
-                    <span class="chord-sub text-[7px] text-purple-200 opacity-80 font-bold">CHORD 5</span>
-                </button>
-            </div>
+            <div class="flex gap-1.5 my-1 shrink-0 font-mono">
+    <!-- 左側：コード拡張／ストラム設定を開くボタン -->
+    <button
+        id="btn-open-chord-fx"
+        type="button"
+        class="chord-pad snes-btn-dark w-[calc((100%-1.5rem)/6)] min-w-0 px-1 flex flex-col items-center justify-center rounded"
+        aria-label="Open chord extension and strum settings"
+    >
+        <span class="text-[9px] font-black text-emerald-300">CHORD</span>
+        <span id="chord-fx-button-status" class="text-[7px] font-bold text-purple-200">TRIAD</span>
+    </button>
 
+    <!-- 従来のコードパッド -->
+    <div id="chord-pads-container" class="grid grid-cols-5 gap-1.5 flex-1 min-w-0">
+        <button class="chord-pad snes-btn-light-purple py-1.5 px-1 flex flex-col items-center justify-center rounded transition" data-pad-idx="0">
+            <span class="chord-label text-[10px] font-black tracking-tight text-yellow-200">F</span>
+            <span class="chord-sub text-[7px] text-purple-200 opacity-80 font-bold">CHORD 1</span>
+        </button>
+
+        <button class="chord-pad snes-btn-light-purple py-1.5 px-1 flex flex-col items-center justify-center rounded transition" data-pad-idx="1">
+            <span class="chord-label text-[10px] font-black tracking-tight text-yellow-200">Gm</span>
+            <span class="chord-sub text-[7px] text-purple-200 opacity-80 font-bold">CHORD 2</span>
+        </button>
+
+        <button class="chord-pad snes-btn-light-purple py-1.5 px-1 flex flex-col items-center justify-center rounded transition" data-pad-idx="2">
+            <span class="chord-label text-[10px] font-black tracking-tight text-yellow-200">Am</span>
+            <span class="chord-sub text-[7px] text-purple-200 opacity-80 font-bold">CHORD 3</span>
+        </button>
+
+        <button class="chord-pad snes-btn-light-purple py-1.5 px-1 flex flex-col items-center justify-center rounded transition" data-pad-idx="3">
+            <span class="chord-label text-[10px] font-black tracking-tight text-yellow-200">Bb</span>
+            <span class="chord-sub text-[7px] text-purple-200 opacity-80 font-bold">CHORD 4</span>
+        </button>
+
+        <button class="chord-pad snes-btn-light-purple py-1.5 px-1 flex flex-col items-center justify-center rounded transition" data-pad-idx="4">
+            <span class="chord-label text-[10px] font-black tracking-tight text-yellow-200">C</span>
+            <span class="chord-sub text-[7px] text-purple-200 opacity-80 font-bold">CHORD 5</span>
+        </button>
+    </div>
+</div>
             <!-- Deck Mute Controls -->
 <div class="grid grid-cols-4 gap-1.5 mt-0.5 mb-1 px-0.5 font-mono text-[9px] shrink-0">
     <button id="btn-mute-a" class="snes-btn-dark py-0.5 flex flex-col items-center justify-center">
@@ -522,33 +541,7 @@
         <!-- Master Effector Panel (Dual Sliders & Real Reverb Engine) -->
         <div class="bg-slate-900 text-slate-200 p-1.5 rounded-xl border border-slate-700 my-0.5 shrink-0 flex flex-col space-y-1 font-mono">
             <div class="flex justify-between items-center text-[9px]">
-               <span class="font-bold text-purple-300 tracking-wider">Master FX (4 TYPES)</span>
-<!-- LOOP STUTTER FX -->
-<div class="flex items-center space-x-1">
-    <button
-        id="btn-stutter-4"
-        class="stutter-btn bg-emerald-700 hover:bg-emerald-600 active:bg-emerald-800 text-emerald-100 font-bold px-2 py-0.5 rounded text-[8px] tracking-wider border border-emerald-400"
-        title="Hold: Loop 1/4 (Shift + 1)"
-    >
-        1/4
-    </button>
-
-    <button
-        id="btn-stutter-8"
-        class="stutter-btn bg-emerald-700 hover:bg-emerald-600 active:bg-emerald-800 text-emerald-100 font-bold px-2 py-0.5 rounded text-[8px] tracking-wider border border-emerald-400"
-        title="Hold: Loop 1/8 (Shift + 2)"
-    >
-        1/8
-    </button>
-
-    <button
-        id="btn-stutter-16"
-        class="stutter-btn bg-emerald-700 hover:bg-emerald-600 active:bg-emerald-800 text-emerald-100 font-bold px-2 py-0.5 rounded text-[8px] tracking-wider border border-emerald-400"
-        title="Hold: Loop 1/16 (Shift + 3)"
-    >
-        1/16
-    </button>
-</div>
+               <span class="font-bold text-purple-300 tracking-wider">MASTER EFFECTOR ENGINE (4 TYPES)</span>
 
                 <div class="flex items-center space-x-1.5">
                     <!-- 追加: エフェクターXYダイアログ開くボタン -->
@@ -679,6 +672,114 @@
             </div>
         </div>
     </div>
+<!-- Chord Extension / Strum Modal -->
+<div id="chord-fx-modal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-3">
+    <div class="chord-fx-modal snes-shell w-full p-3 flex flex-col space-y-3 border-2 border-purple-500 shadow-2xl font-mono text-slate-800">
+    <!-- ヘッダー -->
+    <div class="flex justify-between items-center border-b border-slate-400 pb-1.5">
+        <span class="font-bold text-xs text-purple-900 tracking-wider">
+            CHORD EXTENSION / STRUM
+        </span>
+
+        <button
+            id="btn-close-chord-fx"
+            type="button"
+            class="bg-red-600 hover:bg-red-500 text-white font-bold text-xs px-2 py-0.5 rounded border border-red-800 shadow"
+        >
+            ✕ CLOSE
+        </button>
+    </div>
+
+    <!-- コード拡張 -->
+    <div class="bg-slate-900 p-2 rounded-lg border border-slate-700">
+        <div class="text-[8px] text-slate-400 font-bold mb-1">
+            CHORD TYPE
+        </div>
+
+        <div class="grid grid-cols-3 gap-1.5">
+            <button id="btn-chord-triad" type="button" class="snes-btn-purple py-2 text-[10px] font-black">
+                TRIAD
+            </button>
+
+            <button id="btn-chord-7th" type="button" class="snes-btn-purple py-2 text-[10px] font-black">
+                7th
+            </button>
+
+            <button id="btn-chord-9th" type="button" class="snes-btn-purple py-2 text-[10px] font-black">
+                9th
+            </button>
+        </div>
+    </div>
+
+    <!-- ストラム -->
+    <div class="bg-slate-900 p-2 rounded-lg border border-slate-700">
+        <div class="flex justify-between items-center mb-2">
+            <span class="text-[8px] text-slate-400 font-bold">
+                STRUM MODE
+            </span>
+
+            <button id="btn-strum-toggle" type="button" class="snes-btn-purple px-3 py-1 text-[9px] font-black">
+                STRUM: OFF
+            </button>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <span class="text-[8px] text-purple-300 font-bold shrink-0">
+                GAP
+            </span>
+
+            <input
+                id="strum-interval-slider"
+                type="range"
+                min="20"
+                max="250"
+                step="5"
+                value="60"
+                class="strum-range w-full h-2 cursor-pointer"
+            >
+
+            <span id="strum-interval-display" class="text-[9px] text-emerald-300 font-bold w-12 text-right">
+                60 ms
+            </span>
+        </div>
+
+        <div class="text-[7px] text-slate-400 mt-2">
+            LOW NOTE → HIGH NOTE
+        </div>
+    </div>
+
+    <!-- コード発音時間：ストラムの下 -->
+    <div class="bg-slate-900 p-2 rounded-lg border border-slate-700">
+        <div class="flex justify-between items-center mb-2">
+            <span class="text-[8px] text-slate-400 font-bold">
+                CHORD LENGTH
+            </span>
+
+            <span
+                id="chord-duration-display"
+                class="text-[9px] text-emerald-300 font-bold"
+            >
+                1.2 s
+            </span>
+        </div>
+
+        <input
+            id="chord-duration-slider"
+            type="range"
+            min="0.1"
+            max="8"
+            step="0.1"
+            value="1.2"
+            class="strum-range w-full h-2 cursor-pointer"
+        >
+
+        <div class="text-[7px] text-slate-400 mt-2">
+            HOLD TIME BEFORE RELEASE
+        </div>
+    </div>
+</div>
+
+</div>
 
     <script>
         // --- 画面拡大・ズーム防止スクリプト ---
@@ -707,6 +808,42 @@
         };
 
         const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+const TOUCHPAD_THEMES = [
+    {
+        bg: "linear-gradient(180deg, #08111f 0%, #0f4c81 100%)"
+    },
+    {
+        bg: "linear-gradient(180deg, #071a12 0%, #166534 100%)"
+    },
+    {
+        bg: "linear-gradient(180deg, #1e1033 0%, #6d28d9 100%)"
+    },
+    {
+        bg: "linear-gradient(180deg, #2a1407 0%, #b45309 100%)"
+    }
+];
+
+function getTouchpadTheme() {
+    const o = Math.max(-3, Math.min(3, octaveShift));
+    const t = (o + 3) / 6; // 0.0 = 最低音, 1.0 = 最高音
+
+    // オクターブが上がるほど明るくする
+    const hue = 215 + t * 55;          // 青 → 紫 → 少し暖色寄り
+    const saturation = 38 + t * 6;     // 少し薄め
+    const light = 22 + t * 24;         // 上ほど明るい
+    const alpha = 0.42;                // 全体を少し薄く
+
+    return {
+        bg: `linear-gradient(180deg,
+            hsla(${hue}, ${saturation}%, ${light + 6}%, ${alpha}) 0%,
+            hsla(${hue}, ${saturation}%, ${light}%, ${alpha}) 100%)`
+    };
+}
+
+function applyTouchpadTheme() {
+    if (!touchPad) return;
+    touchPad.style.background = getTouchpadTheme().bg;
+}
 
         const SCALE_INTERVALS = {
             "chromatic": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
@@ -734,6 +871,31 @@
         let currentScaleKey = "major";
         let activeScaleFrequencies = [];
         let chordPadsData = [];
+// コードパッド設定
+// triad: 3和音 / seventh: 7th / ninth: 7thを含む9th
+let chordExtensionMode = "triad";
+
+let isStrumMode = false;
+
+// コード構成音どうしの発音間隔（ミリ秒）
+let strumIntervalMs = 60;
+
+// コードボタンを押したときの保持時間（秒）
+let chordDuration = 1.2;
+
+// 現在鳴っているコード専用の音声バス。
+// 次のコードを鳴らすときに、このバスをフェードアウトして停止する。
+let activeChordBus = null;
+
+// ストラムで予約済みの発音を無効化するための世代番号
+let chordPlayGeneration = 0;
+// 録音データ上で「同時に押した1つのコード」を識別するID
+let chordGroupCounter = 0;
+// ループ再生中のコード専用バス。
+// 周回をまたいで参照できるよう、scheduleLoopCycleの外で管理する。
+let playbackChordBuses = {};
+let playbackChordGroups = {};
+
 // タッチパッド・コードパッド共通のオクターブ移動量。
 // -3 ～ +3 の範囲で制限する。
 let octaveShift = 0;
@@ -760,63 +922,114 @@ const playableScaleRange = 8;
                 }
             }
             updateChordPads();
+
         }
 
-        // ダイアトニックコードの自動計算とコードパッドの更新
 function updateChordPads() {
     const rootSemi = KEY_SEMI_MAP[currentKey] || 0;
-    const intervals = SCALE_INTERVALS[currentScaleKey] || SCALE_INTERVALS["chromatic"];
+    const intervals =
+        SCALE_INTERVALS[currentScaleKey] ||
+        SCALE_INTERVALS["chromatic"];
 
-// タッチパッドのオクターブ変更にコードパッドも追従する
-const baseMidiRoot = 60 + rootSemi + (octaveShift * 12);
-
+    const baseMidiRoot = 60 + rootSemi + ((octaveShift - 2) * 12);
 
     chordPadsData = [];
+
     const padElements = document.querySelectorAll(".chord-pad");
-            for (let i = 0; i < 5; i++) {
-                const idx1 = i % intervals.length;
-                const idx2 = (i + 2) % intervals.length;
-                const idx3 = (i + 4) % intervals.length;
 
-                const oct1 = Math.floor(i / intervals.length);
-                const oct2 = Math.floor((i + 2) / intervals.length);
-                const oct3 = Math.floor((i + 4) / intervals.length);
+    // スケール上の「度数」からMIDIノートを得る。
+    // スケール外の音を使わず、ダイアトニックな7th / 9thになる。
+    function getDegreeMidi(degree) {
+        const intervalIndex = degree % intervals.length;
+        const octave = Math.floor(degree / intervals.length);
 
-                const midi1 = baseMidiRoot + intervals[idx1] + (oct1 * 12);
-                const midi2 = baseMidiRoot + intervals[idx2] + (oct2 * 12);
-                const midi3 = baseMidiRoot + intervals[idx3] + (oct3 * 12);
+        return (
+            baseMidiRoot +
+            intervals[intervalIndex] +
+            octave * 12
+        );
+    }
 
-                const freq1 = 440 * Math.pow(2, (midi1 - 69) / 12);
-                const freq2 = 440 * Math.pow(2, (midi2 - 69) / 12);
-                const freq3 = 440 * Math.pow(2, (midi3 - 69) / 12);
+    for (let i = 0; i < 5; i++) {
+        const degrees =
+            chordExtensionMode === "ninth"
+                ? [i, i + 2, i + 4, i + 6, i + 8]
+                : chordExtensionMode === "seventh"
+                    ? [i, i + 2, i + 4, i + 6]
+                    : [i, i + 2, i + 4];
 
-                const rootNoteName = getNoteName(midi1);
-                const diff2 = midi2 - midi1;
-                const diff3 = midi3 - midi1;
+        const midis = degrees.map(getDegreeMidi);
+        const freqs = midis.map(
+            midi => 440 * Math.pow(2, (midi - 69) / 12)
+        );
 
-                let chordType = "";
-                if (diff2 === 4 && diff3 === 7) chordType = "";
-                else if (diff2 === 3 && diff3 === 7) chordType = "m";
-                else if (diff2 === 3 && diff3 === 6) chordType = "dim";
-                else if (diff2 === 4 && diff3 === 8) chordType = "aug";
-                else if (diff2 === 5 && diff3 === 7) chordType = "sus4";
-                else chordType = "";
+        const rootNoteName = getNoteName(midis[0]);
+        const third = midis[1] - midis[0];
+        const fifth = midis[2] - midis[0];
+        const seventh = midis[3] ? midis[3] - midis[0] : null;
 
-                const chordName = `${rootNoteName}${chordType}`;
-                const normX = (i + 0.5) / 5;
+        let triadSuffix = "";
 
-                chordPadsData.push({
-                    name: chordName,
-                    freqs: [freq1, freq2, freq3],
-                    normX: normX
-                });
+        if (third === 3 && fifth === 7) {
+            triadSuffix = "m";
+        } else if (third === 3 && fifth === 6) {
+            triadSuffix = "dim";
+        } else if (third === 4 && fifth === 8) {
+            triadSuffix = "aug";
+        } else if (third === 5 && fifth === 7) {
+            triadSuffix = "sus4";
+        }
 
-                if (padElements[i]) {
-                    const labelEl = padElements[i].querySelector(".chord-label");
-                    if (labelEl) labelEl.innerText = chordName;
-                }
+        let chordName = `${rootNoteName}${triadSuffix}`;
+
+        if (chordExtensionMode === "seventh") {
+            if (seventh === 11 && triadSuffix === "") {
+                chordName += "maj7";
+            } else if (seventh === 10 && triadSuffix === "m") {
+                chordName += "7";
+            } else if (seventh === 10) {
+                chordName += "7";
+            } else if (seventh === 10 && triadSuffix === "dim") {
+                chordName += "m7♭5";
+            } else {
+                chordName += "7";
             }
         }
+
+        if (chordExtensionMode === "ninth") {
+            if (seventh === 11 && triadSuffix === "") {
+                chordName += "maj9";
+            } else if (triadSuffix === "m") {
+                chordName += "m9";
+            } else {
+                chordName += "9";
+            }
+        }
+
+        const normX = (i + 0.5) / 5;
+
+        chordPadsData.push({
+            name: chordName,
+            freqs,
+            normX
+        });
+
+        // 左側のCHORD FXボタンは .chord-pad だが、
+        // data-pad-idx を持つ実際のコードボタンだけを対象にする。
+        const padElement = document.querySelector(
+            `.chord-pad[data-pad-idx="${i}"]`
+        );
+
+        if (padElement) {
+            const labelEl = padElement.querySelector(".chord-label");
+
+            if (labelEl) {
+                labelEl.innerText = chordName;
+            }
+        }
+    }
+}
+
         const PRESET_CATEGORIES = [
             {
                 category: "BASS",
@@ -1212,15 +1425,7 @@ function setPresetForDeck(deck, preset) {
 
         let scheduledTimeouts = [];
         let renderParticles = [];
-// LOOP STUTTER FX
-let stutterDivision = 0;      // 0 = OFF, 4 = 1/4, 8 = 1/8, 16 = 1/16
-let stutterStartOffset = 0;   // 押した瞬間のループ内位置
-let stutterDuration = 0;      // 実際に繰り返す長さ（秒）
-// ダブルアップ前の基準ループ長。
-// STUTTERの拍・16分クオンタイズは常にこれを使う。
-let stutterReferenceLoopDuration = 0;
 
-let pendingStutterDivision = 0;
         // DOM Elements
         const touchPad = document.getElementById("touch-pad");
         const lcdCanvas = document.getElementById("lcd-canvas");
@@ -1263,11 +1468,6 @@ let pendingStutterDivision = 0;
 	const loopTimebarContainer = document.getElementById("loop-timebar-container");
 const loopTimebarFill = document.getElementById("loop-timebar-fill");
 const loopTimebarHead = document.getElementById("loop-timebar-head");
-
-
-const btnStutter4 = document.getElementById("btn-stutter-4");
-const btnStutter8 = document.getElementById("btn-stutter-8");
-const btnStutter16 = document.getElementById("btn-stutter-16");
 
 
 const deckButtons = {
@@ -1350,6 +1550,7 @@ function shiftScaleRange(direction) {
     // コードパッドの実際の音程も更新
     updateChordPads();
     updateScaleShiftUI();
+    applyTouchpadTheme();
 }
 
 btnScaleDown.addEventListener("click", (e) => {
@@ -1475,290 +1676,7 @@ gainNodeD.connect(voiceMixerBus);
                 audioCtx.resume();
             }
         }
-//shutter FX  
-function updateStutterButtons() {
-    const buttons = {
-        4: btnStutter4,
-        8: btnStutter8,
-        16: btnStutter16
-    };
 
-    Object.entries(buttons).forEach(([division, button]) => {
-        if (!button) return;
-
-        button.classList.toggle(
-            "stutter-active",
-            stutterDivision === Number(division)
-        );
-    });
-}
-function stopStutterLoop() {
-    pendingStutterDivision = 0;
-
-    const wasStuttering = stutterDivision !== 0;
-
-    stutterDivision = 0;
-    stutterStartOffset = 0;
-    stutterDuration = 0;
-
-    updateStutterButtons();
-
-    const isPlaying =
-        state === "PLAYING" ||
-        state === "OVERDUB" ||
-        state === "WAIT_HEAD";
-
-    // ボタンを離した時点の再生位置から通常ループへ復帰
-    if (wasStuttering && isPlaying && loopDuration > 0) {
-        const currentOffset =
-            (audioCtx.currentTime - loopStartTime) % loopDuration;
-
-        startLoopPlayback(currentOffset);
-    }
-}
-
-function setStutterLoop(division) {
-    initAudioEngine();
-
-    if (loopDuration <= 0 || recordedNotes.length === 0) {
-        return;
-    }
-
-    const isPlaying =
-        state === "PLAYING" ||
-        state === "OVERDUB" ||
-        state === "WAIT_HEAD";
-
-    if (!isPlaying) {
-        return;
-    }
-
-    // 最初のループ長をSTUTTER基準として保持
-    if (stutterReferenceLoopDuration <= 0) {
-        stutterReferenceLoopDuration = loopDuration;
-    }
-
-    const stutterBaseDuration = stutterReferenceLoopDuration;
-
-    // 押した瞬間のループ内位置
-    const currentOffset =
-        (audioCtx.currentTime - loopStartTime) % loopDuration;
-
-    stutterDivision = division;
-    stutterStartOffset = currentOffset;
-    stutterDuration = stutterBaseDuration / division;
-
-    pendingStutterDivision = division;
-
-    updateStutterButtons();
-
-    // クオンタイズなしで即時開始
-    scheduleStutterCycle();
-}
-function bindStutterButton(button, division) {
-    if (!button) return;
-
-    button.addEventListener("pointerdown", (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-
-        button.setPointerCapture?.(e.pointerId);
-        setStutterLoop(division);
-    });
-
-    const releaseStutter = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-
-        try {
-            button.releasePointerCapture?.(e.pointerId);
-        } catch (err) {}
-
-        stopStutterLoop();
-    };
-
-    button.addEventListener("pointerup", releaseStutter);
-    button.addEventListener("pointercancel", releaseStutter);
-    button.addEventListener("pointerleave", (e) => {
-        // 押下中にボタン領域外へ出た場合も解除
-        if (e.buttons !== 0) {
-            stopStutterLoop();
-        }
-    });
-}
-
-bindStutterButton(btnStutter4, 4);
-bindStutterButton(btnStutter8, 8);
-bindStutterButton(btnStutter16, 16);
-
-function getPlaybackPreset(note) {
-    if (note.drumType) {
-        const basePreset =
-            ALL_PRESETS.find(p => p.id === note.presetId)
-            || ALL_PRESETS[0];
-
-        return {
-            drumType: note.drumType,
-            defaultVol:
-                note.targetPreset?.defaultVol
-                ?? basePreset.defaultVol
-                ?? 1.0,
-            defaultOctave:
-                note.targetPreset?.defaultOctave
-                ?? basePreset.defaultOctave
-                ?? 0
-        };
-    }
-
-    return (
-        note.targetPreset
-        || ALL_PRESETS.find(p => p.id === note.presetId)
-        || ALL_PRESETS[0]
-    );
-}
-
-function playStutterNote(note, durationOverride = null) {
-    const preset = getPlaybackPreset(note);
-
-    playChiptuneTone(
-        preset,
-        note.freq,
-        note.filterFreq,
-        durationOverride ?? note.duration ?? 0.22,
-        note.kitStyle || "retro",
-        note.padChannel || "A"
-    );
-
-    spawnParticle(
-        note.normX,
-        note.normY,
-        note.presetId
-    );
-}
-
-function scheduleStutterCycle() {
-    clearScheduledTimeouts();
-
-    if (
-        stutterDivision === 0 ||
-        stutterDuration <= 0 ||
-        loopDuration <= 0 ||
-        recordedNotes.length === 0
-    ) {
-        return;
-    }
-
-    const isPlaying =
-        state === "PLAYING" ||
-        state === "OVERDUB" ||
-        state === "WAIT_HEAD";
-
-    if (!isPlaying) return;
-
-    const sliceStart = stutterStartOffset;
-    const sliceEnd = sliceStart + stutterDuration;
-
-    /*
-      STUTTER区間に入っているノートを取得する。
-      ループ終端をまたぐ場合も対応する。
-    */
-    const sliceNotes = [];
-
-    recordedNotes.forEach(note => {
-        let noteOffset = note.timeOffset;
-
-        if (noteOffset < sliceStart) {
-            noteOffset += loopDuration;
-        }
-
-        if (noteOffset >= sliceStart && noteOffset < sliceEnd) {
-            sliceNotes.push({
-                note,
-                delay: noteOffset - sliceStart
-            });
-        }
-    });
-
-    /*
-      区間内にノート開始がない場合、
-      押した瞬間より前で最も近いノートを使う。
-      これによりSTUTTERが無音になりにくい。
-    */
-    let fallbackNote = null;
-    let nearestDistance = Infinity;
-
-    recordedNotes.forEach(note => {
-        let distance = sliceStart - note.timeOffset;
-
-        if (distance < 0) {
-            distance += loopDuration;
-        }
-
-        if (distance < nearestDistance) {
-            nearestDistance = distance;
-            fallbackNote = note;
-        }
-    });
-
-    /*
-      区間の先頭で鳴らす音：
-      - 区間内ノートがある場合も最初の音を先頭で再トリガー
-      - 区間内ノートがない場合は直近ノートを再トリガー
-    */
-    const anchorNote =
-        sliceNotes.length > 0
-            ? sliceNotes[0].note
-            : fallbackNote;
-
-    if (anchorNote) {
-        playStutterNote(
-            anchorNote,
-            Math.min(
-                anchorNote.duration || 0.22,
-                stutterDuration
-            )
-        );
-    }
-
-    /*
-      STUTTER区間内のノートを、元のタイミングで再生。
-      先頭ノートはすでに鳴らしているため、
-      delayがほぼ0のものは重複再生しない。
-    */
-    sliceNotes.forEach(({ note, delay }) => {
-        if (delay < 0.015) return;
-
-        const timeoutId = setTimeout(() => {
-            const stillPlaying =
-                state === "PLAYING" ||
-                state === "OVERDUB" ||
-                state === "WAIT_HEAD";
-
-            if (!stillPlaying || stutterDivision === 0) return;
-
-            playStutterNote(note);
-        }, delay * 1000);
-
-        scheduledTimeouts.push(timeoutId);
-    });
-
-    /*
-      短い区間を繰り返す。
-    */
-    const nextCycleId = setTimeout(() => {
-        const stillPlaying =
-            state === "PLAYING" ||
-            state === "OVERDUB" ||
-            state === "WAIT_HEAD";
-
-        if (stillPlaying && stutterDivision > 0) {
-            scheduleStutterCycle();
-        }
-    }, stutterDuration * 1000);
-
-    scheduledTimeouts.push(nextCycleId);
-}
-////////////////////////////////////////////////////////////////
         // --- WAV Encoder Logic ---
         function writeString(view, offset, string) {
             for (let i = 0; i < string.length; i++) {
@@ -2236,13 +2154,30 @@ updateScaleDisplay();
                 osc.frequency.exponentialRampToValueAtTime(Math.min(250, (30 * pitchMult) * pitchRatio), now + (0.12 * decayMult));
 
                 gain.gain.setValueAtTime(((kitStyle === "lofi") ? 0.7 : 1.0) * presetVol, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + (0.22 * decayMult));
+              gain.gain.setValueAtTime(
+    ((kitStyle === "lofi") ? 0.7 : 1.0) * presetVol,
+    now
+);
+
+gain.gain.exponentialRampToValueAtTime(
+    0.001,
+    now + (0.22 * decayMult)
+);
+
+osc.connect(gain);
+gain.connect(drumFilter);
+drumFilter.connect(padBus);
+
+osc.start(now);
+osc.stop(now + (0.25 * decayMult));
+
 
                 osc.connect(gain);
                 gain.connect(drumFilter);
                 drumFilter.connect(padBus);
                 osc.start(now);
-                osc.stop(now + (0.25 * decayMult));
+          
+
 
             } else if (drumType === "snare") {
                 const bufferSize = Math.floor(audioCtx.sampleRate * (0.15 * decayMult));
@@ -2322,10 +2257,7 @@ updateScaleDisplay();
                 gain.gain.setValueAtTime(0.7 * presetVol, now);
                 gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
 
-                osc.connect(gain);
-                gain.connect(drumFilter);
-                drumFilter.connect(padBus);
-                osc.start(now);
+  
                 osc.stop(now + 0.18);
 
             } else if (drumType === "rimshot") {
@@ -2849,16 +2781,58 @@ function playAmbientSound(soundType, freq, cutoffFreq, soundDuration, padBus, pr
         now
     );
 
-    out.gain.setValueAtTime(0.0001, now);
-    out.gain.linearRampToValueAtTime(1.0, now + attack);
-    out.gain.exponentialRampToValueAtTime(
-        Math.max(0.015, sustain),
-        now + attack + decay
-    );
-    out.gain.exponentialRampToValueAtTime(
-        0.0001,
-        now + duration + release
-    );
+ // CHORD LENGTH の値を、ピアノの保持時間として使用する
+const holdDuration = Math.max(0.05, Number(duration) || 0.05);
+
+// ADSRの各時刻
+const attackEnd = now + attack;
+const decayEnd = attackEnd + decay;
+
+// ディケイ後、CHORD LENGTH 秒だけ保持する
+const releaseStart = decayEnd + holdDuration;
+const releaseEnd = releaseStart + release;
+
+/*
+  通常のピアノ用プリセットの sustain は 0.05 ～ 0.09 と低く、
+  コードとしてはすぐ小さく聞こえてしまう。
+
+  コード演奏時は最低 0.38 を維持して、
+  CHORD LENGTH の違いを明確に聞こえるようにする。
+*/
+const pianoHoldLevel = Math.max(
+    0.38,
+    Math.min(0.72, sustain * 4.5)
+);
+
+out.gain.cancelScheduledValues(now);
+
+out.gain.setValueAtTime(0.0001, now);
+
+// Attack
+out.gain.linearRampToValueAtTime(
+    1.0,
+    attackEnd
+);
+
+// Decay: 明るい立ち上がりから少し落ち着く
+out.gain.exponentialRampToValueAtTime(
+    pianoHoldLevel,
+    decayEnd
+);
+
+// Hold: CHORD LENGTH の間、十分な音量を維持
+out.gain.setValueAtTime(
+    pianoHoldLevel,
+    releaseStart
+);
+
+// Release: プリセットごとの余韻時間で減衰
+out.gain.exponentialRampToValueAtTime(
+    0.0001,
+    releaseEnd
+);
+
+
 
     mix.connect(filter);
     filter.connect(out);
@@ -2886,7 +2860,10 @@ function playAmbientSound(soundType, freq, cutoffFreq, soundDuration, padBus, pr
         gain.connect(mix);
 
         osc.start(now);
-        osc.stop(now + duration + release + 0.25);
+osc.stop(releaseEnd + 0.25);
+
+
+
     });
 
     // ハンマー接触ノイズ
@@ -3209,10 +3186,21 @@ function playSpecialSfx(sfxType, freq, padBus, presetVol) {
     }
 }
 
-        function playChiptuneTone(preset, freq, cutoffFreq, duration = 0.22, kitStyle = "retro", padChannel = "A") {
-            initAudioEngine();
-           
-    const padBus = getGainNodeForDeck(padChannel);
+function playChiptuneTone(
+    preset,
+    freq,
+    cutoffFreq,
+    duration = 0.22,
+    kitStyle = "retro",
+    padChannel = "A",
+    outputBus = null
+) {
+    initAudioEngine();
+
+    // outputBus が渡されている場合は、その専用バスへ出力する。
+    // コード演奏ではこれを使い、前コードをまとめて止められるようにする。
+    const padBus = outputBus || getGainNodeForDeck(padChannel);
+
     const presetVol = preset.defaultVol !== undefined ? preset.defaultVol : 1.0;
 // SFX専用の発音処理
 if (preset.sfxType) {
@@ -3226,6 +3214,16 @@ if (preset.sfxType) {
 }
 
 
+// 専用SFXプリセット
+if (preset.sfxType) {
+    playSpecialSfx(
+        preset.sfxType,
+        freq,
+        padBus,
+        presetVol
+    );
+    return;
+}
 
     // 環境音・ノイズ系プリセット
     if (preset.soundType) {
@@ -3301,98 +3299,234 @@ if (preset.drumType) {
                     osc.frequency.setValueAtTime(noteFreq, now);
                 }
 
-                const baseGain = (0.5 / chordOffsets.length) * presetVol;
-                gain.gain.setValueAtTime(0, now);
-                gain.gain.linearRampToValueAtTime(baseGain, now + preset.attack);
-                gain.gain.exponentialRampToValueAtTime(Math.max(0.001, baseGain * preset.sustain), now + preset.attack + preset.decay);
-                gain.gain.exponentialRampToValueAtTime(0.0001, now + preset.attack + preset.decay + preset.release + toneDuration);
+          const baseGain = (0.5 / chordOffsets.length) * presetVol;
 
-                osc.connect(gain);
-                gain.connect(voiceFilter);
-                voiceFilter.connect(padBus);
+// プリセットに値が無い場合の安全な初期値
+const attack = preset.attack ?? 0.01;
+const decay = preset.decay ?? 0.15;
+const sustain = preset.sustain ?? 0.7;
+const release = preset.release ?? 0.5;
 
-                osc.start(now);
-                osc.stop(now + preset.attack + preset.decay + preset.release + toneDuration + 0.05);
+// duration を「音を保持する時間」として扱う。
+// これにより duration: 2.0 なら、約2秒間は音量を維持する。
+const holdDuration = Math.max(0.05, toneDuration);
+
+// ADSRエンベロープ
+const attackEnd = now + attack;
+const decayEnd = attackEnd + decay;
+const releaseStart = decayEnd + holdDuration;
+const releaseEnd = releaseStart + release;
+
+const sustainGain = Math.max(0.001, baseGain * sustain);
+
+gain.gain.setValueAtTime(0.0001, now);
+gain.gain.linearRampToValueAtTime(baseGain, attackEnd);
+
+// ディケイ：最大音量からサステイン音量へ
+gain.gain.exponentialRampToValueAtTime(
+    sustainGain,
+    decayEnd
+);
+
+// 重要：ここで明示的に音量を保持する
+gain.gain.setValueAtTime(
+    sustainGain,
+    releaseStart
+);
+
+// リリース：保持後にフェードアウト
+gain.gain.exponentialRampToValueAtTime(
+    0.0001,
+    releaseEnd
+);
+
+osc.connect(gain);
+gain.connect(voiceFilter);
+voiceFilter.connect(padBus);
+
+osc.start(now);
+osc.stop(releaseEnd + 0.05);
+
             });
         }
+// 現在鳴っているコードを素早くフェードアウトして停止する
+function stopActiveChord(fadeTime = 0.07) {
+    if (!activeChordBus || !audioCtx) return;
 
+    const oldBus = activeChordBus;
+    const now = audioCtx.currentTime;
+
+    try {
+        oldBus.gain.cancelScheduledValues(now);
+
+        oldBus.gain.setValueAtTime(
+            Math.max(0.0001, oldBus.gain.value),
+            now
+        );
+
+        oldBus.gain.exponentialRampToValueAtTime(
+            0.0001,
+            now + fadeTime
+        );
+
+        setTimeout(() => {
+            try {
+                oldBus.disconnect();
+            } catch (error) {}
+        }, Math.ceil((fadeTime + 0.05) * 1000));
+
+    } catch (error) {
+        try {
+            oldBus.disconnect();
+        } catch (disconnectError) {}
+    }
+
+    activeChordBus = null;
+}
         // --- コードパッド専用の演奏＆録音ロジック ---
-        function playChordPad(padIndex) {
-            initAudioEngine();
-            if (padIndex < 0 || padIndex >= chordPadsData.length) return;
+   function playChordPad(padIndex) {
+    initAudioEngine();
 
-            const padData = chordPadsData[padIndex];
-            const padChannel = activeDeck;
-            const basePreset = getPresetForDeck(padChannel);
+    if (padIndex < 0 || padIndex >= chordPadsData.length) {
+        return;
+    }
 
-            const kitStyle = basePreset.kitStyle || "retro";
-            const filterFreq = 3500;
-            const normX = padData.normX;
-            const normY = 0.5;
+    // 前に鳴らしたコードを消す。
+    // また、以前のストラムで予約していた後続音も無効化する。
+    chordPlayGeneration++;
+    const myGeneration = chordPlayGeneration;
+// 今回押したコード全体に共通のID。
+// 構成音すべてが同じ chordGroup を持つ。
+const chordGroup = `chord-${++chordGroupCounter}`;
 
-            spawnParticle(normX, normY, basePreset.id);
-            if (touchPrompt) touchPrompt.style.display = "none";
+    stopActiveChord();
 
-            padData.freqs.forEach((freq, fIdx) => {
-               const noteEvent = {
+    // 今回のコード専用バスを作る。
+    // このバスをフェードアウトすれば、コード構成音を一括停止できる。
+    const chordBus = audioCtx.createGain();
+    chordBus.gain.setValueAtTime(1.0, audioCtx.currentTime);
+    chordBus.connect(getGainNodeForDeck(activeDeck));
+
+    activeChordBus = chordBus;
+
+    const padData = chordPadsData[padIndex];
+    const padChannel = activeDeck;
+    const basePreset = getPresetForDeck(padChannel);
+
+    const kitStyle = basePreset.kitStyle || "retro";
+    const filterFreq = 3500;
+    const normX = padData.normX;
+    const normY = 0.5;
+
+    spawnParticle(normX, normY, basePreset.id);
+
+    if (touchPrompt) {
+        touchPrompt.style.display = "none";
+    }
+
+    padData.freqs.forEach((freq, fIdx) => {
+        const strumDelaySec = isStrumMode
+            ? (fIdx * strumIntervalMs) / 1000
+            : 0;
+
+       const noteEvent = {
+    // コード演奏であること、および同じコードに属する構成音を記録
+    chordGroup: chordGroup,
+
     padChannel: padChannel,
     presetId: basePreset.id,
-
-    // コードパッドは通常の音色をそのまま使う
     drumType: basePreset.drumType || null,
     targetPreset: basePreset,
 
-    kitStyle: kitStyle,
-    freq: freq,
-    filterFreq: filterFreq,
-    normX: normX + (fIdx * 0.02 - 0.02),
-    normY: normY,
-    timeOffset: 0,
-    duration: 0.35
-};
+            kitStyle: kitStyle,
+            freq: freq,
+            filterFreq: filterFreq,
+            normX: normX + (fIdx * 0.02 - 0.02),
+            normY: normY,
+            timeOffset: 0,
 
+            // 録音／ループ再生にもスライダーの長さを保存する
+            duration: chordDuration
+        };
 
-                if (state === "STANDBY") {
-                    saveUndoStateIfNeeded();
-                    state = "REC_FREE";
-                    freeRecStartAudioTime = audioCtx.currentTime;
-                    updateStatusUI("REC FREE", "led-red");
+        // 録音処理
+        if (state === "STANDBY") {
+            saveUndoStateIfNeeded();
 
-                    noteEvent.timeOffset = 0;
-                    recordedNotes.push(noteEvent);
-                    updateNotesDisplay();
-                } else if (state === "REC_FREE") {
-                    saveUndoStateIfNeeded();
-                    noteEvent.timeOffset = audioCtx.currentTime - freeRecStartAudioTime;
-                    recordedNotes.push(noteEvent);
-                    updateNotesDisplay();
-                } else if (state === "OVERDUB" || state === "WAIT_HEAD") {
-                    if (loopDuration > 0) {
-                        saveUndoStateIfNeeded();
-                        const currentPos = (audioCtx.currentTime - loopStartTime) % loopDuration;
-                        noteEvent.timeOffset = currentPos;
-                        recordedNotes.push(noteEvent);
-                        updateNotesDisplay();
-                    }
-                }
+            state = "REC_FREE";
+            freeRecStartAudioTime = audioCtx.currentTime;
 
-                playChiptuneTone(basePreset, freq, filterFreq, 0.35, kitStyle, padChannel);
-            });
+            updateStatusUI("REC FREE", "led-red");
 
-            const padBtns = document.querySelectorAll(".chord-pad");
-            if (padBtns[padIndex]) {
-                padBtns[padIndex].classList.add("active");
-                setTimeout(() => padBtns[padIndex].classList.remove("active"), 150);
+            noteEvent.timeOffset = strumDelaySec;
+            recordedNotes.push(noteEvent);
+
+            updateNotesDisplay();
+
+        } else if (state === "REC_FREE") {
+            saveUndoStateIfNeeded();
+
+            noteEvent.timeOffset =
+                (audioCtx.currentTime - freeRecStartAudioTime) +
+                strumDelaySec;
+
+            recordedNotes.push(noteEvent);
+
+            updateNotesDisplay();
+
+        } else if (state === "OVERDUB" || state === "WAIT_HEAD") {
+            if (loopDuration > 0) {
+                saveUndoStateIfNeeded();
+
+                noteEvent.timeOffset =
+                    (
+                        (audioCtx.currentTime - loopStartTime) +
+                        strumDelaySec
+                    ) % loopDuration;
+
+                recordedNotes.push(noteEvent);
+
+                updateNotesDisplay();
             }
         }
 
-        // コードパッドボタンへのイベントバインド
-        document.querySelectorAll(".chord-pad").forEach((btn, idx) => {
-            btn.addEventListener("pointerdown", (e) => {
-                e.preventDefault();
-                playChordPad(idx);
-            });
-        });
+        const playTone = () => {
+            // 次のコードが押されていたら、古いストラムの続きを鳴らさない
+            if (myGeneration !== chordPlayGeneration) return;
+
+            playChiptuneTone(
+                basePreset,
+                freq,
+                filterFreq,
+                chordDuration,
+                kitStyle,
+                padChannel,
+
+                // コード専用バスを渡す
+                chordBus
+            );
+        };
+
+        if (strumDelaySec > 0) {
+            setTimeout(playTone, strumDelaySec * 1000);
+        } else {
+            playTone();
+        }
+    });
+
+    const padBtn = document.querySelector(
+        `.chord-pad[data-pad-idx="${padIndex}"]`
+    );
+
+    if (padBtn) {
+        padBtn.classList.add("active");
+
+        setTimeout(() => {
+            padBtn.classList.remove("active");
+        }, 150);
+    }
+}
+
 
         function handleTouchTrigger(normX, normY) {
             initAudioEngine();
@@ -3517,6 +3651,15 @@ function getProjectData() {
             fxParamValue,
             fxParamValue2
         },
+chordSettings: {
+    chordExtensionMode,
+    isStrumMode,
+    strumIntervalMs,
+    chordDuration
+},
+
+
+
 
         loop: {
             loopDuration,
@@ -3586,6 +3729,24 @@ function loadProjectData(data) {
     // FX状態
     isMasterFxOn = Boolean(data.fx?.isMasterFxOn);
     currentFxType = data.fx?.currentFxType || "reverb";
+chordExtensionMode =
+    data.chordSettings?.chordExtensionMode || "triad";
+
+isStrumMode =
+    Boolean(data.chordSettings?.isStrumMode);
+
+strumIntervalMs =
+    Number(data.chordSettings?.strumIntervalMs ?? 60);
+chordDuration = Math.max(
+    0.1,
+    Math.min(
+        8,
+        Number(data.chordSettings?.chordDuration ?? 1.2)
+    )
+);
+
+updateChordPads();
+updateChordFxUI();
 
 // 廃止したrdfを含む古いプロジェクトはDELAY + FILTERへ置換
 if (currentFxType === "rdf") {
@@ -3696,13 +3857,9 @@ async function readProjectFile(file) {
             isUndoSavedForCurrentSession = false;
 
             if (recordedNotes.length === 0) {
-    clearScheduledTimeouts();
-
-    stutterReferenceLoopDuration = 0;
-
-    state = "IDLE";
-    loopDuration = 0;
-
+                clearScheduledTimeouts();
+                state = "IDLE";
+                loopDuration = 0;
                 freeRecStartAudioTime = 0;
                 loopStartTime = 0;
 
@@ -3723,14 +3880,7 @@ async function readProjectFile(file) {
 
             let currentProgressOffset = 0;
             const isPlayingOrDubbing = (state === "PLAYING" || state === "OVERDUB" || state === "WAIT_HEAD");
-            // 最初にSTUTTERを使った時点のループ長を基準として記憶する。
-// ダブルアップ後も、この長さを維持する。
-if (stutterReferenceLoopDuration <= 0) {
-    stutterReferenceLoopDuration = loopDuration;
-}
-
-
-if (isPlayingOrDubbing) {
+            if (isPlayingOrDubbing) {
                 currentProgressOffset = (audioCtx.currentTime - loopStartTime) % loopDuration;
             }
 
@@ -3740,11 +3890,6 @@ if (isPlayingOrDubbing) {
                 return copy;
             });
             recordedNotes = recordedNotes.concat(duplicatedNotes);
-// 初回ダブルアップ前のループ長をSTUTTER基準として保存。
-// 2回、3回ダブルアップしても最初の基準を維持する。
-if (stutterReferenceLoopDuration <= 0) {
-    stutterReferenceLoopDuration = loopDuration;
-}
 
             loopDuration *= 2;
             calculatedBpm = Math.round(60 / (loopDuration / 4));
@@ -3756,25 +3901,79 @@ if (stutterReferenceLoopDuration <= 0) {
                 startLoopPlayback(currentProgressOffset);
             }
         }
+// =====================================================
+// LOOP CHORD BUS CONTROL
+// =====================================================
 
-        function startLoopPlayback(startOffset = 0) {
-            clearScheduledTimeouts();
-            if (recordedNotes.length === 0 || loopDuration <= 0) return;
-
-            state = "PLAYING";
-            updateStatusUI("PLAYING", "led-green");
-            loopStartTime = audioCtx.currentTime - (startOffset % loopDuration);
-
-            scheduleLoopCycle();
-        }
-
-function scheduleLoopCycle() {
-    // STUTTER FX中は専用の短いループを使う
-    if (stutterDivision > 0) {
-        scheduleStutterCycle();
+// ループ再生中のコードを一括停止する。
+// ループ先頭へ戻る瞬間・STOP時・再スタート時に使用する。
+function stopPlaybackChords(fadeTime = 0.035) {
+    if (!audioCtx) {
+        playbackChordBuses = {};
+        playbackChordGroups = {};
         return;
     }
 
+    const now = audioCtx.currentTime;
+
+    Object.values(playbackChordBuses).forEach((bus) => {
+        if (!bus) return;
+
+        try {
+            bus.gain.cancelScheduledValues(now);
+
+            bus.gain.setValueAtTime(
+                Math.max(0.0001, bus.gain.value),
+                now
+            );
+
+            // クリックノイズを抑えつつ短時間で停止
+            bus.gain.exponentialRampToValueAtTime(
+                0.0001,
+                now + fadeTime
+            );
+
+            setTimeout(() => {
+                try {
+                    bus.disconnect();
+                } catch (error) {}
+            }, Math.ceil((fadeTime + 0.08) * 1000));
+
+        } catch (error) {
+            try {
+                bus.disconnect();
+            } catch (disconnectError) {}
+        }
+    });
+
+    playbackChordBuses = {};
+    playbackChordGroups = {};
+}
+
+function startLoopPlayback(startOffset = 0) {
+    initAudioEngine();
+    clearScheduledTimeouts();
+
+    // 録音中に手弾きしていた最後のコードを停止する。
+    // これをしないと、録音終了直後だけライブ音とループ1周目が重なる。
+    stopActiveChord(0.01);
+
+    // 以前のループ再生コードも停止する。
+    stopPlaybackChords(0.02);
+
+    if (recordedNotes.length === 0 || loopDuration <= 0) {
+        return;
+    }
+
+    state = "PLAYING";
+    updateStatusUI("PLAYING", "led-green");
+
+    loopStartTime =
+        audioCtx.currentTime - (startOffset % loopDuration);
+
+    scheduleLoopCycle();
+}
+function scheduleLoopCycle() {
     clearScheduledTimeouts();
 
     if (
@@ -3785,13 +3984,28 @@ function scheduleLoopCycle() {
         return;
     }
 
-            const now = audioCtx.currentTime;
-            const currentOffset = (now - loopStartTime) % loopDuration;
+    const now = audioCtx.currentTime;
+    const currentOffset = (now - loopStartTime) % loopDuration;
+
+    /*
+      ループ先頭へ戻った直後は、前周の最後のコードを止める。
+
+      例:
+      ループ終端近くでCコードを鳴らす
+      ↓
+      次の周回の0秒位置で、前のCコードを停止
+      ↓
+      シーケンス先頭のコードを新しく鳴らす
+    */
+    if (currentOffset < 0.08) {
+        stopPlaybackChords(0.03);
+    }
 
             if (state === "WAIT_HEAD") {
                 state = "OVERDUB";
                 updateStatusUI("OVERDUB", "led-red");
             }
+
 
             recordedNotes.forEach(note => {
                 let delay = note.timeOffset - currentOffset;
@@ -3823,14 +4037,71 @@ if (note.drumType) {
         || ALL_PRESETS[0];
 }
 
+const deck = note.padChannel || "A";
+let outputBus = null;
+
+// chordGroup が存在するノートだけ、コード専用バスに流す。
+// タッチパッド演奏など、過去の録音データとの互換性も維持する。
+if (note.chordGroup) {
+    const previousGroup = playbackChordGroups[deck];
+
+    // 同じコードグループなら、すでに作ったバスを再利用する。
+    if (previousGroup === note.chordGroup) {
+        outputBus = playbackChordBuses[deck];
+    } else {
+        // 次のコードへ切り替わるので、前コードをフェードアウトする。
+        const oldBus = playbackChordBuses[deck];
+
+        if (oldBus) {
+            const fadeNow = audioCtx.currentTime;
+
+            try {
+                oldBus.gain.cancelScheduledValues(fadeNow);
+                oldBus.gain.setValueAtTime(
+                    Math.max(0.0001, oldBus.gain.value),
+                    fadeNow
+                );
+                oldBus.gain.exponentialRampToValueAtTime(
+                    0.0001,
+                    fadeNow + 0.07
+                );
+
+                setTimeout(() => {
+                    try {
+                        oldBus.disconnect();
+                    } catch (error) {}
+                }, 120);
+            } catch (error) {
+                try {
+                    oldBus.disconnect();
+                } catch (disconnectError) {}
+            }
+        }
+
+        // 新しいコードの専用バスを作成
+        outputBus = audioCtx.createGain();
+        outputBus.gain.setValueAtTime(
+            1.0,
+            audioCtx.currentTime
+        );
+
+        outputBus.connect(getGainNodeForDeck(deck));
+
+        playbackChordBuses[deck] = outputBus;
+        playbackChordGroups[deck] = note.chordGroup;
+    }
+}
+
 playChiptuneTone(
     preset,
     note.freq,
     note.filterFreq,
     note.duration,
     note.kitStyle || "retro",
-    note.padChannel || "A"
+    deck,
+    outputBus
 );
+
                         spawnParticle(note.normX, note.normY, note.presetId);
                     }
                 }, delay * 1000);
@@ -3897,8 +4168,9 @@ function updateStatusUI(modeText, ledClass) {
                 modalXyCanvas.height = modalXyPad.clientHeight;
             }
         }
-        window.addEventListener("resize", resizeCanvas);
-        resizeCanvas();
+window.addEventListener("resize", resizeCanvas);
+resizeCanvas();
+applyTouchpadTheme();
 
         function spawnParticle(xNorm, yNorm, presetId) {
             const px = xNorm * lcdCanvas.width;
@@ -4214,13 +4486,10 @@ const releasePadPointer = (e) => {
             initAudioEngine();
             if (state === "IDLE" || state === "PLAYING") {
                 isUndoSavedForCurrentSession = false;
-               if (recordedNotes.length === 0) {
-    // 新規録音なのでSTUTTERの基準長もリセット
-    stutterReferenceLoopDuration = 0;
-
-    state = "STANDBY";
-    updateStatusUI("STANDBY", "led-yellow");
-} else {
+                if (recordedNotes.length === 0) {
+                    state = "STANDBY";
+                    updateStatusUI("STANDBY", "led-yellow");
+                } else {
                     state = "WAIT_HEAD";
                     updateStatusUI("WAIT HEAD", "led-yellow");
                 }
@@ -4248,46 +4517,31 @@ const releasePadPointer = (e) => {
         document.getElementById("btn-select").addEventListener("click", performSequenceDouble);
         document.getElementById("btn-b-clear").addEventListener("click", clearActiveDeckData);
 
-       document.getElementById("btn-start").addEventListener("click", () => {
-    initAudioEngine();
+        document.getElementById("btn-start").addEventListener("click", () => {
+            initAudioEngine();
+            if (state === "REC_FREE") {
+                loopDuration = audioCtx.currentTime - freeRecStartAudioTime;
+                if (loopDuration < 0.5) loopDuration = 0.5;
+                calculatedBpm = Math.round(60 / (loopDuration / 4));
+                loopInfo.innerText = `BPM: ${calculatedBpm} | ${loopDuration.toFixed(1)}s`;
+                startLoopPlayback(0);
+                updateMasterFxParameters();
+                isUndoSavedForCurrentSession = false;
+} else if (state === "PLAYING" || state === "OVERDUB") {
+    clearScheduledTimeouts();
 
-    // フリー録音中なら、ここでループを確定して再生開始
-    if (state === "REC_FREE") {
-        loopDuration = audioCtx.currentTime - freeRecStartAudioTime;
+    // ループ再生中のコードも停止
+    stopPlaybackChords(0.04);
 
-        if (loopDuration < 0.5) {
-            loopDuration = 0.5;
-        }
+    state = "IDLE";
 
-        calculatedBpm = Math.round(60 / (loopDuration / 4));
-
-        loopInfo.innerText =
-            `BPM: ${calculatedBpm} | ${loopDuration.toFixed(1)}s`;
-
-        startLoopPlayback(0);
-        updateMasterFxParameters();
-        isUndoSavedForCurrentSession = false;
-
-    // 再生中なら停止
-    } else if (state === "PLAYING" || state === "OVERDUB") {
-        clearScheduledTimeouts();
-
-        // STUTTERを解除
-        stutterDivision = 0;
-        stutterStartOffset = 0;
-        stutterDuration = 0;
-        updateStutterButtons();
-
-        state = "IDLE";
-        updateStatusUI("IDLE", "led-off");
-        isUndoSavedForCurrentSession = false;
-
-    // 停止中かつ録音データがあれば再生開始
-    } else if (state === "IDLE" && recordedNotes.length > 0) {
-        startLoopPlayback(0);
-        isUndoSavedForCurrentSession = false;
-    }
-});
+                updateStatusUI("IDLE", "led-off");
+                isUndoSavedForCurrentSession = false;
+            } else if (state === "IDLE" && recordedNotes.length > 0) {
+                startLoopPlayback(0);
+                isUndoSavedForCurrentSession = false;
+            }
+        });
 
         // エフェクトトグル & スライダー操作の制御関数
         function setFxToggleState(isOn) {
@@ -4505,14 +4759,10 @@ function getGamepadDirection(gamepad) {
 
 function playGamepadScaleNote(direction) {
     const noteMap = {
-        up: 0,
-        "up-right": 1,
-        right: 2,
-        "down-right": 3,
-        down: 4,
-        "down-left": 5,
-        left: 6,
-        "up-left": 7
+        left: 1,   // 音階1
+        up: 2,     // 音階2
+        right: 3,  // 音階3
+        down: 0    // 音階8 (インデックス7)
     };
 
     const noteIndex = noteMap[direction];
@@ -4524,25 +4774,6 @@ function playGamepadScaleNote(direction) {
     const normY = 0.5;
 
     handleTouchTrigger(normX, normY);
-}
-
-function selectNextGamepadDeck() {
-    const decks = ["A", "B", "C", "D"];
-
-    gamepadDeckIndex = (gamepadDeckIndex + 1) % decks.length;
-
-    switchActiveDeck(decks[gamepadDeckIndex]);
-
-    const deckButtonId = {
-        A: "btn-deck-a",
-        B: "btn-deck-b",
-        C: "btn-deck-c",
-        D: "btn-deck-d"
-    }[decks[gamepadDeckIndex]];
-
-    if (typeof flashKeyboardButton === "function") {
-        flashKeyboardButton(deckButtonId);
-    }
 }
 
 function flashGamepadButton(buttonId) {
@@ -4582,112 +4813,155 @@ function updateGamepadControls() {
         gamepad,
         GAMEPAD_BUTTONS.SELECT
     );
+    const isStartHeld = isGamepadButtonPressed(
+        gamepad,
+        GAMEPAD_BUTTONS.START
+    );
+    const isLHeld = isGamepadButtonPressed(
+        gamepad,
+        GAMEPAD_BUTTONS.L
+    );
 
     // -------------------------------------------------
-    // 通常操作
+    // START + 組み合わせ操作
     // -------------------------------------------------
-    if (!isSelectHeld) {
-        // L: DECK選択
+    if (isStartHeld) {
+        // Start + Select : 再生、停止
         if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.L)) {
-            selectNextGamepadDeck();
-        }
-
-        // R: REC / STOP / OVERDUB
-        if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.R)) {
-            toggleRecState();
-            flashGamepadButton("btn-a-rec");
-        }
-
-        // A: OCTAVE UP
-        if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.A)) {
-            shiftScaleRange(1);
-            flashGamepadButton("btn-scale-up");
-        }
-
-        // B: OCTAVE DOWN
-        if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.B)) {
-            shiftScaleRange(-1);
-            flashGamepadButton("btn-scale-down");
-        }
-
-        // X: CLEAR ACTIVE DECK
-        if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.X)) {
-            clearActiveDeckData();
-            flashGamepadButton("btn-b-clear");
-        }
-
-        // Y: FX ON / OFF
-        if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.Y)) {
-            setFxToggleState(!isMasterFxOn);
-            flashGamepadButton("btn-fx-toggle");
-        }
-
-        // START: PLAY / STOP
-        if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.START)) {
             document.getElementById("btn-start").click();
             flashGamepadButton("btn-start");
         }
-
-        // 十字キー / 左スティック: 音階1〜8
+        
         const direction = getGamepadDirection(gamepad);
-
-        // 同方向の押しっぱなしは連続発音しない。
-        // 方向を変えた瞬間には発音する。
         if (direction && direction !== previousGamepadDirection) {
-            playGamepadScaleNote(direction);
+            if (direction === "left") {
+                selectNextSound(-1);
+                flashGamepadButton("btn-prev-sound");
+            } else if (direction === "right") {
+                selectNextSound(1);
+                flashGamepadButton("btn-next-sound");
+            } else if (direction === "up") {
+                shiftScaleRange(1);
+                flashGamepadButton("btn-scale-up");
+            } else if (direction === "down") {
+                shiftScaleRange(-1);
+                flashGamepadButton("btn-scale-down");
+            }
         }
-
         previousGamepadDirection = direction;
     }
-
     // -------------------------------------------------
-    // SELECTを押しながらのコンボ操作
+    // SELECT + 組み合わせ操作
     // -------------------------------------------------
-    else {
-        // SELECT + L: NEXT SOUND
+    else if (isSelectHeld) {
+        // SELECT + L: deckの選択（prev）
         if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.L)) {
-            selectNextSound(1);
-            flashGamepadButton("btn-next-sound");
+            const decks = ["A", "B", "C", "D"];
+            gamepadDeckIndex = (gamepadDeckIndex - 1 + decks.length) % decks.length;
+            switchActiveDeck(decks[gamepadDeckIndex]);
+            const btnId = { A: "btn-deck-a", B: "btn-deck-b", C: "btn-deck-c", D: "btn-deck-d" }[decks[gamepadDeckIndex]];
+            flashGamepadButton(btnId);
         }
-
-        // SELECT + R: PREVIOUS SOUND
+        // SELECT + R: deckの選択（next）
+        else if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.R)) {
+            const decks = ["A", "B", "C", "D"];
+            gamepadDeckIndex = (gamepadDeckIndex + 1) % decks.length;
+            switchActiveDeck(decks[gamepadDeckIndex]);
+            const btnId = { A: "btn-deck-a", B: "btn-deck-b", C: "btn-deck-c", D: "btn-deck-d" }[decks[gamepadDeckIndex]];
+            flashGamepadButton(btnId);
+        }
+        // SELECT + Y: FX ON/off
+        else if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.Y)) {
+            setFxToggleState(!isMasterFxOn);
+            flashGamepadButton("btn-fx-toggle");
+        }
+        // SELECT + X: ダブルアップ
+        else if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.X)) {
+            performSequenceDouble();
+            flashGamepadButton("btn-select");
+        }
+        // SELECT + A: UNDO
+        else if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.A)) {
+            performUndo();
+            flashGamepadButton("btn-undo");
+        }
+        // SELECT + B: 選択中のdeckをクリア
+        else if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.B)) {
+            clearActiveDeckData();
+            flashGamepadButton("btn-b-clear");
+        }
+        previousGamepadDirection = "";
+    }
+    // -------------------------------------------------
+    // L + 組み合わせ操作
+    // -------------------------------------------------
+    else if (isLHeld) {
+        // L + R: コード5
         if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.R)) {
-            selectNextSound(-1);
-            flashGamepadButton("btn-prev-sound");
+            playChordPad(4);
         }
-
-        // SELECT + A: DECK A MUTE
-        if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.A)) {
-            toggleDeckMute("A");
-            flashGamepadButton("btn-mute-a");
-        }
-
-        // SELECT + B: DECK B MUTE
-        if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.B)) {
+        // L + Y: deckA mute
+        else if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.Y)) {
             toggleDeckMute("B");
             flashGamepadButton("btn-mute-b");
         }
-
-        // SELECT + X: DECK C MUTE
-        if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.X)) {
+        // L + X: deckB mute
+        else if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.X)) {
+            toggleDeckMute("A");
+            flashGamepadButton("btn-mute-a");
+        }
+        // L + A: deckC mute
+        else if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.A)) {
+            toggleDeckMute("D");
+            flashGamepadButton("btn-mute-d");
+        }
+        // L + B: deckD mute
+        else if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.B)) {
             toggleDeckMute("C");
             flashGamepadButton("btn-mute-c");
         }
 
-        // SELECT + Y: DECK D MUTE
-        if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.Y)) {
-            toggleDeckMute("D");
-            flashGamepadButton("btn-mute-d");
+        const direction = getGamepadDirection(gamepad);
+        if (direction && direction !== previousGamepadDirection) {
+            if (direction === "left") playChordPad(0);      // L + 左: コード1
+            else if (direction === "up") playChordPad(1);     // L + 上: コード2
+            else if (direction === "right") playChordPad(2);  // L + 右: コード3
+            else if (direction === "down") playChordPad(3);   // L + 下: コード4
+        }
+        previousGamepadDirection = direction;
+    }
+    // -------------------------------------------------
+    // 単体ボタン・通常操作
+    // -------------------------------------------------
+    else {
+        // R: 録音、停止
+        if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.R)) {
+            toggleRecState();
+            flashGamepadButton("btn-a-rec");
+        }
+        // Y: 音階4
+        else if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.Y)) {
+            handleTouchTrigger((5 + 0.5) / 8, 0.5);
+        }
+        // X: 音階5
+        else if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.X)) {
+            handleTouchTrigger((4 + 0.5) / 8, 0.5);
+        }
+        // A: 音階6
+        else if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.A)) {
+            handleTouchTrigger((7 + 0.5) / 8, 0.5);
+        }
+        // B: 音階7
+        else if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.B)) {
+            handleTouchTrigger((6 + 0.5) / 8, 0.5);
         }
 
-        // SELECT + START: UNDO
-        if (isGamepadButtonJustPressed(gamepad, GAMEPAD_BUTTONS.START)) {
-            performUndo();
-            flashGamepadButton("btn-undo");
+        // 十字キー / 左スティック: 音階1, 2, 3, 8
+        const direction = getGamepadDirection(gamepad);
+        if (direction && direction !== previousGamepadDirection) {
+            playGamepadScaleNote(direction);
         }
-
-        // SELECT中は音階演奏を無効
-        previousGamepadDirection = "";
+        previousGamepadDirection = direction;
     }
 
     // 次フレームのため、ボタン状態を保存
@@ -4695,6 +4969,8 @@ function updateGamepadControls() {
 
     requestAnimationFrame(updateGamepadControls);
 }
+
+
 
 // 接続イベントはiPhone Safariでは発火しない場合もあるが、PCでは有効
 window.addEventListener("gamepadconnected", (event) => {
@@ -4738,7 +5014,6 @@ function flashKeyboardButton(buttonId) {
 }
 
 document.addEventListener("keydown", (e) => {
-    // SELECTやINPUTを操作中は、通常のキーボード操作を優先する
     const tagName = document.activeElement?.tagName;
 
     if (
@@ -4749,134 +5024,136 @@ document.addEventListener("keydown", (e) => {
         return;
     }
 
-    // ---------------------------------------------
-    // Shift + 1 / 2 / 3: LOOP STUTTER FX
-    // ---------------------------------------------
-    if (e.shiftKey && e.code === "Digit1") {
-        e.preventDefault();
-        if (e.repeat) return;
-
-        setStutterLoop(4);
-        return;
-    }
-
-    if (e.shiftKey && e.code === "Digit2") {
-        e.preventDefault();
-        if (e.repeat) return;
-
-        setStutterLoop(8);
-        return;
-    }
-
-    if (e.shiftKey && e.code === "Digit3") {
-        e.preventDefault();
-        if (e.repeat) return;
-
-        setStutterLoop(16);
-        return;
-    }
-
-    // ここは1回だけ
-    const key = e.key.toLowerCase();
+    // 便利関数
+    const isDigit = (n) => e.code === `Digit${n}` || e.code === `Numpad${n}`;
 
     // -------------------------------------------------
-    // 1 ～ 4: DECK選択
+    // Shift + 1 ～ 4: DECK A ～ D MUTE
     // -------------------------------------------------
-    if (key === "1") {
+    if (e.shiftKey && isDigit(1)) {
         e.preventDefault();
-        switchActiveDeck("A");
-        flashKeyboardButton("btn-deck-a");
-        return;
-    }
-
-    if (key === "2") {
-        e.preventDefault();
-        switchActiveDeck("B");
-        flashKeyboardButton("btn-deck-b");
-        return;
-    }
-
-    if (key === "3") {
-        e.preventDefault();
-        switchActiveDeck("C");
-        flashKeyboardButton("btn-deck-c");
-        return;
-    }
-
-    if (key === "4") {
-        e.preventDefault();
-        switchActiveDeck("D");
-        flashKeyboardButton("btn-deck-d");
-        return;
-    }    // -------------------------------------------------
-    // 5 ～ 8: DECK A ～ D MUTE
-    // -------------------------------------------------
-    if (key === "5") {
-        e.preventDefault();
-
         if (e.repeat) return;
-
         toggleDeckMute("A");
         flashKeyboardButton("btn-mute-a");
         return;
     }
 
-    if (key === "6") {
+    if (e.shiftKey && isDigit(2)) {
         e.preventDefault();
-
         if (e.repeat) return;
-
         toggleDeckMute("B");
         flashKeyboardButton("btn-mute-b");
         return;
     }
 
-    if (key === "7") {
+    if (e.shiftKey && isDigit(3)) {
         e.preventDefault();
-
         if (e.repeat) return;
-
         toggleDeckMute("C");
         flashKeyboardButton("btn-mute-c");
         return;
     }
 
-    if (key === "8") {
+    if (e.shiftKey && isDigit(4)) {
         e.preventDefault();
-
         if (e.repeat) return;
-
         toggleDeckMute("D");
         flashKeyboardButton("btn-mute-d");
         return;
     }
 
     // -------------------------------------------------
-    // A S D F G H J K: タッチパッド横8マスを演奏
-    // Y座標は中央 (0.5) 固定
+    // 1 ～ 4: DECK選択
     // -------------------------------------------------
+    if (!e.shiftKey && isDigit(1)) {
+        e.preventDefault();
+        switchActiveDeck("A");
+        flashKeyboardButton("btn-deck-a");
+        return;
+    }
+
+    if (!e.shiftKey && isDigit(2)) {
+        e.preventDefault();
+        switchActiveDeck("B");
+        flashKeyboardButton("btn-deck-b");
+        return;
+    }
+
+    if (!e.shiftKey && isDigit(3)) {
+        e.preventDefault();
+        switchActiveDeck("C");
+        flashKeyboardButton("btn-deck-c");
+        return;
+    }
+
+    if (!e.shiftKey && isDigit(4)) {
+        e.preventDefault();
+        switchActiveDeck("D");
+        flashKeyboardButton("btn-deck-d");
+        return;
+    }
+
+    // -------------------------------------------------
+    // 5 ～ 9: コードパッド
+    // 5=CHORD1, 6=CHORD2, 7=CHORD3, 8=CHORD4, 9=CHORD5
+    // -------------------------------------------------
+    if (isDigit(5)) {
+        e.preventDefault();
+        if (e.repeat) return;
+        playChordPad(0);
+        return;
+    }
+
+    if (isDigit(6)) {
+        e.preventDefault();
+        if (e.repeat) return;
+        playChordPad(1);
+        return;
+    }
+
+    if (isDigit(7)) {
+        e.preventDefault();
+        if (e.repeat) return;
+        playChordPad(2);
+        return;
+    }
+
+    if (isDigit(8)) {
+        e.preventDefault();
+        if (e.repeat) return;
+        playChordPad(3);
+        return;
+    }
+
+    if (isDigit(9)) {
+        e.preventDefault();
+        if (e.repeat) return;
+        playChordPad(4);
+        return;
+    }
+
+    // -------------------------------------------------
+    // A S D F G H J K: タッチパッド横8マスを演奏
+    // -------------------------------------------------
+    const key = e.key.toLowerCase();
+
     if (Object.prototype.hasOwnProperty.call(keyboardPadMap, key)) {
         e.preventDefault();
-
-        // キーを押し続けた際の過剰発音を防ぐ。
-        // リピート演奏したい場合は、このif文を削除してよい。
         if (e.repeat) return;
 
         const noteIndex = keyboardPadMap[key];
-
-        // 各グリッド区画の中央を押したことにする
         const normX = (noteIndex + 0.5) / 8;
         const normY = 0.5;
 
         handleTouchTrigger(normX, normY);
         return;
     }
+
     // -------------------------------------------------
     // E: FX ON / OFF
     // -------------------------------------------------
     if (key === "e") {
         e.preventDefault();
-
         if (e.repeat) return;
 
         setFxToggleState(!isMasterFxOn);
@@ -4889,7 +5166,6 @@ document.addEventListener("keydown", (e) => {
     // -------------------------------------------------
     if (key === "r") {
         e.preventDefault();
-
         if (e.repeat) return;
 
         toggleRecState();
@@ -4902,7 +5178,6 @@ document.addEventListener("keydown", (e) => {
     // -------------------------------------------------
     if (key === "u") {
         e.preventDefault();
-
         if (e.repeat) return;
 
         performUndo();
@@ -4915,7 +5190,6 @@ document.addEventListener("keydown", (e) => {
     // -------------------------------------------------
     if (key === "c") {
         e.preventDefault();
-
         if (e.repeat) return;
 
         clearActiveDeckData();
@@ -4925,24 +5199,21 @@ document.addEventListener("keydown", (e) => {
 
     // -------------------------------------------------
     // SPACE: PLAY / STOP
-    // 既存のSTARTボタン処理をそのまま実行する
     // -------------------------------------------------
     if (e.code === "Space") {
         e.preventDefault();
-
         if (e.repeat) return;
 
         document.getElementById("btn-start").click();
         flashKeyboardButton("btn-start");
         return;
     }
+
     // -------------------------------------------------
-    // Z: PREV SOUND
-    // X: NEXT SOUND
+    // Z: PREV SOUND / X: NEXT SOUND
     // -------------------------------------------------
     if (key === "z") {
         e.preventDefault();
-
         if (e.repeat) return;
 
         selectNextSound(-1);
@@ -4952,7 +5223,6 @@ document.addEventListener("keydown", (e) => {
 
     if (key === "x") {
         e.preventDefault();
-
         if (e.repeat) return;
 
         selectNextSound(1);
@@ -4961,12 +5231,10 @@ document.addEventListener("keydown", (e) => {
     }
 
     // -------------------------------------------------
-    // Q: OCTAVE DOWN
-    // W: OCTAVE UP
+    // Q: OCTAVE DOWN / W: OCTAVE UP
     // -------------------------------------------------
     if (key === "q") {
         e.preventDefault();
-
         if (e.repeat) return;
 
         shiftScaleRange(-1);
@@ -4976,24 +5244,178 @@ document.addEventListener("keydown", (e) => {
 
     if (key === "w") {
         e.preventDefault();
-
         if (e.repeat) return;
 
         shiftScaleRange(1);
         flashKeyboardButton("btn-scale-up");
+        return;
     }
 });
-// Shift + 1 / 2 / 3 を離したらSTUTTERを解除
-document.addEventListener("keyup", (e) => {
-    if (
-        e.code === "Digit1" ||
-        e.code === "Digit2" ||
-        e.code === "Digit3" ||
-        e.key === "Shift"
-    ) {
-        stopStutterLoop();
+// =====================================================
+// CHORD PAD EVENT BINDING
+// =====================================================
+
+// data-pad-idx を持つ5個のコードボタンだけを演奏対象にする。
+// 左側の CHORD 設定ボタンは data-pad-idx を持たないため除外される。
+document.querySelectorAll(".chord-pad[data-pad-idx]").forEach((button) => {
+    button.addEventListener("pointerdown", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const padIndex = Number(button.dataset.padIdx);
+
+        if (!Number.isNaN(padIndex)) {
+            playChordPad(padIndex);
+        }
+    });
+});
+
+
+// =====================================================
+// CHORD EXTENSION / STRUM CONTROLS
+// =====================================================
+
+const btnOpenChordFx = document.getElementById("btn-open-chord-fx");
+const btnCloseChordFx = document.getElementById("btn-close-chord-fx");
+const chordFxModal = document.getElementById("chord-fx-modal");
+
+const btnChordTriad = document.getElementById("btn-chord-triad");
+const btnChord7th = document.getElementById("btn-chord-7th");
+const btnChord9th = document.getElementById("btn-chord-9th");
+
+const btnStrumToggle = document.getElementById("btn-strum-toggle");
+const strumIntervalSlider = document.getElementById("strum-interval-slider");
+const strumIntervalDisplay = document.getElementById("strum-interval-display");
+const chordFxButtonStatus = document.getElementById("chord-fx-button-status");
+const chordDurationSlider = document.getElementById(
+    "chord-duration-slider"
+);
+
+const chordDurationDisplay = document.getElementById(
+    "chord-duration-display"
+);
+
+
+function updateChordFxUI() {
+    const modeButtons = {
+        triad: btnChordTriad,
+        seventh: btnChord7th,
+        ninth: btnChord9th
+    };
+
+    Object.entries(modeButtons).forEach(([mode, button]) => {
+        if (!button) return;
+
+        button.classList.toggle(
+            "chord-option-active",
+            chordExtensionMode === mode
+        );
+    });
+
+    const chordText = {
+        triad: "TRIAD",
+        seventh: "7th",
+        ninth: "9th"
+    }[chordExtensionMode] || "TRIAD";
+
+    if (chordFxButtonStatus) {
+        chordFxButtonStatus.textContent = isStrumMode
+            ? `${chordText} / STR`
+            : chordText;
+    }
+
+    if (btnStrumToggle) {
+        btnStrumToggle.textContent = isStrumMode
+            ? "STRUM: ON"
+            : "STRUM: OFF";
+
+        btnStrumToggle.classList.toggle(
+            "chord-option-active",
+            isStrumMode
+        );
+    }
+
+    if (strumIntervalSlider) {
+        strumIntervalSlider.value = String(strumIntervalMs);
+    }
+
+    if (strumIntervalDisplay) {
+        strumIntervalDisplay.textContent = `${strumIntervalMs} ms`;
+    }
+if (chordDurationSlider) {
+    chordDurationSlider.value = String(chordDuration);
+}
+
+if (chordDurationDisplay) {
+    chordDurationDisplay.textContent =
+        `${Number(chordDuration).toFixed(1)} s`;
+}
+
+
+}
+
+function setChordExtensionMode(mode) {
+    chordExtensionMode = mode;
+
+    // 7th / 9th の構成音とボタン表示を再計算
+    updateChordPads();
+    updateChordFxUI();
+}
+
+
+// 左の CHORD ボタン：設定モーダルを開く
+btnOpenChordFx?.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    chordFxModal.classList.remove("hidden");
+    updateChordFxUI();
+});
+
+// CLOSEボタン
+btnCloseChordFx?.addEventListener("click", (e) => {
+    e.preventDefault();
+    chordFxModal.classList.add("hidden");
+});
+
+// モーダル背景を押したら閉じる
+chordFxModal?.addEventListener("pointerdown", (e) => {
+    if (e.target === chordFxModal) {
+        chordFxModal.classList.add("hidden");
     }
 });
+
+// TRIAD / 7th / 9th
+btnChordTriad?.addEventListener("click", () => {
+    setChordExtensionMode("triad");
+});
+
+btnChord7th?.addEventListener("click", () => {
+    setChordExtensionMode("seventh");
+});
+
+btnChord9th?.addEventListener("click", () => {
+    setChordExtensionMode("ninth");
+});
+
+// STRUM ON / OFF
+btnStrumToggle?.addEventListener("click", () => {
+    isStrumMode = !isStrumMode;
+    updateChordFxUI();
+});
+
+// ストラム間隔
+strumIntervalSlider?.addEventListener("input", (e) => {
+    strumIntervalMs = Number(e.target.value);
+    updateChordFxUI();
+});
+chordDurationSlider?.addEventListener("input", (e) => {
+    chordDuration = Number(e.target.value);
+    updateChordFxUI();
+});
+
+// 初期表示を同期
+updateChordFxUI();
 
     </script>
 </body>
