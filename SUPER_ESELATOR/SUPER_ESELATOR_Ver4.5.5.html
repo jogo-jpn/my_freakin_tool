@@ -2395,12 +2395,37 @@ gainNodeD.connect(voiceMixerBus);
             const decodedBuffer = await tempAudioCtx.decodeAudioData(arrayBuffer);
             return convertAudioBufferToWavBlob(decodedBuffer);
         }
+function showSafariGuide(actionLabel) {
+    const url = location.href;
+
+    // できればURLをコピー
+    if (navigator.clipboard?.writeText) {
+        navigator.clipboard.writeText(url).catch(() => {});
+    }
+
+    // URLを入力欄つきで表示
+    window.prompt(
+        `${actionLabel}はInstagram内ブラウザでは正しく動作しません。\nSafariで開いてください。\n\n下のURLをコピーしてSafariに貼り付けてください。`,
+        url
+    );
+}
+
+function requireSafariFor(actionLabel) {
+    if (!isInAppBrowser()) return false;
+    showSafariGuide(actionLabel);
+    return true;
+}
+
+
 function isInAppBrowser() {
     const ua = navigator.userAgent || "";
     return /Instagram|FBAN|FBAV|FB_IAB|Line|WebView/i.test(ua);
 }
 
 async function saveWavBlob(wavBlob, fileName) {
+ if (requireSafariFor("録音ファイルの保存")) {
+        return;
+    }
     const file = new File([wavBlob], fileName, { type: "audio/wav" });
 
     // 1) iPhoneで共有シートが使えるなら最優先
@@ -2430,66 +2455,72 @@ async function saveWavBlob(wavBlob, fileName) {
 }
 
         function toggleWavRecording() {
-            initAudioEngine();
-
-            if (!isWavRecording) {
-                recordedAudioChunks = [];
-                let mimeType = '';
-                if (MediaRecorder.isTypeSupported('audio/webm')) {
-                    mimeType = 'audio/webm';
-                } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
-                    mimeType = 'audio/mp4';
-                }
-
-                mediaRecorder = new MediaRecorder(streamDestNode.stream, mimeType ? { mimeType } : {});
-
-                mediaRecorder.ondataavailable = (e) => {
-                    if (e.data && e.data.size > 0) {
-                        recordedAudioChunks.push(e.data);
-                    }
-                };
-
-             mediaRecorder.onstop = async () => {
-    if (recordedAudioChunks.length === 0) return;
-
-    try {
-        const wavBlob = await exportRawChunksToWavBlob(recordedAudioChunks);
-        const timestamp = new Date().toISOString().replace(/[-:T.]/g, '').slice(0, 14);
-        const fileName = `SUPER_ESELATOR_${timestamp}.wav`;
-
-        if (isInAppBrowser()) {
-            alert("Instagramアプリ内ブラウザではWAVの直接保存が制限されることがあります。共有シートが出たら「ファイルに保存」を選んでください。出ない場合はSafariで開いてください。");
-        }
-
-        await saveWavBlob(wavBlob, fileName);
-    } catch (err) {
-        console.error('Failed to export WAV file:', err);
-        alert("WAVの保存に失敗しました。Safariで開いて再度お試しください。");
+    // Instagram / Facebook / LINE などのアプリ内ブラウザでは開始させない
+    if (!isWavRecording && requireSafariFor("録音")) {
+        return;
     }
-};
 
+    initAudioEngine();
 
-                mediaRecorder.start(100);
-                isWavRecording = true;
-
-                btnWavRec.classList.replace('bg-red-800', 'bg-red-600');
-                btnWavRec.classList.replace('hover:bg-red-700', 'hover:bg-red-500');
-                recWavLed.classList.add('led-blinking');
-                recWavText.innerText = 'STOP';
-            } else {
-                if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-                    mediaRecorder.stop();
-                }
-                isWavRecording = false;
-
-                btnWavRec.classList.replace('bg-red-600', 'bg-red-800');
-                btnWavRec.classList.replace('hover:bg-red-500', 'hover:bg-red-700');
-                recWavLed.classList.remove('led-blinking');
-                recWavText.innerText = 'REC';
-            }
+    if (!isWavRecording) {
+        recordedAudioChunks = [];
+        let mimeType = '';
+        if (MediaRecorder.isTypeSupported('audio/webm')) {
+            mimeType = 'audio/webm';
+        } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+            mimeType = 'audio/mp4';
         }
 
-        btnWavRec.addEventListener('click', toggleWavRecording);
+        mediaRecorder = new MediaRecorder(
+            streamDestNode.stream,
+            mimeType ? { mimeType } : {}
+        );
+
+        mediaRecorder.ondataavailable = (e) => {
+            if (e.data && e.data.size > 0) {
+                recordedAudioChunks.push(e.data);
+            }
+        };
+
+        mediaRecorder.onstop = async () => {
+            if (recordedAudioChunks.length === 0) return;
+
+            // ここでも念のためSafari案内
+            if (requireSafariFor("録音ファイルの保存")) {
+                return;
+            }
+
+            try {
+                const wavBlob = await exportRawChunksToWavBlob(recordedAudioChunks);
+                const timestamp = new Date().toISOString().replace(/[-:T.]/g, '').slice(0, 14);
+                const fileName = `SUPER_ESELATOR_${timestamp}.wav`;
+
+                await saveWavBlob(wavBlob, fileName);
+            } catch (err) {
+                console.error('Failed to export WAV file:', err);
+                alert("WAVの保存に失敗しました。Safariで開いて再度お試しください。");
+            }
+        };
+
+        mediaRecorder.start(100);
+        isWavRecording = true;
+
+        btnWavRec.classList.replace('bg-red-800', 'bg-red-600');
+        btnWavRec.classList.replace('hover:bg-red-700', 'hover:bg-red-500');
+        recWavLed.classList.add('led-blinking');
+        recWavText.innerText = 'STOP';
+    } else {
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+            mediaRecorder.stop();
+        }
+        isWavRecording = false;
+
+        btnWavRec.classList.replace('bg-red-600', 'bg-red-800');
+        btnWavRec.classList.replace('hover:bg-red-500', 'hover:bg-red-700');
+        recWavLed.classList.remove('led-blinking');
+        recWavText.innerText = 'REC';
+    }
+}
 
 function getGainNodeForDeck(deck) {
     return {
@@ -4547,6 +4578,10 @@ chordSettings: {
 }
 
 function downloadProjectFile() {
+    if (requireSafariFor("保存")) {
+        return;
+    }
+
     const projectData = getProjectData();
     const json = JSON.stringify(projectData, null, 2);
 
@@ -4566,7 +4601,6 @@ function downloadProjectFile() {
 
     URL.revokeObjectURL(url);
 }
-
 function loadProjectData(data) {
     if (!data || !data.deckPresets || !data.loop) {
         throw new Error("有効なSUPER ESELATORプロジェクトではありません。");
@@ -5208,17 +5242,7 @@ function spawnParticle(xNorm, yNorm, presetId, intensity = 1) {
 
     const add = (obj) => renderParticles.push(obj);
 
-    // タッチした点のドットは残す
-    add({
-        kind: "touchDot",
-        x: px,
-        y: py,
-        r: 4.5 * scale,
-        color: baseColor,
-        life: 0.9,
-        decay: 0.05
-    });
-
+ 
     // 小さめの輪っかも残す
     add({
         kind: "touchRing",
@@ -5509,6 +5533,33 @@ for (let i = 0; i < visibleNotes; i++) {
 
     ctx.restore();
 }
+
+function drawRetroDotBall(targetCtx, x, y, color, radius = 3, pixelSize = 2) {
+    const r = Math.max(1, Math.round(radius));
+    const p = Math.max(1, Math.round(pixelSize));
+
+    targetCtx.save();
+    targetCtx.globalCompositeOperation = "source-over";
+    targetCtx.imageSmoothingEnabled = false;
+    targetCtx.fillStyle = color;
+
+    for (let dy = -r; dy <= r; dy++) {
+        for (let dx = -r; dx <= r; dx++) {
+            if (dx * dx + dy * dy <= r * r) {
+                targetCtx.fillRect(
+                    Math.round(x + dx * p),
+                    Math.round(y + dy * p),
+                    p,
+                    p
+                );
+            }
+        }
+    }
+
+    targetCtx.restore();
+}
+
+
 function updateLoopTimeBar() {
     if (
         !loopTimebarContainer ||
@@ -5579,23 +5630,18 @@ function drawLCDVisuals() {
 
         ctx.globalAlpha = alpha;
 
-      if (p.kind === "touchDot") {
-    const r = Math.max(4, Math.round(p.r || 5));
-    ctx.beginPath();
-    ctx.arc(gx, gy, r, 0, Math.PI * 2);
-    ctx.fillStyle = p.color;
-    ctx.fill();
+if (p.kind === "touchDot") {
+    drawRetroDotBall(
+        ctx,
+        gx,
+        gy,
+        p.color,
+        Math.max(2, Math.round(p.r || 3)),
+        2
+    );
 }
- else if (p.kind === "touchRing") {
-            const r = Math.max(2, Math.round(p.r || 2));
-            p.r = r + (p.dr || 1.2);
 
-            ctx.beginPath();
-            ctx.arc(gx, gy, r, 0, Math.PI * 2);
-            ctx.strokeStyle = p.color;
-            ctx.lineWidth = 2;
-            ctx.stroke();
-        } else if (p.kind === "circleRipple") {
+  else if (p.kind === "circleRipple") {
             const r = Math.max(3, Math.round(p.r || 2));
             p.r = r + (p.dr || 1.5);
 
@@ -5754,17 +5800,16 @@ function drawLCDVisuals() {
             modalCtx.moveTo(0, cy); modalCtx.lineTo(w, cy);
             modalCtx.stroke();
             modalCtx.setLineDash([]);
-// ポインター本体（直径 約3mm）
-const dotDiameterPx = 3 * 96 / 25.4;
-const r = dotDiameterPx / 2;
+// ポインター本体（レトロなドット丸）
+drawRetroDotBall(
+    modalCtx,
+    cx,
+    cy,
+    isMasterFxOn ? "#a855f7" : "#64748b",
+    3,
+    2
+);
 
-modalCtx.beginPath();
-modalCtx.arc(cx, cy, r, 0, Math.PI * 2);
-modalCtx.fillStyle = isMasterFxOn ? "#a855f7" : "#64748b";
-modalCtx.fill();
-modalCtx.strokeStyle = "#ffffff";
-modalCtx.lineWidth = 2;
-modalCtx.stroke();
 
 
         }
