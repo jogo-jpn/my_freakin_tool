@@ -1,4 +1,6 @@
 # SUPER ESELATOR Ver. 4.5.5
+<img width="481" height="590" alt="image" src="https://github.com/user-attachments/assets/0ef4977b-aec5-4dd0-8ff7-708d6a73af8a" />
+
 <img width="354" height="554" alt="image" src="https://github.com/user-attachments/assets/688e55d8-714f-4a02-a2c5-914cc6465bb9" />
 
 ## Update Details / 更新内容
