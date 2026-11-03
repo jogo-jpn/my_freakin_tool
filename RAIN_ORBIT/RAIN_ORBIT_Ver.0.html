@@ -1,64 +1,70 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Line Bounce Music Maker</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>RAIN ORBIT</title>
   <style>
     :root {
-      --bg-color: #0f111a;
-      --panel-bg: rgba(22, 26, 40, 0.85);
-      --panel-border: rgba(255, 255, 255, 0.12);
-      --accent-color: #00e5ff;
-      --accent-hover: #00b3cc;
-      --rec-color: #ff3366;
-      --text-main: #f0f4f8;
-      --text-sub: #8a99ad;
+      --bg-0: #070b12;
+      --bg-1: #0b1120;
+      --panel: rgba(10, 14, 22, 0.72);
+      --panel-strong: rgba(12, 17, 27, 0.88);
+      --border: rgba(255, 255, 255, 0.08);
+      --border-strong: rgba(255, 255, 255, 0.16);
+      --text: #eaf1f8;
+      --sub: #91a3b7;
+      --accent: #8be9ff;
+      --accent-2: #a78bfa;
+      --danger: #ff5d7a;
+      --shadow: 0 12px 34px rgba(0, 0, 0, 0.35);
     }
 
     * {
       box-sizing: border-box;
-      user-select: none;
-      -webkit-user-select: none;
       margin: 0;
       padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
     }
 
-    body, html {
+    html, body {
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background-color: var(--bg-color);
+      background:
+        radial-gradient(circle at 20% 10%, rgba(139, 233, 255, 0.10), transparent 24%),
+        radial-gradient(circle at 80% 20%, rgba(167, 139, 250, 0.08), transparent 26%),
+        linear-gradient(180deg, var(--bg-1), var(--bg-0));
+      color: var(--text);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      color: var(--text-main);
+      touch-action: none;
     }
 
     #canvas-container {
       position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
+      inset: 0;
       z-index: 1;
       cursor: crosshair;
+      touch-action: none;
     }
 
     canvas {
       display: block;
       width: 100%;
       height: 100%;
+      touch-action: none;
     }
 
-    /* UI Header Panel */
     .ui-panel {
       position: absolute;
-      top: 16px;
-      left: 16px;
-      right: 16px;
+      top: 14px;
+      left: 14px;
+      right: 14px;
       z-index: 10;
       display: flex;
       flex-wrap: wrap;
-      gap: 12px;
+      gap: 10px;
       align-items: center;
       justify-content: space-between;
       pointer-events: none;
@@ -68,155 +74,180 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      background: var(--panel-bg);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid var(--panel-border);
-      padding: 8px 14px;
-      border-radius: 12px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-radius: 14px;
+      padding: 10px 12px;
       pointer-events: auto;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+      box-shadow: var(--shadow);
     }
 
     .ui-title {
-      font-size: 14px;
-      font-weight: 700;
-      letter-spacing: 0.5px;
-      color: var(--accent-color);
       display: flex;
-      align-items: center;
-      gap: 6px;
+      flex-direction: column;
+      gap: 2px;
+      line-height: 1.1;
     }
 
-    .ui-title sub {
-      font-size: 9px;
-      color: var(--text-sub);
-      font-weight: 400;
+    .ui-title strong {
+      font-size: 14px;
+      letter-spacing: 0.18em;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .ui-title span {
+      font-size: 10px;
+      color: var(--sub);
+      letter-spacing: 0.08em;
     }
 
     label {
-      font-size: 12px;
-      color: var(--text-sub);
-      font-weight: 500;
+      font-size: 11px;
+      color: var(--sub);
+      white-space: nowrap;
     }
 
     select, button {
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      color: var(--text-main);
-      padding: 6px 12px;
-      border-radius: 8px;
+      appearance: none;
+      -webkit-appearance: none;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 7px 11px;
       font-size: 13px;
+      line-height: 1;
       outline: none;
-      transition: all 0.2s ease;
+      transition: 0.18s ease;
       cursor: pointer;
+      font: inherit;
     }
 
     select:hover, button:hover {
-      background: rgba(255, 255, 255, 0.15);
-      border-color: rgba(255, 255, 255, 0.3);
+      border-color: var(--border-strong);
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    select:focus, button:focus {
+      border-color: rgba(139, 233, 255, 0.5);
+      box-shadow: 0 0 0 3px rgba(139, 233, 255, 0.10);
     }
 
     button.btn-rec {
       position: relative;
-      padding-left: 28px;
-      font-weight: 600;
+      padding-left: 30px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
     }
 
     button.btn-rec::before {
-      content: '';
+      content: "";
       position: absolute;
-      left: 10px;
+      left: 11px;
       top: 50%;
-      transform: translateY(-50%);
-      width: 10px;
-      height: 10px;
+      width: 9px;
+      height: 9px;
       border-radius: 50%;
-      background-color: var(--rec-color);
-      transition: all 0.2s;
+      transform: translateY(-50%);
+      background: var(--danger);
+      box-shadow: 0 0 10px rgba(255, 93, 122, 0.55);
     }
 
     button.btn-rec.recording {
-      background: rgba(255, 51, 102, 0.2);
-      border-color: var(--rec-color);
-      color: #ff6688;
-    }
-
-    button.btn-rec.recording::before {
-      animation: pulse 1s infinite;
-    }
-
-    @keyframes pulse {
-      0% { transform: translateY(-50%) scale(0.9); opacity: 1; }
-      50% { transform: translateY(-50%) scale(1.3); opacity: 0.4; }
-      100% { transform: translateY(-50%) scale(0.9); opacity: 1; }
+      border-color: rgba(255, 93, 122, 0.55);
+      background: rgba(255, 93, 122, 0.12);
+      color: #ff8ea1;
     }
 
     .rec-time-display {
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--rec-color);
       min-width: 48px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #ff8ea1;
       display: none;
+      font-variant-numeric: tabular-nums;
     }
 
-    /* Controls Panel Drawer */
     .settings-drawer {
       position: absolute;
-      bottom: 16px;
-      right: 16px;
+      right: 14px;
+      bottom: 14px;
       z-index: 10;
-      background: var(--panel-bg);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid var(--panel-border);
-      padding: 12px 16px;
-      border-radius: 12px;
+      min-width: 280px;
       display: flex;
       flex-direction: column;
       gap: 10px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-      min-width: 250px;
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: var(--panel-strong);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
     }
 
     .slider-row {
       display: flex;
       align-items: center;
-      justify-content: space-between;
       gap: 10px;
     }
 
     .slider-row label {
-      font-size: 11px;
-      min-width: 80px;
+      min-width: 86px;
     }
 
-    .slider-row input[type=range] {
+    .slider-row input[type="range"] {
       flex: 1;
-      accent-color: var(--accent-color);
+      accent-color: var(--accent);
     }
 
     .slider-value {
-      font-size: 11px;
-      color: var(--text-main);
-      min-width: 38px;
+      min-width: 46px;
       text-align: right;
+      font-size: 11px;
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
     }
 
     .instructions {
       position: absolute;
-      bottom: 20px;
-      left: 20px;
+      left: 16px;
+      bottom: 16px;
       z-index: 5;
-      pointer-events: none;
-      color: rgba(255, 255, 255, 0.4);
+      color: rgba(234, 241, 248, 0.42);
       font-size: 12px;
-      line-height: 1.6;
+      line-height: 1.65;
+      pointer-events: none;
+      text-shadow: 0 1px 10px rgba(0, 0, 0, 0.4);
+    }
+
+    @media (max-width: 720px) {
+      .ui-panel {
+        gap: 8px;
+      }
+
+      .ui-group {
+        width: 100%;
+        flex-wrap: wrap;
+        justify-content: flex-start;
+      }
+
+      .settings-drawer {
+        left: 14px;
+        right: 14px;
+        min-width: 0;
+      }
+
+      .slider-row label {
+        min-width: 72px;
+      }
     }
   </style>
 </head>
 <body>
-
   <div id="canvas-container">
     <canvas id="mainCanvas"></canvas>
   </div>
@@ -224,13 +255,13 @@
   <div class="ui-panel">
     <div class="ui-group">
       <div class="ui-title">
-        LINE HARMONY
-        <sub>STARTED IN 2026 / by jogo.jpn</sub>
+        <strong>RAIN ORBIT</strong>
+        <span>2026 / jogo.jpn</span>
       </div>
     </div>
 
     <div class="ui-group">
-      <label for="keySelect">Key:</label>
+      <label for="keySelect">Key</label>
       <select id="keySelect">
         <option value="C">C</option>
         <option value="C#">C# / Db</option>
@@ -246,14 +277,14 @@
         <option value="B">B</option>
       </select>
 
-      <label for="scaleSelect">Scale:</label>
+      <label for="scaleSelect">Scale</label>
       <select id="scaleSelect">
         <option value="majorPentatonic">Major Pentatonic</option>
         <option value="minorPentatonic" selected>Minor Pentatonic</option>
         <option value="major">Major</option>
         <option value="minor">Minor</option>
-        <option value="hirajoshi">Hirajoshi (平調子)</option>
-        <option value="akebono">Akebono (曙)</option>
+        <option value="hirajoshi">Hirajoshi</option>
+        <option value="akebono">Akebono</option>
         <option value="lydian">Lydian</option>
         <option value="dorian">Dorian</option>
       </select>
@@ -262,6 +293,7 @@
     <div class="ui-group">
       <button id="recBtn" class="btn-rec">START REC</button>
       <div id="recTimeDisplay" class="rec-time-display">0.0s</div>
+      <button id="undoBtn">UNDO</button>
       <button id="clearLinesBtn">線消去</button>
       <button id="clearBallsBtn">玉消去</button>
       <button id="clearLoopBtn">録音消去</button>
@@ -270,35 +302,57 @@
 
   <div class="settings-drawer">
     <div class="slider-row">
-      <label for="waveSelect">音色:</label>
+      <label for="waveSelect">音色</label>
       <select id="waveSelect" style="width: 100%;">
-        <option value="sine">Sine (まろやか)</option>
-        <option value="triangle" selected>Triangle (木琴風)</option>
-        <option value="sine-bell">Bell (ベル風)</option>
+        <option value="sine">Sine</option>
+        <option value="triangle" selected>Triangle</option>
+        <option value="sine-bell">Bell</option>
         <option value="soft-pad">Warm Pad</option>
       </select>
     </div>
+
     <div class="slider-row">
-      <label for="gravitySlider">重力 (G):</label>
-      <input type="range" id="gravitySlider" min="0.00" max="1.50" step="0.05" value="0.45">
+      <label for="gravityModeSelect">重力モード</label>
+      <select id="gravityModeSelect" style="width: 100%;">
+        <option value="manual" selected>通常（下方向）</option>
+        <option value="sensor">iPhone重力センサー</option>
+      </select>
+    </div>
+
+    <div class="slider-row">
+      <label></label>
+      <button id="sensorBtn" style="width: 100%;">センサー許可</button>
+    </div>
+
+    <div class="slider-row">
+      <label for="gravitySlider">重力</label>
+      <input type="range" id="gravitySlider" min="0.00" max="1.50" step="0.05" value="0.45" />
       <span id="gravityVal" class="slider-value">0.45</span>
     </div>
+
     <div class="slider-row">
-      <label for="bounceLimitSlider">バウンド上限:</label>
-      <input type="range" id="bounceLimitSlider" min="1" max="50" step="1" value="10">
+      <label for="bounceSlider">反発</label>
+      <input type="range" id="bounceSlider" min="0.10" max="0.98" step="0.01" value="0.68" />
+      <span id="bounceVal" class="slider-value">0.68</span>
+    </div>
+
+    <div class="slider-row">
+      <label for="bounceLimitSlider">バウンド上限</label>
+      <input type="range" id="bounceLimitSlider" min="1" max="50" step="1" value="10" />
       <span id="bounceLimitVal" class="slider-value">10回</span>
     </div>
   </div>
 
   <div class="instructions">
-    ・画面上をドラッグしてイラスト/線を描く<br>
-    ・画面をタップ/スワイプで音の玉を発生（重力で自然に落下します）<br>
-    ・START RECを押し、もう一度押すと停止（その間がループ長になります）
+    ・画面をドラッグして線を描く<br />
+    ・タップすると玉を発生<br />
+    ・UNDO: Ctrl/⌘ + Z<br />
+    ・iPhoneでは「重力モード」をセンサーにして、許可ボタンを押すと傾き方向に落ちます
   </div>
 
   <script>
     const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-    
+
     const SCALES = {
       majorPentatonic: [0, 2, 4, 7, 9],
       minorPentatonic: [0, 3, 5, 7, 10],
@@ -310,13 +364,15 @@
       dorian: [0, 2, 3, 5, 7, 9, 10]
     };
 
+    const BALL_COLORS = ["#8be9ff", "#b6a3ff", "#7ee0c1", "#ffd27a"];
+
     let audioCtx = null;
 
     function initAudio() {
       if (!audioCtx) {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       }
-      if (audioCtx.state === 'suspended') {
+      if (audioCtx.state === "suspended") {
         audioCtx.resume();
       }
     }
@@ -342,22 +398,22 @@
     function playSynthSound(freq, velocity = 1.0) {
       if (!audioCtx) return;
 
-      const waveType = document.getElementById('waveSelect').value;
+      const waveType = document.getElementById("waveSelect").value;
       const now = audioCtx.currentTime;
       const masterGain = audioCtx.createGain();
+      masterGain.gain.value = 0.95;
       masterGain.connect(audioCtx.destination);
 
       const dur = 1.5;
-      const vol = Math.min(Math.max(velocity, 0.2), 1.0) * 0.3;
+      const vol = Math.min(Math.max(velocity, 0.2), 1.0) * 0.28;
 
-      if (waveType === 'sine-bell') {
+      if (waveType === "sine-bell") {
         const osc1 = audioCtx.createOscillator();
         const osc2 = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
 
-        osc1.type = 'sine';
-        osc2.type = 'sine';
-
+        osc1.type = "sine";
+        osc2.type = "sine";
         osc1.frequency.setValueAtTime(freq, now);
         osc2.frequency.setValueAtTime(freq * 2.76, now);
 
@@ -372,20 +428,20 @@
         osc2.start(now);
         osc1.stop(now + dur);
         osc2.stop(now + dur);
-      } else if (waveType === 'soft-pad') {
+      } else if (waveType === "soft-pad") {
         const osc = audioCtx.createOscillator();
         const filter = audioCtx.createBiquadFilter();
         const gain = audioCtx.createGain();
 
-        osc.type = 'triangle';
+        osc.type = "triangle";
         osc.frequency.setValueAtTime(freq, now);
 
-        filter.type = 'lowpass';
-        filter.frequency.setValueAtTime(freq * 2, now);
-        filter.frequency.exponentialRampToValueAtTime(freq * 0.5, now + dur);
+        filter.type = "lowpass";
+        filter.frequency.setValueAtTime(freq * 2.5, now);
+        filter.frequency.exponentialRampToValueAtTime(freq * 0.65, now + dur);
 
         gain.gain.setValueAtTime(0.01, now);
-        gain.gain.linearRampToValueAtTime(vol * 0.8, now + 0.05);
+        gain.gain.linearRampToValueAtTime(vol * 0.9, now + 0.05);
         gain.gain.exponentialRampToValueAtTime(0.0001, now + dur * 1.2);
 
         osc.connect(filter);
@@ -412,75 +468,169 @@
       }
     }
 
-    const canvas = document.getElementById('mainCanvas');
-    const ctx = canvas.getContext('2d');
+    const canvas = document.getElementById("mainCanvas");
+    const ctx = canvas.getContext("2d");
 
     let width = 0;
     let height = 0;
+    let dpr = 1;
 
     function resizeCanvas() {
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
       width = window.innerWidth;
       height = window.innerHeight;
-      canvas.width = width;
-      canvas.height = height;
+
+      canvas.width = Math.floor(width * dpr);
+      canvas.height = Math.floor(height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
-    window.addEventListener('resize', resizeCanvas);
+
+    window.addEventListener("resize", resizeCanvas);
     resizeCanvas();
 
     let lines = [];
     let currentLine = null;
     let balls = [];
     let activeFreqs = [];
+    let historyStack = [];
 
-    // ループ録音関連
     let isRecording = false;
     let recStartTime = 0;
     let loopDuration = 0;
     let recordedEvents = [];
     let activeLoopTimeouts = [];
 
-    // UIスライダー連動
-    const gravitySlider = document.getElementById('gravitySlider');
-    const gravityVal = document.getElementById('gravityVal');
-    gravitySlider.addEventListener('input', (e) => {
+    const gravitySlider = document.getElementById("gravitySlider");
+    const gravityVal = document.getElementById("gravityVal");
+    gravitySlider.addEventListener("input", (e) => {
       gravityVal.textContent = parseFloat(e.target.value).toFixed(2);
     });
 
-    const bounceLimitSlider = document.getElementById('bounceLimitSlider');
-    const bounceLimitVal = document.getElementById('bounceLimitVal');
-    bounceLimitSlider.addEventListener('input', (e) => {
+    const bounceSlider = document.getElementById("bounceSlider");
+    const bounceVal = document.getElementById("bounceVal");
+    bounceSlider.addEventListener("input", (e) => {
+      bounceVal.textContent = parseFloat(e.target.value).toFixed(2);
+    });
+
+    const bounceLimitSlider = document.getElementById("bounceLimitSlider");
+    const bounceLimitVal = document.getElementById("bounceLimitVal");
+    bounceLimitSlider.addEventListener("input", (e) => {
       bounceLimitVal.textContent = `${e.target.value}回`;
     });
 
+    const gravityModeSelect = document.getElementById("gravityModeSelect");
+    const sensorBtn = document.getElementById("sensorBtn");
+
+    let sensorGravity = { x: 0, y: 0 };
+    let sensorListenerAdded = false;
+    let sensorReady = false;
+
+    function clamp(v, min, max) {
+      return Math.max(min, Math.min(max, v));
+    }
+
+    function handleDeviceOrientation(e) {
+      if (gravityModeSelect.value !== "sensor") return;
+
+      const maxTilt = 35;
+      const strength = parseFloat(gravitySlider.value) * 1.8;
+
+      const gx = clamp(e.gamma ?? 0, -maxTilt, maxTilt) / maxTilt;
+      const gy = clamp(e.beta ?? 0, -maxTilt, maxTilt) / maxTilt;
+
+      sensorGravity.x = gx * strength;
+      sensorGravity.y = -gy * strength;
+    }
+
+    async function enableSensor() {
+      initAudio();
+
+      try {
+        if (
+          typeof DeviceOrientationEvent !== "undefined" &&
+          typeof DeviceOrientationEvent.requestPermission === "function"
+        ) {
+          const permission = await DeviceOrientationEvent.requestPermission();
+          if (permission !== "granted") {
+            alert("重力センサーの許可が必要です。");
+            return;
+          }
+        }
+
+        if (!sensorListenerAdded) {
+          window.addEventListener("deviceorientation", handleDeviceOrientation, true);
+          sensorListenerAdded = true;
+        }
+
+        sensorReady = true;
+        gravityModeSelect.value = "sensor";
+        sensorBtn.textContent = "センサー許可済み";
+      } catch (err) {
+        console.error(err);
+        alert("センサーの初期化に失敗しました。HTTPS環境のSafariで開いてください。");
+      }
+    }
+
+    sensorBtn.addEventListener("click", enableSensor);
+
     function updateScaleNotes() {
-      const key = document.getElementById('keySelect').value;
-      const scale = document.getElementById('scaleSelect').value;
+      const key = document.getElementById("keySelect").value;
+      const scale = document.getElementById("scaleSelect").value;
       activeFreqs = getScaleNotes(key, scale);
     }
-    updateScaleNotes();
 
-    document.getElementById('keySelect').addEventListener('change', updateScaleNotes);
-    document.getElementById('scaleSelect').addEventListener('change', updateScaleNotes);
+    updateScaleNotes();
+    document.getElementById("keySelect").addEventListener("change", updateScaleNotes);
+    document.getElementById("scaleSelect").addEventListener("change", updateScaleNotes);
+
+    function getClosestPointOnSegment(px, py, ax, ay, bx, by) {
+      const abx = bx - ax;
+      const aby = by - ay;
+      const apx = px - ax;
+      const apy = py - ay;
+
+      const abLenSq = abx * abx + aby * aby;
+      if (abLenSq === 0) return { x: ax, y: ay };
+
+      let t = (apx * abx + apy * aby) / abLenSq;
+      t = Math.max(0, Math.min(1, t));
+
+      return { x: ax + t * abx, y: ay + t * aby };
+    }
+
+    function getLineIntersection(p0_x, p0_y, p1_x, p1_y, p2_x, p2_y, p3_x, p3_y) {
+      const s1_x = p1_x - p0_x;
+      const s1_y = p1_y - p0_y;
+      const s2_x = p3_x - p2_x;
+      const s2_y = p3_y - p2_y;
+
+      const denom = (-s2_x * s1_y + s1_x * s2_y);
+      if (denom === 0) return false;
+
+      const s = (-s1_y * (p0_x - p2_x) + s1_x * (p0_y - p2_y)) / denom;
+      const t = (s2_x * (p0_y - p2_y) - s2_y * (p0_x - p2_x)) / denom;
+
+      return (s >= 0 && s <= 1 && t >= 0 && t <= 1);
+    }
 
     class Ball {
-      constructor(x, y, vx = 0, vy = 0, radius = 10, color = null) {
+      constructor(x, y, vx = null, vy = null, radius = 10, color = null) {
         this.x = x;
         this.y = y;
-        this.vx = vx || (Math.random() - 0.5) * 2;
-        this.vy = vy;
+        this.vx = (vx === null || vx === undefined) ? (Math.random() - 0.5) * 1.4 : vx;
+        this.vy = (vy === null || vy === undefined) ? 0 : vy;
         this.radius = radius;
-        this.color = color || `hsl(${Math.random() * 360}, 90%, 65%)`;
+        this.color = color || BALL_COLORS[Math.floor(Math.random() * BALL_COLORS.length)];
         this.lastSoundTime = 0;
         this.alpha = 1.0;
         this.pulse = 0;
         this.bounceCount = 0;
-        this.maxBounces = parseInt(bounceLimitSlider.value, 10);
         this.isExpiring = false;
       }
 
-      update(gravity) {
-        // 重力加速度の加算
-        this.vy += gravity;
+      update(gravityX, gravityY) {
+        this.vx += gravityX;
+        this.vy += gravityY;
 
         const nextX = this.x + this.vx;
         const nextY = this.y + this.vy;
@@ -492,10 +642,13 @@
         this.x += this.vx;
         this.y += this.vy;
 
-        // 消滅処理
         if (this.isExpiring) {
           this.alpha -= 0.08;
-        } else if (this.y - this.radius > height || this.x + this.radius < 0 || this.x - this.radius > width) {
+        } else if (
+          this.y - this.radius > height ||
+          this.x + this.radius < 0 ||
+          this.x - this.radius > width
+        ) {
           this.alpha -= 0.02;
         }
 
@@ -510,6 +663,9 @@
         const steps = 4;
         let p1 = { x: this.x, y: this.y };
 
+        const bounce = clamp(parseFloat(bounceSlider.value), 0.10, 0.98);
+        const maxBounces = parseInt(bounceLimitSlider.value, 10);
+
         for (let s = 1; s <= steps; s++) {
           const t = s / steps;
           const p2 = {
@@ -517,7 +673,7 @@
             y: this.y + (nextY - this.y) * t
           };
 
-          for (let line of lines) {
+          for (const line of lines) {
             const pts = line.points;
             if (pts.length < 2) continue;
 
@@ -545,31 +701,31 @@
                   ny = -ny;
                 }
 
-                const normalVelocity = Math.abs(this.vx * nx + this.vy * ny);
+                const vDotN = this.vx * nx + this.vy * ny;
+                const impact = Math.abs(vDotN);
 
-                const restitution = 0.65;
-                this.vx = (this.vx - 2 * (this.vx * nx + this.vy * ny) * nx) * restitution;
-                this.vy = (this.vy - 2 * (this.vy * nx + this.vy * ny) * ny) * restitution;
+                this.vx = (this.vx - 2 * vDotN * nx) * bounce;
+                this.vy = (this.vy - 2 * vDotN * ny) * bounce;
 
                 const overlap = this.radius - dist;
                 if (overlap > 0) {
-                  this.x += nx * (overlap + 1.5);
-                  this.y += ny * (overlap + 1.5);
+                  this.x += nx * (overlap + 1.2);
+                  this.y += ny * (overlap + 1.2);
                 }
 
-                if (normalVelocity > 1.2 && (now - this.lastSoundTime > cooldown)) {
-                  this.triggerSound(closest.y, normalVelocity);
+                if (impact > 1.1 && (now - this.lastSoundTime > cooldown)) {
+                  this.triggerSound(closest.y, impact);
                   this.lastSoundTime = now;
                   this.pulse = 1.0;
-                  
+
                   this.bounceCount++;
-                  if (this.bounceCount >= this.maxBounces) {
+                  if (this.bounceCount >= maxBounces) {
                     this.isExpiring = true;
                   }
                 }
 
-                this.vx *= 0.98;
-                this.vy *= 0.98;
+                this.vx *= 0.99;
+                this.vy *= 0.99;
                 return;
               }
             }
@@ -596,50 +752,30 @@
         ctx.globalAlpha = Math.max(this.alpha, 0);
 
         if (this.pulse > 0) {
+          ctx.save();
+          ctx.globalAlpha = this.pulse * 0.55;
           ctx.beginPath();
           ctx.arc(this.x, this.y, this.radius + this.pulse * 12, 0, Math.PI * 2);
           ctx.strokeStyle = this.color;
           ctx.lineWidth = 2;
-          ctx.globalAlpha = this.pulse * 0.8;
           ctx.stroke();
+          ctx.restore();
         }
 
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
         ctx.fillStyle = this.color;
         ctx.shadowColor = this.color;
-        ctx.shadowBlur = 12;
+        ctx.shadowBlur = 10;
         ctx.fill();
+
+        ctx.shadowBlur = 0;
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = "rgba(255,255,255,0.16)";
+        ctx.stroke();
 
         ctx.restore();
       }
-    }
-
-    function getClosestPointOnSegment(px, py, ax, ay, bx, by) {
-      const abx = bx - ax;
-      const aby = by - ay;
-      const apx = px - ax;
-      const apy = py - ay;
-
-      const abLenSq = abx * abx + aby * aby;
-      if (abLenSq === 0) return { x: ax, y: ay };
-
-      let t = (apx * abx + apy * aby) / abLenSq;
-      t = Math.max(0, Math.min(1, t));
-
-      return { x: ax + t * abx, y: ay + t * aby };
-    }
-
-    function getLineIntersection(p0_x, p0_y, p1_x, p1_y, p2_x, p2_y, p3_x, p3_y) {
-      const s1_x = p1_x - p0_x;
-      const s1_y = p1_y - p0_y;
-      const s2_x = p3_x - p2_x;
-      const s2_y = p3_y - p2_y;
-
-      const s = (-s1_y * (p0_x - p2_x) + s1_x * (p0_y - p2_y)) / (-s2_x * s1_y + s1_x * s2_y);
-      const t = ( s2_x * (p0_y - p2_y) - s2_y * (p0_x - p2_x)) / (-s2_x * s1_y + s1_x * s2_y);
-
-      return (s >= 0 && s <= 1 && t >= 0 && t <= 1);
     }
 
     let isDrawing = false;
@@ -652,68 +788,127 @@
       return { x: e.clientX, y: e.clientY };
     }
 
-    function handleStart(e) {
-      if (e.target.closest('.ui-panel') || e.target.closest('.settings-drawer')) return;
+    function pushHistory(action) {
+      historyStack.push(action);
+      if (historyStack.length > 600) {
+        historyStack.shift();
+      }
+    }
 
+    function pruneHistory(type) {
+      historyStack = historyStack.filter((a) => a.type !== type);
+    }
+
+    function undoLastAction() {
+      if (currentLine) {
+        currentLine = null;
+        isDrawing = false;
+        dragDistance = 0;
+        return;
+      }
+
+      while (historyStack.length > 0) {
+        const action = historyStack.pop();
+
+        if (action.type === "line") {
+          const idx = lines.indexOf(action.ref);
+          if (idx !== -1) {
+            lines.splice(idx, 1);
+            return;
+          }
+        } else if (action.type === "ball") {
+          const idx = balls.indexOf(action.ref);
+          if (idx !== -1) {
+            balls.splice(idx, 1);
+            return;
+          }
+        }
+      }
+    }
+
+    function spawnBall(x, y, vx = 0, vy = 0, record = true, addHistory = true) {
+      const ball = new Ball(x, y, vx, vy);
+      balls.push(ball);
+
+      if (addHistory) {
+        pushHistory({ type: "ball", ref: ball });
+      }
+
+      if (isRecording && record) {
+        const relTime = Date.now() - recStartTime;
+        recordedEvents.push({ relTime, x, y, vx, vy });
+      }
+
+      return ball;
+    }
+
+    function commitLine(line, addHistory = true) {
+      lines.push(line);
+      if (addHistory) {
+        pushHistory({ type: "line", ref: line });
+      }
+    }
+
+    function handleStart(e) {
+      if (e.target.closest(".ui-panel") || e.target.closest(".settings-drawer")) return;
+      if (e.button !== undefined && e.button !== 0) return;
+
+      if (e.cancelable) e.preventDefault();
       initAudio();
+
       const pos = getPos(e);
       isDrawing = true;
       dragDistance = 0;
 
       currentLine = {
         points: [pos],
-        color: '#00e5ff'
+        color: "rgba(139, 233, 255, 0.92)"
       };
     }
 
     function handleMove(e) {
       if (!isDrawing || !currentLine) return;
+      if (e.cancelable) e.preventDefault();
+
       const pos = getPos(e);
       const lastPos = currentLine.points[currentLine.points.length - 1];
-
       const dist = Math.hypot(pos.x - lastPos.x, pos.y - lastPos.y);
+
       if (dist > 5) {
         currentLine.points.push(pos);
         dragDistance += dist;
       }
     }
 
-    function handleEnd(e) {
+    function handleEnd() {
       if (!isDrawing) return;
       isDrawing = false;
 
       if (dragDistance < 10 && currentLine && currentLine.points.length > 0) {
-        // 短いタップの場合はその場に生成
         const pos = currentLine.points[0];
-        spawnBall(pos.x, pos.y, 0, 0);
+        spawnBall(pos.x, pos.y, 0, 0, true, true);
       } else if (currentLine && currentLine.points.length > 1) {
-        lines.push(currentLine);
+        commitLine(currentLine, true);
       }
+
       currentLine = null;
     }
 
-    function spawnBall(x, y, vx = 0, vy = 0, record = true) {
-      balls.push(new Ball(x, y, vx, vy));
+    canvas.addEventListener("mousedown", handleStart);
+    window.addEventListener("mousemove", handleMove);
+    window.addEventListener("mouseup", handleEnd);
+    canvas.addEventListener("contextmenu", (e) => e.preventDefault());
 
-      if (isRecording && record) {
-        const relTime = Date.now() - recStartTime;
-        recordedEvents.push({ relTime, x, y, vx, vy });
-      }
-    }
+    canvas.addEventListener("touchstart", handleStart, { passive: false });
+    canvas.addEventListener("touchmove", handleMove, { passive: false });
+    window.addEventListener("touchend", handleEnd);
+    window.addEventListener("touchcancel", handleEnd);
 
-    canvas.addEventListener('mousedown', handleStart);
-    canvas.addEventListener('mousemove', handleMove);
-    window.addEventListener('mouseup', handleEnd);
+    const recBtn = document.getElementById("recBtn");
+    const recTimeDisplay = document.getElementById("recTimeDisplay");
+    const undoBtn = document.getElementById("undoBtn");
 
-    canvas.addEventListener('touchstart', handleStart, { passive: false });
-    canvas.addEventListener('touchmove', handleMove, { passive: false });
-    window.addEventListener('touchend', handleEnd);
-
-    // --- ループ録音システム ---
-    const recBtn = document.getElementById('recBtn');
-    const recTimeDisplay = document.getElementById('recTimeDisplay');
-
-    recBtn.addEventListener('click', () => {
+    recBtn.addEventListener("click", () => {
       initAudio();
       if (isRecording) {
         stopRecording();
@@ -722,12 +917,29 @@
       }
     });
 
+    undoBtn.addEventListener("click", () => {
+      undoLastAction();
+    });
+
+    window.addEventListener("keydown", (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
+        e.preventDefault();
+        undoLastAction();
+      }
+
+      if (e.key === "Escape") {
+        currentLine = null;
+        isDrawing = false;
+        dragDistance = 0;
+      }
+    });
+
     function startRecording() {
       isRecording = true;
       recordedEvents = [];
       recStartTime = Date.now();
 
-      recBtn.classList.add('recording');
+      recBtn.classList.add("recording");
       recBtn.innerText = "STOP REC";
       recTimeDisplay.style.display = "inline-block";
 
@@ -739,7 +951,7 @@
       isRecording = false;
       loopDuration = Date.now() - recStartTime;
 
-      recBtn.classList.remove('recording');
+      recBtn.classList.remove("recording");
       recBtn.innerText = "START REC";
       recTimeDisplay.style.display = "none";
 
@@ -753,9 +965,9 @@
       if (recordedEvents.length === 0 || loopDuration <= 0) return;
 
       const scheduleLoop = () => {
-        recordedEvents.forEach(evt => {
+        recordedEvents.forEach((evt) => {
           const tid = setTimeout(() => {
-            spawnBall(evt.x, evt.y, evt.vx, evt.vy, false);
+            spawnBall(evt.x, evt.y, evt.vx, evt.vy, false, false);
           }, evt.relTime);
           activeLoopTimeouts.push(tid);
         });
@@ -768,13 +980,24 @@
     }
 
     function stopLoopPlayback() {
-      activeLoopTimeouts.forEach(id => clearTimeout(id));
+      activeLoopTimeouts.forEach((id) => clearTimeout(id));
       activeLoopTimeouts = [];
     }
 
-    document.getElementById('clearLinesBtn').addEventListener('click', () => { lines = []; });
-    document.getElementById('clearBallsBtn').addEventListener('click', () => { balls = []; });
-    document.getElementById('clearLoopBtn').addEventListener('click', () => {
+    document.getElementById("clearLinesBtn").addEventListener("click", () => {
+      lines = [];
+      currentLine = null;
+      isDrawing = false;
+      dragDistance = 0;
+      pruneHistory("line");
+    });
+
+    document.getElementById("clearBallsBtn").addEventListener("click", () => {
+      balls = [];
+      pruneHistory("ball");
+    });
+
+    document.getElementById("clearLoopBtn").addEventListener("click", () => {
       recordedEvents = [];
       stopLoopPlayback();
     });
@@ -783,22 +1006,26 @@
       ctx.clearRect(0, 0, width, height);
 
       const gravity = parseFloat(gravitySlider.value);
+      const useSensor = gravityModeSelect.value === "sensor" && sensorReady;
 
-      // 1. 線の描画
-      ctx.lineWidth = 4;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
+      const gravityX = useSensor ? sensorGravity.x : 0;
+      const gravityY = useSensor ? sensorGravity.y : gravity;
 
-      for (let line of lines) {
+      ctx.save();
+      ctx.lineWidth = 3.5;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.shadowBlur = 0;
+
+      for (const line of lines) {
         if (line.points.length < 2) continue;
+
         ctx.beginPath();
         ctx.moveTo(line.points[0].x, line.points[0].y);
         for (let i = 1; i < line.points.length; i++) {
           ctx.lineTo(line.points[i].x, line.points[i].y);
         }
         ctx.strokeStyle = line.color;
-        ctx.shadowColor = line.color;
-        ctx.shadowBlur = 8;
         ctx.stroke();
       }
 
@@ -808,16 +1035,15 @@
         for (let i = 1; i < currentLine.points.length; i++) {
           ctx.lineTo(currentLine.points[i].x, currentLine.points[i].y);
         }
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-        ctx.shadowColor = '#00e5ff';
-        ctx.shadowBlur = 10;
+        ctx.strokeStyle = "rgba(255,255,255,0.88)";
+        ctx.lineWidth = 3.5;
         ctx.stroke();
       }
+      ctx.restore();
 
-      // 2. ボールの物理更新 & 描画
       for (let i = balls.length - 1; i >= 0; i--) {
         const ball = balls[i];
-        ball.update(gravity);
+        ball.update(gravityX, gravityY);
         ball.draw(ctx);
 
         if (ball.alpha <= 0) {
@@ -825,7 +1051,6 @@
         }
       }
 
-      // 3. 録音時間の表示更新
       if (isRecording) {
         const elapsed = (Date.now() - recStartTime) / 1000;
         recTimeDisplay.textContent = `${elapsed.toFixed(1)}s`;
