@@ -306,7 +306,8 @@ body {
 
     <div class="flex items-center space-x-2">
         <div class="flex items-center space-x-1">
-            <button id="btn-wav-rec" class="bg-red-800 hover:bg-red-700 text-white font-mono text-[9px] font-bold px-2 py-0.5 rounded border border-red-500 flex items-center space-x-1 shadow transition">
+           <button id="btn-wav-rec" type="button" class="bg-red-800 hover:bg-red-700 text-white font-mono text-[9px] font-bold px-2 py-0.5 rounded border border-red-500 flex items-center space-x-1 shadow transition">
+
                 <span id="rec-wav-led" class="w-2 h-2 rounded-full bg-red-400 inline-block"></span>
                 <span id="rec-wav-text">REC</span>
             </button>
@@ -2001,6 +2002,11 @@ const fxParamValues = {};
         const btnWavRec = document.getElementById("btn-wav-rec");
         const recWavLed = document.getElementById("rec-wav-led");
         const recWavText = document.getElementById("rec-wav-text");
+btnWavRec?.addEventListener("pointerup", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleWavRecording();
+});
 
         // Modal Elements
         const btnOpenFxDialog = document.getElementById("btn-open-fx-dialog");
@@ -2398,15 +2404,14 @@ gainNodeD.connect(voiceMixerBus);
 function showSafariGuide(actionLabel) {
     const url = location.href;
 
-    // できればURLをコピー
     if (navigator.clipboard?.writeText) {
         navigator.clipboard.writeText(url).catch(() => {});
     }
 
-    // URLを入力欄つきで表示
-    window.prompt(
-        `${actionLabel}はInstagram内ブラウザでは正しく動作しません。\nSafariで開いてください。\n\n下のURLをコピーしてSafariに貼り付けてください。`,
-        url
+    alert(
+        `${actionLabel}はInstagram内ブラウザでは正しく動作しません。\n` +
+        `Safariで開いてください。\n\n` +
+        `URLをコピーしました:\n${url}`
     );
 }
 
