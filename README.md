@@ -1,3 +1,21 @@
+
+==========================================================
+SUPER_ESELATR Update details.　4.5.5
+・Add a shortcut key reference table
+・Increase the number of FX types
+・Add tape wobble and lo-fi degradation effects
+・Adjust the volume of preset sounds
+・Add 7th and 9th chords to the chord buttons
+・Add a strum function to the chord buttons
+|JPN |||||||||||||||||||||||||||||||||||||||||||||||||||||
+・キーのショートカット表を追加
+・FX種類の増加
+　テープ揺れ・ローファイ劣化表現の追加
+・プリセット音色の音量調整
+・コードボタンに7th/9thを追加
+・コードボタンにストラム機能を追加
+==========================================================
+
 |||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 ||               SUPER ESELATOR Ver 4.5.5              ||
 |||||||||||||||||||||||||||||||||||||||||||||||||||||||||
