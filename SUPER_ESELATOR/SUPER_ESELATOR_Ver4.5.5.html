@@ -1634,21 +1634,23 @@ const btnCloseControlsHelp = document.getElementById("btn-close-controls-help");
 const controlsHelpContent = document.getElementById("controls-help-content");
 
 const controlHelpData = {
-      keyboard: [
-        ["1 - 4", "Select Deck A - D"],
-        ["Shift + 1 - 4", "Mute Deck A - D"],
-        ["5 - 9", "Chord Pads 1 - 5"],
-        ["A S D F G H J K", "8 touch-pad notes"],
-        ["E", "FX On / Off"],
-        ["R", "Record / Arm / Overdub"],
-        ["U", "Undo"],
-        ["C", "Clear active deck"],
-        ["Space", "Play / Stop"],
-        ["Z", "Previous sound"],
-        ["X", "Next sound"],
-        ["Q", "Octave down"],
-        ["W", "Octave up"]
-    ],
+keyboard: [
+    ["1 - 4", "Select Deck A - D"],
+    ["Shift + 1 - 4", "Mute Deck A - D"],
+    ["5 - 9", "Chord Pads 1 - 5"],
+    ["A S D F G H J K", "8 touch-pad notes"],
+    ["E", "FX On / Off"],
+    ["R", "Record / Arm / Overdub"],
+    ["U", "Undo"],
+    ["C", "Clear active deck"],
+    ["Space", "Play / Stop"],
+    ["Z", "Previous sound"],
+    ["X", "Next sound"],
+    ["Shift + X", "Sequence double"],
+    ["Q", "Octave down"],
+    ["W", "Octave up"]
+],
+
     gamepad: [
     ["R", "Record / Arm / Overdub"],
     ["START + L", "Play / Stop"],
@@ -6066,23 +6068,32 @@ document.addEventListener("keydown", (e) => {
     // -------------------------------------------------
     // Z: PREV SOUND / X: NEXT SOUND
     // -------------------------------------------------
-    if (key === "z") {
-        e.preventDefault();
-        if (e.repeat) return;
+if (key === "z") {
+    e.preventDefault();
+    if (e.repeat) return;
 
-        selectNextSound(-1);
-        flashKeyboardButton("btn-prev-sound");
-        return;
-    }
+    selectNextSound(-1);
+    flashKeyboardButton("btn-prev-sound");
+    return;
+}
 
-    if (key === "x") {
-        e.preventDefault();
-        if (e.repeat) return;
+if (e.shiftKey && key === "x") {
+    e.preventDefault();
+    if (e.repeat) return;
 
-        selectNextSound(1);
-        flashKeyboardButton("btn-next-sound");
-        return;
-    }
+    performSequenceDouble();
+    flashKeyboardButton("btn-select");
+    return;
+}
+
+if (key === "x") {
+    e.preventDefault();
+    if (e.repeat) return;
+
+    selectNextSound(1);
+    flashKeyboardButton("btn-next-sound");
+    return;
+}
 
     // -------------------------------------------------
     // Q: OCTAVE DOWN / W: OCTAVE UP
