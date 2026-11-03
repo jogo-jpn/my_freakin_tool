@@ -1,4 +1,3 @@
-　
 <!DOCTYPE html>
 <html lang="en" class="h-full">
 <head>
@@ -280,6 +279,14 @@ body {
 
     margin: 0 !important;
     box-sizing: border-box !important;
+}
+#lcd-canvas {
+    pointer-events: none;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    opacity: 1;
+    mix-blend-mode: normal;
+    filter: contrast(1.05) brightness(1.0);
 }
 
     </style>
@@ -749,12 +756,13 @@ body {
             </div>
 
            <!-- Interactive XY Touch Pad Canvas -->
-<div id="modal-xy-pad" class="snes-screen w-full h-52 rounded-lg relative cursor-crosshair flex flex-col justify-between p-2">
-    <canvas id="modal-xy-canvas" class="absolute inset-0 w-full h-full z-0"></canvas>
-    <div class="relative z-10 pointer-events-none text-center my-auto opacity-40 font-mono text-[9px] text-emerald-300">
+<div id="modal-xy-pad" class="snes-screen relative w-full aspect-[2/1] shrink-0 overflow-hidden rounded-lg cursor-crosshair mx-auto">
+    <canvas id="modal-xy-canvas" class="absolute inset-0 block w-full h-full z-0"></canvas>
+    <div class="absolute inset-0 z-10 flex items-center justify-center pointer-events-none opacity-40 font-mono text-[9px] text-emerald-300 text-center px-2">
         DRAG TO CONTROL XY PARAMETERS
     </div>
 </div>
+
 
 <div id="fx-extra-params" class="w-full min-w-0 bg-slate-900/80 p-2 rounded-lg border border-slate-700 space-y-2"></div>
 
@@ -1450,6 +1458,83 @@ function updateChordPads() {
         PRESET_CATEGORIES.forEach(cat => {
             cat.presets.forEach(p => ALL_PRESETS.push(p));
         });
+const PRESET_CATEGORY_BY_ID = {};
+PRESET_CATEGORIES.forEach(cat => {
+    cat.presets.forEach(p => {
+        PRESET_CATEGORY_BY_ID[p.id] = cat.category;
+    });
+});
+
+function getPresetCategoryById(presetId) {
+    return PRESET_CATEGORY_BY_ID[presetId] || "DEFAULT";
+}
+
+const CATEGORY_VISUALS = {
+    "BASS": {
+        mode: "squareRipple",
+        palette: ["#66ff66", "#d7ff6a", "#ffffff"],
+        touchColor: "#66ff66",
+        count: 6,
+        flash: 0.08,
+        life: 0.95
+    },
+    "LEAD": {
+        mode: "laserBurst",
+        palette: ["#55ffff", "#aa55ff", "#ffffff"],
+        touchColor: "#55ffff",
+        count: 8,
+        flash: 0.16,
+        life: 0.65
+    },
+    "CHORD / PAD": {
+        mode: "circleRipple",
+        palette: ["#55ff55", "#55ffff", "#ff55aa"],
+        touchColor: "#ff55ff",
+        count: 7,
+        flash: 0.10,
+        life: 1.05
+    },
+    "KEYBOARD / PIANOS": {
+        mode: "fallingPixels",
+        palette: ["#ffffaa", "#ffffff", "#ffd86b"],
+        touchColor: "#ffd86b",
+        count: 8,
+        flash: 0.09,
+        life: 1.0
+    },
+    "SFX & FX": {
+        mode: "explosion",
+        palette: ["#ff5555", "#ffff55", "#ffffff"],
+        touchColor: "#ff5555",
+        count: 14,
+        flash: 0.22,
+        life: 0.75
+    },
+    "MULTI DRUM KITS": {
+        mode: "impactCross",
+        palette: ["#ffbb55", "#ffffff", "#ffaa55"],
+        touchColor: "#ffaa55",
+        count: 10,
+        flash: 0.15,
+        life: 0.7
+    },
+    "AMBIENT / NATURE": {
+        mode: "mist",
+        palette: ["#55ffff", "#aaffff", "#ffffff"],
+        touchColor: "#88ccff",
+        count: 5,
+        flash: 0.05,
+        life: 1.45
+    },
+    DEFAULT: {
+        mode: "dots",
+        palette: ["#55ff55", "#ffffff"],
+        touchColor: "#ffffff",
+        count: 8,
+        flash: 0.08,
+        life: 0.9
+    }
+};
 const presetVolumeMultipliers = {};
 
 function getPresetVolumeMultiplier(presetId) {
@@ -1569,6 +1654,10 @@ function setPresetForDeck(deck, preset) {
         let fxParamValue2 = 15;
 
         let scheduledTimeouts = [];
+let touchRipples = [];
+let lastTouchFXPoint = null;
+
+
         let renderParticles = [];
 function hardResetApp(reload = false) {
     clearScheduledTimeouts();
@@ -4186,7 +4275,8 @@ const chordGroup = `chord-${++chordGroupCounter}`;
     const normX = padData.normX;
     const normY = 0.5;
 
-    spawnParticle(normX, normY, basePreset.id);
+  spawnParticle(normX, normY, basePreset.id, 1.5);
+
 
     if (touchPrompt) {
         touchPrompt.style.display = "none";
@@ -4352,7 +4442,8 @@ const freq = baseFreq * Math.pow(2, octaveShift);
                 }
             }
 
-            spawnParticle(normX, normY, targetPreset.id || basePreset.id);
+spawnParticle(normX, normY, targetPreset.id || basePreset.id, 1.2);
+
             if (touchPrompt) touchPrompt.style.display = "none";
 
 const noteEvent = {
@@ -4909,7 +5000,8 @@ function scheduleLoopCycle() {
                     outputBus
                 );
 
-                spawnParticle(note.normX, note.normY, note.presetId);
+     spawnParticle(note.normX, note.normY, note.presetId, 0.9);
+
             }
         }, delay * 1000);
 
@@ -4983,30 +5075,368 @@ function updateStatusUI(modeText, ledClass) {
         }
 
         function resizeCanvas() {
-            lcdCanvas.width = touchPad.clientWidth;
-            lcdCanvas.height = touchPad.clientHeight;
-            if (modalXyPad) {
-                modalXyCanvas.width = modalXyPad.clientWidth;
-                modalXyCanvas.height = modalXyPad.clientHeight;
-            }
-        }
+    lcdCanvas.width = touchPad.clientWidth;
+    lcdCanvas.height = touchPad.clientHeight;
+
+    if (modalXyPad) {
+        const rect = modalXyPad.getBoundingClientRect();
+        modalXyCanvas.width = Math.round(rect.width);
+        modalXyCanvas.height = Math.round(rect.height);
+    }
+}
+
 window.addEventListener("resize", resizeCanvas);
 resizeCanvas();
 applyTouchpadTheme();
 
-        function spawnParticle(xNorm, yNorm, presetId) {
-            const px = xNorm * lcdCanvas.width;
-            const py = yNorm * lcdCanvas.height;
+   const PARTICLE_STYLES = {
+    "BASS": {
+        kind: "block",
+        palette: ["#55ff55", "#aaff55", "#ffffff"],
+        count: 8,
+        speed: 1.0,
+        sizeMin: 2,
+        sizeMax: 4,
+        flash: 0.10,
+        life: 0.85,
+        jitterX: 0.8,
+        jitterY: 0.8,
+        upBias: -0.2
+    },
+    "LEAD": {
+        kind: "spark",
+        palette: ["#55ffff", "#aa55ff", "#ffffff"],
+        count: 12,
+        speed: 1.7,
+        sizeMin: 1,
+        sizeMax: 2,
+        flash: 0.14,
+        life: 0.75,
+        jitterX: 1.2,
+        jitterY: 1.2,
+        upBias: -0.5
+    },
+    "CHORD / PAD": {
+        kind: "ring",
+        palette: ["#55ff55", "#55ffff", "#ff55aa"],
+        count: 10,
+        speed: 0.9,
+        sizeMin: 2,
+        sizeMax: 3,
+        flash: 0.12,
+        life: 1.0,
+        jitterX: 0.6,
+        jitterY: 0.6,
+        upBias: 0
+    },
+    "KEYBOARD / PIANOS": {
+        kind: "fall",
+        palette: ["#ffffaa", "#ffffff", "#ffd86b"],
+        count: 9,
+        speed: 0.8,
+        sizeMin: 1,
+        sizeMax: 2,
+        flash: 0.10,
+        life: 1.1,
+        jitterX: 0.5,
+        jitterY: 0.8,
+        upBias: 0.2
+    },
+    "SFX & FX": {
+        kind: "burst",
+        palette: ["#ff5555", "#ffff55", "#ffffff"],
+        count: 20,
+        speed: 2.2,
+        sizeMin: 1,
+        sizeMax: 3,
+        flash: 0.22,
+        life: 0.7,
+        jitterX: 2.0,
+        jitterY: 2.0,
+        upBias: -0.2
+    },
+    "MULTI DRUM KITS": {
+        kind: "hit",
+        palette: ["#ffbb55", "#ffffff", "#ffaa55"],
+        count: 14,
+        speed: 1.5,
+        sizeMin: 2,
+        sizeMax: 3,
+        flash: 0.16,
+        life: 0.65,
+        jitterX: 1.5,
+        jitterY: 1.0,
+        upBias: 0.1
+    },
+    "AMBIENT / NATURE": {
+        kind: "dust",
+        palette: ["#55ffff", "#aaffff", "#ffffff"],
+        count: 6,
+        speed: 0.45,
+        sizeMin: 1,
+        sizeMax: 1,
+        flash: 0.06,
+        life: 1.35,
+        jitterX: 0.4,
+        jitterY: 0.4,
+        upBias: -0.05
+    },
+    DEFAULT: {
+        kind: "dot",
+        palette: ["#55ff55", "#ffffff"],
+        count: 8,
+        speed: 1.0,
+        sizeMin: 1,
+        sizeMax: 2,
+        flash: 0.08,
+        life: 0.9,
+        jitterX: 0.8,
+        jitterY: 0.8,
+        upBias: 0
+    }
+};
+const PARTICLE_VISUAL_SCALE = 0.75;
 
-            renderParticles.push({
+function spawnParticle(xNorm, yNorm, presetId, intensity = 1) {
+    const px = xNorm * lcdCanvas.width;
+    const py = yNorm * lcdCanvas.height;
+
+    const category = getPresetCategoryById(presetId);
+    const style = CATEGORY_VISUALS[category] || CATEGORY_VISUALS.DEFAULT;
+    const baseColor = style.palette[presetId % style.palette.length];
+    const scale = PARTICLE_VISUAL_SCALE * intensity;
+
+    const add = (obj) => renderParticles.push(obj);
+
+    // タッチした点のドットは残す
+    add({
+        kind: "touchDot",
+        x: px,
+        y: py,
+        r: 4.5 * scale,
+        color: baseColor,
+        life: 0.9,
+        decay: 0.05
+    });
+
+    // 小さめの輪っかも残す
+    add({
+        kind: "touchRing",
+        x: px,
+        y: py,
+        r: 2.5 * scale,
+        dr: 1.2 * scale,
+        color: baseColor,
+        life: 0.75,
+        decay: 0.04
+    });
+
+    if (style.mode === "squareRipple") {
+        add({
+            kind: "squareRipple",
+            x: px,
+            y: py,
+            r: 2 * scale,
+            dr: 1.6 * scale,
+            color: baseColor,
+            life: style.life,
+            decay: 0.03
+        });
+
+        for (let i = 0; i < style.count; i++) {
+            const a = (Math.PI * 2 * i) / style.count;
+            add({
+                kind: "block",
                 x: px,
                 y: py,
-                size: Math.random() * 12 + 6,
-                color: ["#55ff55", "#ffff55", "#aa55ff", "#ff55aa", "#55ffff"][presetId % 5],
-                life: 1.0,
-                presetId: presetId
+                vx: Math.cos(a) * (0.7 + Math.random() * 1.2) * scale,
+                vy: Math.sin(a) * (0.7 + Math.random() * 1.2) * scale - 0.2,
+                size: 3 + Math.floor(Math.random() * 3),
+                color: baseColor,
+                life: 0.75,
+                decay: 0.035
             });
         }
+    } else if (style.mode === "circleRipple") {
+        add({
+            kind: "circleRipple",
+            x: px,
+            y: py,
+            r: 2 * scale,
+            dr: 1.8 * scale,
+            color: baseColor,
+            life: style.life,
+            decay: 0.028
+        });
+
+        for (let i = 0; i < style.count; i++) {
+            const a = (Math.PI * 2 * i) / style.count + (Math.random() - 0.5) * 0.25;
+            add({
+                kind: "dot",
+                x: px,
+                y: py,
+                vx: Math.cos(a) * (0.8 + Math.random() * 1.5) * scale,
+                vy: Math.sin(a) * (0.8 + Math.random() * 1.5) * scale - 0.15,
+                size: 2 + Math.floor(Math.random() * 2),
+                color: baseColor,
+                life: 0.8,
+                decay: 0.03
+            });
+        }
+    } else if (style.mode === "laserBurst") {
+        const baseAngle = Math.random() * Math.PI * 2;
+
+        for (let i = 0; i < style.count; i++) {
+            const a = baseAngle + (i - style.count / 2) * 0.14 + (Math.random() - 0.5) * 0.08;
+            add({
+                kind: "laser",
+                x: px,
+                y: py,
+                angle: a,
+                len: (14 + Math.random() * 18) * scale,
+                grow: (2.4 + Math.random() * 1.8) * scale,
+                vx: Math.cos(a) * (1.5 + Math.random() * 1.8) * scale,
+                vy: Math.sin(a) * (1.5 + Math.random() * 1.8) * scale - 0.2,
+                color: baseColor,
+                life: 0.55,
+                decay: 0.05
+            });
+        }
+
+        add({
+            kind: "dot",
+            x: px,
+            y: py,
+            vx: 0,
+            vy: 0,
+            size: 3,
+            color: "#ffffff",
+            life: 0.35,
+            decay: 0.06
+        });
+    } else if (style.mode === "fallingPixels") {
+        add({
+            kind: "fall",
+            x: px,
+            y: py,
+            vx: 0,
+            vy: 0.3 * scale,
+            size: 3,
+            color: baseColor,
+            life: style.life,
+            decay: 0.024
+        });
+
+        for (let i = 0; i < style.count; i++) {
+            add({
+                kind: "traildot",
+                x: px + (Math.random() - 0.5) * 8,
+                y: py + (Math.random() - 0.5) * 6,
+                vx: (Math.random() - 0.5) * 0.5,
+                vy: (0.4 + Math.random() * 0.8) * scale,
+                size: 2,
+                color: baseColor,
+                life: 0.8,
+                decay: 0.025
+            });
+        }
+    } else if (style.mode === "explosion") {
+        add({
+            kind: "circleRipple",
+            x: px,
+            y: py,
+            r: 2 * scale,
+            dr: 2.0 * scale,
+            color: baseColor,
+            life: style.life,
+            decay: 0.05
+        });
+
+        for (let i = 0; i < style.count; i++) {
+            const a = (Math.PI * 2 * i) / style.count + (Math.random() - 0.5) * 0.3;
+            add({
+                kind: "shard",
+                x: px,
+                y: py,
+                angle: a,
+                len: (6 + Math.random() * 10) * scale,
+                grow: (1.6 + Math.random() * 1.2) * scale,
+                vx: Math.cos(a) * (1.8 + Math.random() * 2.8) * scale,
+                vy: Math.sin(a) * (1.8 + Math.random() * 2.8) * scale - 0.25,
+                color: baseColor,
+                life: 0.7,
+                decay: 0.06
+            });
+        }
+    } else if (style.mode === "impactCross") {
+        add({
+            kind: "impactCross",
+            x: px,
+            y: py,
+            r: 2 * scale,
+            dr: 1.5 * scale,
+            color: baseColor,
+            life: style.life,
+            decay: 0.035
+        });
+
+        for (let i = 0; i < style.count; i++) {
+            const a = (Math.PI * 2 * i) / style.count;
+            add({
+                kind: "dot",
+                x: px,
+                y: py,
+                vx: Math.cos(a) * (1.0 + Math.random() * 2.0) * scale,
+                vy: Math.sin(a) * (1.0 + Math.random() * 2.0) * scale,
+                size: 2 + Math.floor(Math.random() * 2),
+                color: baseColor,
+                life: 0.65,
+                decay: 0.045
+            });
+        }
+    } else if (style.mode === "mist") {
+        add({
+            kind: "circleRipple",
+            x: px,
+            y: py,
+            r: 2 * scale,
+            dr: 1.0 * scale,
+            color: baseColor,
+            life: style.life,
+            decay: 0.018
+        });
+
+        for (let i = 0; i < style.count; i++) {
+            const a = Math.random() * Math.PI * 2;
+            add({
+                kind: "mist",
+                x: px + (Math.random() - 0.5) * 8,
+                y: py + (Math.random() - 0.5) * 8,
+                vx: Math.cos(a) * (0.12 + Math.random() * 0.28) * scale,
+                vy: Math.sin(a) * (0.12 + Math.random() * 0.28) * scale - 0.03,
+                size: 2,
+                color: baseColor,
+                life: 1.2 + Math.random() * 0.4,
+                decay: 0.012
+            });
+        }
+    } else {
+        for (let i = 0; i < style.count; i++) {
+            const a = Math.random() * Math.PI * 2;
+            add({
+                kind: "dot",
+                x: px,
+                y: py,
+                vx: Math.cos(a) * (0.8 + Math.random() * 1.2) * scale,
+                vy: Math.sin(a) * (0.8 + Math.random() * 1.2) * scale,
+                size: 2 + Math.floor(Math.random() * 2),
+                color: baseColor,
+                life: style.life,
+                decay: 0.03
+            });
+        }
+    }
+}
 function drawScaleGrid() {
     if (!lcdCanvas.width || !lcdCanvas.height) return;
     if (!activeScaleFrequencies.length) return;
@@ -5121,57 +5551,144 @@ function updateLoopTimeBar() {
 }
 
 function drawLCDVisuals() {
-    ctx.clearRect(0, 0, lcdCanvas.width, lcdCanvas.height);
+    const w = lcdCanvas.width;
+    const h = lcdCanvas.height;
 
-    // 8音グリッドと音名
+    ctx.clearRect(0, 0, w, h);
+
+    // 既存のスケールグリッドとタイムバー
     drawScaleGrid();
-
-    // HTML側の再生タイムバーを毎フレーム更新
     updateLoopTimeBar();
 
-    // 演奏時のパーティクル描画
+      // パーティクル
+    ctx.save();
+
     for (let i = renderParticles.length - 1; i >= 0; i--) {
         const p = renderParticles[i];
 
-        ctx.fillStyle = p.color;
-        ctx.globalAlpha = p.life;
+        p.life -= p.decay ?? 0.03;
+        p.x += p.vx || 0;
+        p.y += p.vy || 0;
 
-        if (p.presetId >= 20 && p.presetId <= 29) {
+        p.vx = (p.vx || 0) * 0.96;
+        p.vy = (p.vy || 0) * 0.96 + 0.03;
+
+        const alpha = Math.max(0, p.life);
+        const gx = Math.round(p.x);
+        const gy = Math.round(p.y);
+
+        ctx.globalAlpha = alpha;
+
+      if (p.kind === "touchDot") {
+    const r = Math.max(4, Math.round(p.r || 5));
+    ctx.beginPath();
+    ctx.arc(gx, gy, r, 0, Math.PI * 2);
+    ctx.fillStyle = p.color;
+    ctx.fill();
+}
+ else if (p.kind === "touchRing") {
+            const r = Math.max(2, Math.round(p.r || 2));
+            p.r = r + (p.dr || 1.2);
+
             ctx.beginPath();
-            ctx.arc(
-                p.x,
-                p.y,
-                (1.0 - p.life) * 45 + 5,
-                0,
-                Math.PI * 2
-            );
+            ctx.arc(gx, gy, r, 0, Math.PI * 2);
             ctx.strokeStyle = p.color;
             ctx.lineWidth = 2;
             ctx.stroke();
+        } else if (p.kind === "circleRipple") {
+            const r = Math.max(3, Math.round(p.r || 2));
+            p.r = r + (p.dr || 1.5);
 
-        } else if (p.presetId % 3 === 0) {
-            ctx.fillRect(
-                p.x - p.size / 2,
-                p.y - p.size / 2,
-                p.size,
-                p.size
-            );
+            const steps = Math.max(12, Math.floor(r * 2));
+            for (let j = 0; j < steps; j++) {
+                const a = (Math.PI * 2 * j) / steps;
+                ctx.fillStyle = p.color;
+                ctx.fillRect(
+                    Math.round(gx + Math.cos(a) * r),
+                    Math.round(gy + Math.sin(a) * r),
+                    3,
+                    3
+                );
+            }
+        } else if (p.kind === "squareRipple" || p.kind === "impactCross") {
+            const r = Math.max(3, Math.round(p.r || 2));
+            p.r = r + (p.dr || 1.5);
 
+            for (let x = -r; x <= r; x += 2) {
+                ctx.fillStyle = p.color;
+                ctx.fillRect(gx + x, gy - r, 2, 2);
+                ctx.fillRect(gx + x, gy + r, 2, 2);
+            }
+            for (let y = -r; y <= r; y += 2) {
+                ctx.fillRect(gx - r, gy + y, 2, 2);
+                ctx.fillRect(gx + r, gy + y, 2, 2);
+            }
+        } else if (p.kind === "laser") {
+            const len = p.len || 12;
+            const angle = p.angle || 0;
+            const segs = Math.max(4, Math.floor(len / 3));
+
+            for (let j = 0; j < segs; j++) {
+                const t = j / segs;
+                const x = Math.round(gx + Math.cos(angle) * len * t);
+                const y = Math.round(gy + Math.sin(angle) * len * t);
+                ctx.fillStyle = p.color;
+                ctx.fillRect(x, y, 3, 2);
+                if (j % 2 === 0) {
+                    ctx.fillRect(x, y + 1, 2, 2);
+                }
+            }
+
+            p.len = len + (p.grow || 1.5);
+        } else if (p.kind === "shard") {
+            const len = p.len || 8;
+            const angle = p.angle || 0;
+            const segs = Math.max(3, Math.floor(len / 2));
+
+            for (let j = 0; j < segs; j++) {
+                const t = j / segs;
+                const x = Math.round(gx + Math.cos(angle) * len * t);
+                const y = Math.round(gy + Math.sin(angle) * len * t);
+                ctx.fillStyle = p.color;
+                ctx.fillRect(x, y, 2, 2);
+            }
+
+            p.len = len + (p.grow || 1.0);
+        } else if (p.kind === "fall") {
+            ctx.fillStyle = p.color;
+            ctx.fillRect(gx, gy, 2, 6);
+            ctx.fillRect(gx - 1, gy + 2, 2, 2);
+        } else if (p.kind === "mist") {
+            ctx.fillStyle = p.color;
+            ctx.fillRect(gx, gy, 2, 2);
+            ctx.fillRect(gx + 1, gy, 2, 2);
+        } else if (p.kind === "traildot") {
+            ctx.fillStyle = p.color;
+            ctx.fillRect(gx, gy, 3, 3);
+        } else if (p.kind === "block") {
+            ctx.fillStyle = p.color;
+            ctx.fillRect(gx, gy, 5, 5);
         } else {
-            ctx.fillRect(p.x - 14, p.y, 28, 2);
-            ctx.fillRect(p.x, p.y - 14, 2, 28);
+            ctx.fillStyle = p.color;
+            ctx.fillRect(gx, gy, p.size || 2, p.size || 2);
         }
 
-        p.life -= 0.035;
-
-        if (p.life <= 0) {
+        if (
+            p.life <= 0 ||
+            p.x < -40 || p.x > w + 40 ||
+            p.y < -40 || p.y > h + 40
+        ) {
             renderParticles.splice(i, 1);
         }
     }
 
+    ctx.restore();
+
+
+
     ctx.globalAlpha = 1.0;
 
-    // 画面右上の時間表示
+    // 時間表示
     if (audioCtx) {
         if (state === "REC_FREE") {
             const elapsed = audioCtx.currentTime - freeRecStartAudioTime;
@@ -5182,11 +5699,7 @@ function drawLCDVisuals() {
                 `00:${secs < 10 ? "0" : ""}${secs}.${ms}`;
 
         } else if (
-            (
-                state === "PLAYING" ||
-                state === "OVERDUB" ||
-                state === "WAIT_HEAD"
-            ) &&
+            (state === "PLAYING" || state === "OVERDUB" || state === "WAIT_HEAD") &&
             loopDuration > 0
         ) {
             const currentOffset =
@@ -5200,12 +5713,10 @@ function drawLCDVisuals() {
         }
     }
 
-    // FXモーダルが開いている間はXY Canvasも描画
     if (!fxModal.classList.contains("hidden")) {
         drawModalXYCanvas();
     }
 
-    // 重要：次のフレームも更新し続ける
     requestAnimationFrame(drawLCDVisuals);
 }
 
@@ -5243,15 +5754,19 @@ function drawLCDVisuals() {
             modalCtx.moveTo(0, cy); modalCtx.lineTo(w, cy);
             modalCtx.stroke();
             modalCtx.setLineDash([]);
+// ポインター本体（直径 約3mm）
+const dotDiameterPx = 3 * 96 / 25.4;
+const r = dotDiameterPx / 2;
 
-            // ポインター本体
-            modalCtx.beginPath();
-            modalCtx.arc(cx, cy, 10, 0, Math.PI * 2);
-            modalCtx.fillStyle = isMasterFxOn ? "#a855f7" : "#64748b";
-            modalCtx.fill();
-            modalCtx.strokeStyle = "#ffffff";
-            modalCtx.lineWidth = 2;
-            modalCtx.stroke();
+modalCtx.beginPath();
+modalCtx.arc(cx, cy, r, 0, Math.PI * 2);
+modalCtx.fillStyle = isMasterFxOn ? "#a855f7" : "#64748b";
+modalCtx.fill();
+modalCtx.strokeStyle = "#ffffff";
+modalCtx.lineWidth = 2;
+modalCtx.stroke();
+
+
         }
 
         drawLCDVisuals();
@@ -5298,8 +5813,8 @@ const releasePadPointer = (e) => {
     } catch (err) {}
 
     activePadPointers.delete(e.pointerId);
+    lastTouchFXPoint = null;
 };
-
 
         touchPad.addEventListener("pointerup", releasePadPointer);
         touchPad.addEventListener("pointercancel", releasePadPointer);
