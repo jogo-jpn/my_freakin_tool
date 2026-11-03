@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Line Bounce Music Maker</title>
+  <style>
+    :root {
+      --bg-color: #0f111a;
+      --panel-bg: rgba(22, 26, 40, 0.85);
+      --panel-border: rgba(255, 255, 255, 0.12);
+      --accent-color: #00e5ff;
+      --accent-hover: #00b3cc;
+      --rec-color: #ff3366;
+      --text-main: #f0f4f8;
+      --text-sub: #8a99ad;
+    }
+
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: var(--bg-color);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: var(--text-main);
+    }
+
+    #canvas-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      cursor: crosshair;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* UI Header Panel */
+    .ui-panel {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      right: 16px;
+      z-index: 10;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      pointer-events: none;
+    }
+
+    .ui-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--panel-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--panel-border);
+      padding: 8px 14px;
+      border-radius: 12px;
+      pointer-events: auto;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    .ui-title {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: var(--accent-color);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .ui-title sub {
+      font-size: 9px;
+      color: var(--text-sub);
+      font-weight: 400;
+    }
+
+    label {
+      font-size: 12px;
+      color: var(--text-sub);
+      font-weight: 500;
+    }
+
+    select, button {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: var(--text-main);
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      outline: none;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    select:hover, button:hover {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    button.btn-rec {
+      position: relative;
+      padding-left: 28px;
+      font-weight: 600;
+    }
+
+    button.btn-rec::before {
+      content: '';
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background-color: var(--rec-color);
+      transition: all 0.2s;
+    }
+
+    button.btn-rec.recording {
+      background: rgba(255, 51, 102, 0.2);
+      border-color: var(--rec-color);
+      color: #ff6688;
+    }
+
+    button.btn-rec.recording::before {
+      animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: translateY(-50%) scale(0.9); opacity: 1; }
+      50% { transform: translateY(-50%) scale(1.3); opacity: 0.4; }
+      100% { transform: translateY(-50%) scale(0.9); opacity: 1; }
+    }
+
+    .rec-time-display {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--rec-color);
+      min-width: 48px;
+      display: none;
+    }
+
+    /* Controls Panel Drawer */
+    .settings-drawer {
+      position: absolute;
+      bottom: 16px;
+      right: 16px;
+      z-index: 10;
+      background: var(--panel-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--panel-border);
+      padding: 12px 16px;
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+      min-width: 250px;
+    }
+
+    .slider-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .slider-row label {
+      font-size: 11px;
+      min-width: 80px;
+    }
+
+    .slider-row input[type=range] {
+      flex: 1;
+      accent-color: var(--accent-color);
+    }
+
+    .slider-value {
+      font-size: 11px;
+      color: var(--text-main);
+      min-width: 38px;
+      text-align: right;
+    }
+
+    .instructions {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      z-index: 5;
+      pointer-events: none;
+      color: rgba(255, 255, 255, 0.4);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="canvas-container">
+    <canvas id="mainCanvas"></canvas>
+  </div>
+
+  <div class="ui-panel">
+    <div class="ui-group">
+      <div class="ui-title">
+        LINE HARMONY
+        <sub>STARTED IN 2026 / by jogo.jpn</sub>
+      </div>
+    </div>
+
+    <div class="ui-group">
+      <label for="keySelect">Key:</label>
+      <select id="keySelect">
+        <option value="C">C</option>
+        <option value="C#">C# / Db</option>
+        <option value="D">D</option>
+        <option value="D#">Eb</option>
+        <option value="E">E</option>
+        <option value="F">F</option>
+        <option value="F#">F# / Gb</option>
+        <option value="G">G</option>
+        <option value="G#">Ab</option>
+        <option value="A" selected>A</option>
+        <option value="A#">Bb</option>
+        <option value="B">B</option>
+      </select>
+
+      <label for="scaleSelect">Scale:</label>
+      <select id="scaleSelect">
+        <option value="majorPentatonic">Major Pentatonic</option>
+        <option value="minorPentatonic" selected>Minor Pentatonic</option>
+        <option value="major">Major</option>
+        <option value="minor">Minor</option>
+        <option value="hirajoshi">Hirajoshi (平調子)</option>
+        <option value="akebono">Akebono (曙)</option>
+        <option value="lydian">Lydian</option>
+        <option value="dorian">Dorian</option>
+      </select>
+    </div>
+
+    <div class="ui-group">
+      <button id="recBtn" class="btn-rec">START REC</button>
+      <div id="recTimeDisplay" class="rec-time-display">0.0s</div>
+      <button id="clearLinesBtn">線消去</button>
+      <button id="clearBallsBtn">玉消去</button>
+      <button id="clearLoopBtn">録音消去</button>
+    </div>
+  </div>
+
+  <div class="settings-drawer">
+    <div class="slider-row">
+      <label for="waveSelect">音色:</label>
+      <select id="waveSelect" style="width: 100%;">
+        <option value="sine">Sine (まろやか)</option>
+        <option value="triangle" selected>Triangle (木琴風)</option>
+        <option value="sine-bell">Bell (ベル風)</option>
+        <option value="soft-pad">Warm Pad</option>
+      </select>
+    </div>
+    <div class="slider-row">
+      <label for="gravitySlider">重力 (G):</label>
+      <input type="range" id="gravitySlider" min="0.00" max="1.50" step="0.05" value="0.45">
+      <span id="gravityVal" class="slider-value">0.45</span>
+    </div>
+    <div class="slider-row">
+      <label for="bounceLimitSlider">バウンド上限:</label>
+      <input type="range" id="bounceLimitSlider" min="1" max="50" step="1" value="10">
+      <span id="bounceLimitVal" class="slider-value">10回</span>
+    </div>
+  </div>
+
+  <div class="instructions">
+    ・画面上をドラッグしてイラスト/線を描く<br>
+    ・画面をタップ/スワイプで音の玉を発生（重力で自然に落下します）<br>
+    ・START RECを押し、もう一度押すと停止（その間がループ長になります）
+  </div>
+
+  <script>
+    const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+    
+    const SCALES = {
+      majorPentatonic: [0, 2, 4, 7, 9],
+      minorPentatonic: [0, 3, 5, 7, 10],
+      major: [0, 2, 4, 5, 7, 9, 11],
+      minor: [0, 2, 3, 5, 7, 8, 10],
+      hirajoshi: [0, 2, 3, 7, 8],
+      akebono: [0, 2, 3, 7, 9],
+      lydian: [0, 2, 4, 6, 7, 9, 11],
+      dorian: [0, 2, 3, 5, 7, 9, 10]
+    };
+
+    let audioCtx = null;
+
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function midiToFreq(midi) {
+      return 440 * Math.pow(2, (midi - 69) / 12);
+    }
+
+    function getScaleNotes(keyName, scaleName, octaveStart = 3, octaveCount = 4) {
+      const keyIndex = NOTE_NAMES.indexOf(keyName);
+      const intervals = SCALES[scaleName] || SCALES.minorPentatonic;
+      const freqs = [];
+
+      for (let oct = 0; oct < octaveCount; oct++) {
+        for (let i = 0; i < intervals.length; i++) {
+          const midi = 12 * (octaveStart + oct + 1) + keyIndex + intervals[i];
+          freqs.push(midiToFreq(midi));
+        }
+      }
+      return freqs;
+    }
+
+    function playSynthSound(freq, velocity = 1.0) {
+      if (!audioCtx) return;
+
+      const waveType = document.getElementById('waveSelect').value;
+      const now = audioCtx.currentTime;
+      const masterGain = audioCtx.createGain();
+      masterGain.connect(audioCtx.destination);
+
+      const dur = 1.5;
+      const vol = Math.min(Math.max(velocity, 0.2), 1.0) * 0.3;
+
+      if (waveType === 'sine-bell') {
+        const osc1 = audioCtx.createOscillator();
+        const osc2 = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        osc1.type = 'sine';
+        osc2.type = 'sine';
+
+        osc1.frequency.setValueAtTime(freq, now);
+        osc2.frequency.setValueAtTime(freq * 2.76, now);
+
+        gain.gain.setValueAtTime(vol, now);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+
+        osc1.connect(gain);
+        osc2.connect(gain);
+        gain.connect(masterGain);
+
+        osc1.start(now);
+        osc2.start(now);
+        osc1.stop(now + dur);
+        osc2.stop(now + dur);
+      } else if (waveType === 'soft-pad') {
+        const osc = audioCtx.createOscillator();
+        const filter = audioCtx.createBiquadFilter();
+        const gain = audioCtx.createGain();
+
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, now);
+
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(freq * 2, now);
+        filter.frequency.exponentialRampToValueAtTime(freq * 0.5, now + dur);
+
+        gain.gain.setValueAtTime(0.01, now);
+        gain.gain.linearRampToValueAtTime(vol * 0.8, now + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + dur * 1.2);
+
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(masterGain);
+
+        osc.start(now);
+        osc.stop(now + dur * 1.2);
+      } else {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        osc.type = waveType;
+        osc.frequency.setValueAtTime(freq, now);
+
+        gain.gain.setValueAtTime(vol, now);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+
+        osc.connect(gain);
+        gain.connect(masterGain);
+
+        osc.start(now);
+        osc.stop(now + dur);
+      }
+    }
+
+    const canvas = document.getElementById('mainCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let width = 0;
+    let height = 0;
+
+    function resizeCanvas() {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = width;
+      canvas.height = height;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    let lines = [];
+    let currentLine = null;
+    let balls = [];
+    let activeFreqs = [];
+
+    // ループ録音関連
+    let isRecording = false;
+    let recStartTime = 0;
+    let loopDuration = 0;
+    let recordedEvents = [];
+    let activeLoopTimeouts = [];
+
+    // UIスライダー連動
+    const gravitySlider = document.getElementById('gravitySlider');
+    const gravityVal = document.getElementById('gravityVal');
+    gravitySlider.addEventListener('input', (e) => {
+      gravityVal.textContent = parseFloat(e.target.value).toFixed(2);
+    });
+
+    const bounceLimitSlider = document.getElementById('bounceLimitSlider');
+    const bounceLimitVal = document.getElementById('bounceLimitVal');
+    bounceLimitSlider.addEventListener('input', (e) => {
+      bounceLimitVal.textContent = `${e.target.value}回`;
+    });
+
+    function updateScaleNotes() {
+      const key = document.getElementById('keySelect').value;
+      const scale = document.getElementById('scaleSelect').value;
+      activeFreqs = getScaleNotes(key, scale);
+    }
+    updateScaleNotes();
+
+    document.getElementById('keySelect').addEventListener('change', updateScaleNotes);
+    document.getElementById('scaleSelect').addEventListener('change', updateScaleNotes);
+
+    class Ball {
+      constructor(x, y, vx = 0, vy = 0, radius = 10, color = null) {
+        this.x = x;
+        this.y = y;
+        this.vx = vx || (Math.random() - 0.5) * 2;
+        this.vy = vy;
+        this.radius = radius;
+        this.color = color || `hsl(${Math.random() * 360}, 90%, 65%)`;
+        this.lastSoundTime = 0;
+        this.alpha = 1.0;
+        this.pulse = 0;
+        this.bounceCount = 0;
+        this.maxBounces = parseInt(bounceLimitSlider.value, 10);
+        this.isExpiring = false;
+      }
+
+      update(gravity) {
+        // 重力加速度の加算
+        this.vy += gravity;
+
+        const nextX = this.x + this.vx;
+        const nextY = this.y + this.vy;
+
+        if (!this.isExpiring) {
+          this.checkCollisions(nextX, nextY);
+        }
+
+        this.x += this.vx;
+        this.y += this.vy;
+
+        // 消滅処理
+        if (this.isExpiring) {
+          this.alpha -= 0.08;
+        } else if (this.y - this.radius > height || this.x + this.radius < 0 || this.x - this.radius > width) {
+          this.alpha -= 0.02;
+        }
+
+        if (this.pulse > 0) {
+          this.pulse -= 0.05;
+        }
+      }
+
+      checkCollisions(nextX, nextY) {
+        const cooldown = 180;
+        const now = Date.now();
+        const steps = 4;
+        let p1 = { x: this.x, y: this.y };
+
+        for (let s = 1; s <= steps; s++) {
+          const t = s / steps;
+          const p2 = {
+            x: this.x + (nextX - this.x) * t,
+            y: this.y + (nextY - this.y) * t
+          };
+
+          for (let line of lines) {
+            const pts = line.points;
+            if (pts.length < 2) continue;
+
+            for (let i = 0; i < pts.length - 1; i++) {
+              const a = pts[i];
+              const b = pts[i + 1];
+
+              const intersect = getLineIntersection(p1.x, p1.y, p2.x, p2.y, a.x, a.y, b.x, b.y);
+              const closest = getClosestPointOnSegment(p2.x, p2.y, a.x, a.y, b.x, b.y);
+              const dx = p2.x - closest.x;
+              const dy = p2.y - closest.y;
+              const dist = Math.sqrt(dx * dx + dy * dy);
+
+              if (intersect || dist < this.radius) {
+                let nx = -(b.y - a.y);
+                let ny = b.x - a.x;
+                const len = Math.sqrt(nx * nx + ny * ny);
+                if (len === 0) continue;
+                nx /= len;
+                ny /= len;
+
+                const dot = this.vx * nx + this.vy * ny;
+                if (dot > 0) {
+                  nx = -nx;
+                  ny = -ny;
+                }
+
+                const normalVelocity = Math.abs(this.vx * nx + this.vy * ny);
+
+                const restitution = 0.65;
+                this.vx = (this.vx - 2 * (this.vx * nx + this.vy * ny) * nx) * restitution;
+                this.vy = (this.vy - 2 * (this.vy * nx + this.vy * ny) * ny) * restitution;
+
+                const overlap = this.radius - dist;
+                if (overlap > 0) {
+                  this.x += nx * (overlap + 1.5);
+                  this.y += ny * (overlap + 1.5);
+                }
+
+                if (normalVelocity > 1.2 && (now - this.lastSoundTime > cooldown)) {
+                  this.triggerSound(closest.y, normalVelocity);
+                  this.lastSoundTime = now;
+                  this.pulse = 1.0;
+                  
+                  this.bounceCount++;
+                  if (this.bounceCount >= this.maxBounces) {
+                    this.isExpiring = true;
+                  }
+                }
+
+                this.vx *= 0.98;
+                this.vy *= 0.98;
+                return;
+              }
+            }
+          }
+          p1 = p2;
+        }
+      }
+
+      triggerSound(hitY, impact) {
+        if (activeFreqs.length === 0) return;
+
+        const normalizedY = Math.min(Math.max(hitY / height, 0), 1);
+        const index = Math.floor((1 - normalizedY) * activeFreqs.length);
+        const freqIndex = Math.min(Math.max(index, 0), activeFreqs.length - 1);
+
+        const freq = activeFreqs[freqIndex];
+        const vel = Math.min(impact / 8, 1.0);
+
+        playSynthSound(freq, vel);
+      }
+
+      draw(ctx) {
+        ctx.save();
+        ctx.globalAlpha = Math.max(this.alpha, 0);
+
+        if (this.pulse > 0) {
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.radius + this.pulse * 12, 0, Math.PI * 2);
+          ctx.strokeStyle = this.color;
+          ctx.lineWidth = 2;
+          ctx.globalAlpha = this.pulse * 0.8;
+          ctx.stroke();
+        }
+
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fillStyle = this.color;
+        ctx.shadowColor = this.color;
+        ctx.shadowBlur = 12;
+        ctx.fill();
+
+        ctx.restore();
+      }
+    }
+
+    function getClosestPointOnSegment(px, py, ax, ay, bx, by) {
+      const abx = bx - ax;
+      const aby = by - ay;
+      const apx = px - ax;
+      const apy = py - ay;
+
+      const abLenSq = abx * abx + aby * aby;
+      if (abLenSq === 0) return { x: ax, y: ay };
+
+      let t = (apx * abx + apy * aby) / abLenSq;
+      t = Math.max(0, Math.min(1, t));
+
+      return { x: ax + t * abx, y: ay + t * aby };
+    }
+
+    function getLineIntersection(p0_x, p0_y, p1_x, p1_y, p2_x, p2_y, p3_x, p3_y) {
+      const s1_x = p1_x - p0_x;
+      const s1_y = p1_y - p0_y;
+      const s2_x = p3_x - p2_x;
+      const s2_y = p3_y - p2_y;
+
+      const s = (-s1_y * (p0_x - p2_x) + s1_x * (p0_y - p2_y)) / (-s2_x * s1_y + s1_x * s2_y);
+      const t = ( s2_x * (p0_y - p2_y) - s2_y * (p0_x - p2_x)) / (-s2_x * s1_y + s1_x * s2_y);
+
+      return (s >= 0 && s <= 1 && t >= 0 && t <= 1);
+    }
+
+    let isDrawing = false;
+    let dragDistance = 0;
+
+    function getPos(e) {
+      if (e.touches && e.touches.length > 0) {
+        return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      }
+      return { x: e.clientX, y: e.clientY };
+    }
+
+    function handleStart(e) {
+      if (e.target.closest('.ui-panel') || e.target.closest('.settings-drawer')) return;
+
+      initAudio();
+      const pos = getPos(e);
+      isDrawing = true;
+      dragDistance = 0;
+
+      currentLine = {
+        points: [pos],
+        color: '#00e5ff'
+      };
+    }
+
+    function handleMove(e) {
+      if (!isDrawing || !currentLine) return;
+      const pos = getPos(e);
+      const lastPos = currentLine.points[currentLine.points.length - 1];
+
+      const dist = Math.hypot(pos.x - lastPos.x, pos.y - lastPos.y);
+      if (dist > 5) {
+        currentLine.points.push(pos);
+        dragDistance += dist;
+      }
+    }
+
+    function handleEnd(e) {
+      if (!isDrawing) return;
+      isDrawing = false;
+
+      if (dragDistance < 10 && currentLine && currentLine.points.length > 0) {
+        // 短いタップの場合はその場に生成
+        const pos = currentLine.points[0];
+        spawnBall(pos.x, pos.y, 0, 0);
+      } else if (currentLine && currentLine.points.length > 1) {
+        lines.push(currentLine);
+      }
+      currentLine = null;
+    }
+
+    function spawnBall(x, y, vx = 0, vy = 0, record = true) {
+      balls.push(new Ball(x, y, vx, vy));
+
+      if (isRecording && record) {
+        const relTime = Date.now() - recStartTime;
+        recordedEvents.push({ relTime, x, y, vx, vy });
+      }
+    }
+
+    canvas.addEventListener('mousedown', handleStart);
+    canvas.addEventListener('mousemove', handleMove);
+    window.addEventListener('mouseup', handleEnd);
+
+    canvas.addEventListener('touchstart', handleStart, { passive: false });
+    canvas.addEventListener('touchmove', handleMove, { passive: false });
+    window.addEventListener('touchend', handleEnd);
+
+    // --- ループ録音システム ---
+    const recBtn = document.getElementById('recBtn');
+    const recTimeDisplay = document.getElementById('recTimeDisplay');
+
+    recBtn.addEventListener('click', () => {
+      initAudio();
+      if (isRecording) {
+        stopRecording();
+      } else {
+        startRecording();
+      }
+    });
+
+    function startRecording() {
+      isRecording = true;
+      recordedEvents = [];
+      recStartTime = Date.now();
+
+      recBtn.classList.add('recording');
+      recBtn.innerText = "STOP REC";
+      recTimeDisplay.style.display = "inline-block";
+
+      stopLoopPlayback();
+    }
+
+    function stopRecording() {
+      if (!isRecording) return;
+      isRecording = false;
+      loopDuration = Date.now() - recStartTime;
+
+      recBtn.classList.remove('recording');
+      recBtn.innerText = "START REC";
+      recTimeDisplay.style.display = "none";
+
+      if (recordedEvents.length > 0 && loopDuration > 200) {
+        startLoopPlayback();
+      }
+    }
+
+    function startLoopPlayback() {
+      stopLoopPlayback();
+      if (recordedEvents.length === 0 || loopDuration <= 0) return;
+
+      const scheduleLoop = () => {
+        recordedEvents.forEach(evt => {
+          const tid = setTimeout(() => {
+            spawnBall(evt.x, evt.y, evt.vx, evt.vy, false);
+          }, evt.relTime);
+          activeLoopTimeouts.push(tid);
+        });
+
+        const loopTid = setTimeout(scheduleLoop, loopDuration);
+        activeLoopTimeouts.push(loopTid);
+      };
+
+      scheduleLoop();
+    }
+
+    function stopLoopPlayback() {
+      activeLoopTimeouts.forEach(id => clearTimeout(id));
+      activeLoopTimeouts = [];
+    }
+
+    document.getElementById('clearLinesBtn').addEventListener('click', () => { lines = []; });
+    document.getElementById('clearBallsBtn').addEventListener('click', () => { balls = []; });
+    document.getElementById('clearLoopBtn').addEventListener('click', () => {
+      recordedEvents = [];
+      stopLoopPlayback();
+    });
+
+    function render() {
+      ctx.clearRect(0, 0, width, height);
+
+      const gravity = parseFloat(gravitySlider.value);
+
+      // 1. 線の描画
+      ctx.lineWidth = 4;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      for (let line of lines) {
+        if (line.points.length < 2) continue;
+        ctx.beginPath();
+        ctx.moveTo(line.points[0].x, line.points[0].y);
+        for (let i = 1; i < line.points.length; i++) {
+          ctx.lineTo(line.points[i].x, line.points[i].y);
+        }
+        ctx.strokeStyle = line.color;
+        ctx.shadowColor = line.color;
+        ctx.shadowBlur = 8;
+        ctx.stroke();
+      }
+
+      if (currentLine && currentLine.points.length > 1) {
+        ctx.beginPath();
+        ctx.moveTo(currentLine.points[0].x, currentLine.points[0].y);
+        for (let i = 1; i < currentLine.points.length; i++) {
+          ctx.lineTo(currentLine.points[i].x, currentLine.points[i].y);
+        }
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.shadowColor = '#00e5ff';
+        ctx.shadowBlur = 10;
+        ctx.stroke();
+      }
+
+      // 2. ボールの物理更新 & 描画
+      for (let i = balls.length - 1; i >= 0; i--) {
+        const ball = balls[i];
+        ball.update(gravity);
+        ball.draw(ctx);
+
+        if (ball.alpha <= 0) {
+          balls.splice(i, 1);
+        }
+      }
+
+      // 3. 録音時間の表示更新
+      if (isRecording) {
+        const elapsed = (Date.now() - recStartTime) / 1000;
+        recTimeDisplay.textContent = `${elapsed.toFixed(1)}s`;
+      }
+
+      requestAnimationFrame(render);
+    }
+
+    render();
+  </script>
+</body>
+</html>
