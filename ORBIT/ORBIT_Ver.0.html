@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
-  <title>RAIN ORBIT</title>
+  <title>ORBIT</title>
   <style>
     :root{
       --bg:#042A57;
@@ -47,6 +47,17 @@
     }
     input[type=color]::-webkit-color-swatch-wrapper{padding:0}
     input[type=color]::-webkit-color-swatch{border:none;border-radius:6px}
+    input[type=text]{
+      color:var(--tx);
+      border:1px solid var(--bd);
+      border-radius:9px;
+      background:rgba(255,255,255,.06);
+      padding:8px 10px;
+      min-width:0;
+      width:100%;
+      user-select:text;
+      -webkit-user-select:text
+    }
     .top{
       position:fixed;
       top:calc(8px + env(safe-area-inset-top));
@@ -215,6 +226,7 @@
       <button id="slider" class="tool">SLIDER</button>
       <button id="spin" class="tool">SPIN</button>
       <button id="hole" class="tool hole">HOLE</button>
+      <button id="font" class="tool">FONT</button>
     </div>
     <button id="eraser" class="eraser">ERASER</button>
   </div>
@@ -228,7 +240,7 @@
 
   <div id="settings" class="panel">
     <div class="header">
-      <div class="title"><strong>RAIN ORBIT</strong><span>Ambient physics instrument</span></div>
+      <div class="title"><strong>ORBIT</strong><span>Ambient physics instrument</span></div>
       <button class="close">×</button>
     </div>
 
@@ -271,7 +283,7 @@
 
     <div class="section">
       <div class="section-title">PHYSICS</div>
-      <div class="row"><label>Gravity</label><input id="gravity" type="range" min="0" max="1.5" step=".05" value=".2"><span id="gravityV" class="value"></span></div>
+      <div class="row"><label>Gravity</label><input id="gravity" type="range" min="0" max="1.5" step=".05" value=".5"><span id="gravityV" class="value"></span></div>
       <div class="row"><label>Bounce</label><input id="bounce" type="range" min=".1" max=".98" step=".01" value=".7"><span id="bounceV" class="value"></span></div>
       <p class="note">Reverb uses a lightweight feedback-delay network to reduce memory usage.</p>
     </div>
@@ -280,8 +292,7 @@
   <div id="ballPanel" class="panel small">
     <div class="header"><div class="title"><strong>BALL</strong><span>New ball settings</span></div><button class="close">×</button></div>
     <div class="section">
-      <div class="row"><label>Size</label><input id="ballSize" type="range" min="0.5" max="30" step="0.1" value="10">
-<span id="ballSizeV" class="value"></span></div>
+      <div class="row"><label>Size</label><input id="ballSize" type="range" min="0.5" max="30" step="0.1" value="10"><span id="ballSizeV" class="value"></span></div>
       <div class="row"><label>Bounce Limit</label><input id="ballLimitPer" type="range" min="1" max="50" value="10"><span id="ballLimitPerV" class="value"></span></div>
       <div class="row"><label>Weight</label><input id="weight" type="range" min=".2" max="3" step=".05" value="1"><span id="weightV" class="value"></span></div>
       <div class="row"><label>Sound Release</label><input id="release" type="range" min=".15" max="3" step=".05" value="1"><span id="releaseV" class="value"></span></div>
@@ -312,6 +323,28 @@
     <div class="section"><div class="row"><label>Hole Size</label><input id="holeSize" type="range" min="14" max="100" step="2" value="32"><span id="holeSizeV" class="value"></span></div></div>
   </div>
 
+  <div id="fontPanel" class="panel small">
+    <div class="header"><div class="title"><strong>FONT</strong><span>Text object settings</span></div><button class="close">×</button></div>
+    <div class="section">
+      <div class="row"><label>Text</label><input id="fontText" type="text" value="HELLO" maxlength="40"></div>
+      <div class="row"><label>Font Size</label><input id="fontSize" type="range" min="12" max="120" step="1" value="42"><span id="fontSizeV" class="value"></span></div>
+      <div class="row"><label>Weight</label><select id="fontWeight"><option value="400" selected>NORMAL</option><option value="700">BOLD</option><option value="900">BLACK</option></select><span id="fontWeightV" class="value"></span></div>
+      <div class="row"><label>Family</label>
+        <select id="fontFamily">
+          <option value="system-ui, sans-serif" selected>SYSTEM</option>
+          <option value="sans-serif">SANS</option>
+          <option value="serif">SERIF</option>
+          <option value="monospace">MONO</option>
+          <option value="Arial">ARIAL</option>
+          <option value="Georgia">GEORGIA</option>
+          <option value="'Times New Roman', serif">TIMES</option>
+          <option value="'Courier New', monospace">COURIER</option>
+        </select>
+      </div>
+      <p class="note">FONT mode: tap the canvas to place the entered text.</p>
+    </div>
+  </div>
+
   <div id="recTime">WAITING</div>
 
   <div class="bottom-wrap"><div class="bottom">
@@ -323,7 +356,7 @@
     <button id="clearBalls">C BALLS</button>
   </div></div>
 
-  <div class="hint">• BALL: tap to create<br>• LINE / SLIDER: drag<br>• SPIN / HOLE: tap<br>• VIEW hides controls</div>
+  <div class="hint">• BALL: tap to create<br>• LINE / SLIDER: drag<br>• SPIN / HOLE / FONT: tap<br>• VIEW hides controls</div>
 
 <script>
 const $ = id => document.getElementById(id);
@@ -367,13 +400,19 @@ const SPIN_OFFSETS = {
 };
 
 let W,H,D,zoom=1,pinch=false,pinchStart=0,pinchZoom=1,mode="line",drawing=false,erasing=false,eraserOn=false,stroke=null,drag=0;
-let lines=[],sliders=[],spins=[],holes=[],balls=[],history=[],note=0,notes=[];
+let lines=[],sliders=[],spins=[],holes=[],texts=[],balls=[],history=[],note=0,notes=[];
 let audio=null,master=null,voices=0,lastSound=0,audioUnlocked=false;
 let recording=false,firstRec=true,recStart=null,loopDur=0,events=[],timers=[],sequenceStopped=false;
 let objSeq=0;
+let lastTextMaskLineWidth = 2;
 
 const MAX_VOICES = 24;
 const CONTACT_IMPACT_MIN = .04;
+const MAX_SLIDERS = 18;
+const MAX_SPINS = 14;
+const MAX_HOLES = 12;
+const MAX_TEXTS = 24;
+const panels = [$("settings"),$("ballPanel"),$("motionPanel"),$("holePanel"),$("fontPanel")];
 
 const FX = {
   master:.72,
@@ -392,14 +431,15 @@ const FX = {
   ballColor:DEFAULT_BALL_COLOR
 };
 
-const MAX_SLIDERS=18,MAX_SPINS=14,MAX_HOLES=12,panels=[$("settings"),$("ballPanel"),$("motionPanel"),$("holePanel")];
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const strokeWidth=(m=1)=>Math.max(1,FX.lineWidth*m);
 
 function resize(){
   D=Math.min(devicePixelRatio||1,2);
-  W=innerWidth;H=innerHeight;
-  canvas.width=W*D;canvas.height=H*D;
+  W=innerWidth;
+  H=innerHeight;
+  canvas.width=W*D;
+  canvas.height=H*D;
   ctx.setTransform(D,0,0,D,0,0);
 }
 
@@ -426,11 +466,7 @@ function hexToRgb(hex){
   let h=hex.replace("#","");
   if(h.length===3)h=h.split("").map(c=>c+c).join("");
   const n=parseInt(h,16);
-  return {
-    r:(n>>16)&255,
-    g:(n>>8)&255,
-    b:n&255
-  };
+  return {r:(n>>16)&255,g:(n>>8)&255,b:n&255};
 }
 
 function rgbToHex(r,g,b){
@@ -498,7 +534,18 @@ function buildScale(){
   }
 }
 
+function updateFontUI(){
+  $("fontWeightV").textContent = $("fontWeight").selectedOptions[0]?.textContent || "";
+}
+
+function rebuildTextMasks(){
+  texts.forEach(buildTextMask);
+  lastTextMaskLineWidth = FX.lineWidth;
+}
+
 function updateFX(){
+  const prevLineWidth = FX.lineWidth;
+
   FX.master=+$("masterVolume").value;
   FX.reverbMix=+$("reverbMix").value;
   FX.reverbPreDelay=+$("reverbPreDelay").value;
@@ -535,6 +582,10 @@ function updateFX(){
     master.gain.cancelScheduledValues(audio.currentTime);
     master.gain.setTargetAtTime(FX.master,audio.currentTime,.015);
   }
+
+  if(texts.length && prevLineWidth !== FX.lineWidth){
+    rebuildTextMasks();
+  }
 }
 
 function pitchForHit(h){
@@ -544,12 +595,6 @@ function pitchForHit(h){
   return notes[Math.abs(base + edge) % notes.length];
 }
 
-/*
-  Per-voice FX:
-  - Delay: time, mix, feedback, tone filter
-  - Reverb: pre-delay, room size, decay, brightness, mix
-  Lightweight feedback network; no ConvolverNode is used.
-*/
 function playSound(f,v,r,w=1,rel=1){
   try{
     if(!audio||!master){
@@ -775,6 +820,100 @@ function spinState(s,t){
   };
 }
 
+function buildTextMask(t){
+  const text = String(t.text ?? "").replace(/\s+/g," ").trim();
+  t.text = text;
+  if(!text){
+    t.mask = null;
+    return t;
+  }
+
+  const measureCanvas = buildTextMask._mc || (buildTextMask._mc=document.createElement("canvas"));
+  const mctx = buildTextMask._mctx || (buildTextMask._mctx=measureCanvas.getContext("2d"));
+  const font = `${t.weight} ${t.size}px ${t.family}`;
+
+  mctx.font = font;
+  const metrics = mctx.measureText(text);
+
+  const pad = Math.ceil(Math.max(8, t.size * .35));
+  const w = Math.ceil((metrics.width || t.size) + pad * 2);
+  const h = Math.ceil((((metrics.actualBoundingBoxAscent || t.size * .8) + (metrics.actualBoundingBoxDescent || t.size * .25))) + pad * 2);
+
+  const c = document.createElement("canvas");
+  c.width = Math.max(2,w);
+  c.height = Math.max(2,h);
+
+  const cx = c.getContext("2d",{willReadFrequently:true});
+  cx.clearRect(0,0,c.width,c.height);
+  cx.font = font;
+  cx.textAlign = "center";
+  cx.textBaseline = "middle";
+  cx.lineJoin = "round";
+  cx.lineCap = "round";
+  cx.strokeStyle = "#fff";
+  cx.lineWidth = Math.max(2, FX.lineWidth * 1.25);
+  cx.strokeText(text, c.width/2, c.height/2);
+
+  const data = cx.getImageData(0,0,c.width,c.height).data;
+  const alpha = new Uint8ClampedArray(c.width * c.height);
+  for(let i=0,j=3;i<alpha.length;i++,j+=4) alpha[i] = data[j];
+
+  t.font = font;
+  t.mask = {
+    alpha,
+    w:c.width,
+    h:c.height,
+    x0:t.x - c.width/2,
+    y0:t.y - c.height/2,
+    thresh:20
+  };
+
+  return t;
+}
+
+function sampleTextAlpha(t,x,y){
+  if(!t?.mask) return 0;
+  const lx = Math.floor(x - t.mask.x0);
+  const ly = Math.floor(y - t.mask.y0);
+  if(lx<0||ly<0||lx>=t.mask.w||ly>=t.mask.h) return 0;
+  return t.mask.alpha[ly * t.mask.w + lx] || 0;
+}
+
+function textBallOverlap(t,x,y,r){
+  if(sampleTextAlpha(t,x,y) > t.mask.thresh) return true;
+  const n = 12;
+  for(let i=0;i<n;i++){
+    const a = i / n * Math.PI * 2;
+    const px = x + Math.cos(a) * r * .95;
+    const py = y + Math.sin(a) * r * .95;
+    if(sampleTextAlpha(t,px,py) > t.mask.thresh) return true;
+  }
+  return false;
+}
+
+function textNormalAt(t,x,y){
+  const s = 2;
+  const gx = sampleTextAlpha(t,x+s,y) - sampleTextAlpha(t,x-s,y);
+  const gy = sampleTextAlpha(t,x,y+s) - sampleTextAlpha(t,x,y-s);
+  let nx = -gx, ny = -gy;
+  let L = Math.hypot(nx,ny);
+
+  if(L < .001){
+    nx = x - (t.mask.x0 + t.mask.w/2);
+    ny = y - (t.mask.y0 + t.mask.h/2);
+    L = Math.hypot(nx,ny) || 1;
+  }
+
+  return {x:nx/L,y:ny/L};
+}
+
+function textEdgeNoteAt(t,x,y){
+  const cell = Math.max(8, Math.round(t.size / 3));
+  const cx = Math.max(0, Math.floor((x - t.mask.x0) / cell));
+  const cy = Math.max(0, Math.floor((y - t.mask.y0) / cell));
+  return (cx * 7 + cy * 13 + t.id) % 64;
+}
+
 function sweep(x0,y0,x1,y1,a,b,r,src,vx=0,vy=0,sp=0,edgeNote=0){
   const N=Math.max(4,Math.min(24,Math.ceil(Math.hypot(x1-x0,y1-y0)/Math.max(2.2,r*.42))));
   let old=0;
@@ -795,6 +934,67 @@ function sweep(x0,y0,x1,y1,a,b,r,src,vx=0,vy=0,sp=0,edgeNote=0){
     }
 
     old=t;
+  }
+
+  return null;
+}
+
+function sweepText(x0,y0,x1,y1,ball,t){
+  if(!t?.mask) return null;
+
+  const bx0 = Math.min(x0,x1) - ball.r;
+  const by0 = Math.min(y0,y1) - ball.r;
+  const bx1 = Math.max(x0,x1) + ball.r;
+  const by1 = Math.max(y0,y1) + ball.r;
+
+  if(
+    bx1 < t.mask.x0 ||
+    bx0 > t.mask.x0 + t.mask.w ||
+    by1 < t.mask.y0 ||
+    by0 > t.mask.y0 + t.mask.h
+  ) return null;
+
+  const N=Math.max(4,Math.min(30,Math.ceil(Math.hypot(x1-x0,y1-y0)/Math.max(2,ball.r*.45))));
+  let old=0;
+
+  for(let i=0;i<=N;i++){
+    const u=i/N;
+    const x=x0+(x1-x0)*u;
+    const y=y0+(y1-y0)*u;
+
+    if(textBallOverlap(t,x,y,ball.r)){
+      let lo=old,hi=u;
+
+      for(let j=0;j<8;j++){
+        const m=(lo+hi)/2;
+        const mx=x0+(x1-x0)*m;
+        const my=y0+(y1-y0)*m;
+        if(textBallOverlap(t,mx,my,ball.r)) hi=m; else lo=m;
+      }
+
+      const hx=x0+(x1-x0)*hi;
+      const hy=y0+(y1-y0)*hi;
+      const n=textNormalAt(t,hx,hy);
+
+      return {
+        t:hi,
+        x:hx,
+        y:hy,
+        sx:hx,
+        sy:hy,
+        a:{x:hx-n.x,y:hy-n.y},
+        b:{x:hx+n.x,y:hy+n.y},
+        r:ball.r,
+        src:t,
+        vx:0,
+        vy:0,
+        sp:0,
+        edgeNote:textEdgeNoteAt(t,hx,hy),
+        normal:n
+      };
+    }
+
+    old=u;
   }
 
   return null;
@@ -825,6 +1025,10 @@ function collision(ball,x0,y0,x1,y1,now){
         take(sweep(x0,y0,x1,y1,e.a,e.b,ball.r+motionHit,s,e.vx,e.vy,e.sp,e.edgeNote));
       }
     }
+  }
+
+  for(const t of texts){
+    take(sweepText(x0,y0,x1,y1,ball,t));
   }
 
   return best;
@@ -882,20 +1086,31 @@ class Ball{
       this.x=x0+this.vx*rem*Math.max(0,h.t-.001);
       this.y=y0+this.vy*rem*Math.max(0,h.t-.001);
 
-      let nx=h.x-h.sx,ny=h.y-h.sy,L=Math.hypot(nx,ny);
+      let nx,ny;
 
-      if(L<.001){
-        nx=-(h.b.y-h.a.y);
-        ny=h.b.x-h.a.x;
-        L=Math.hypot(nx,ny)||1;
+      if(h.normal){
+        nx=h.normal.x;
+        ny=h.normal.y;
+      }else{
+        nx=h.x-h.sx;
+        ny=h.y-h.sy;
+        let L=Math.hypot(nx,ny);
+
+        if(L<.001){
+          nx=-(h.b.y-h.a.y);
+          ny=h.b.x-h.a.x;
+          L=Math.hypot(nx,ny)||1;
+        }
+
+        nx/=L;
+        ny/=L;
       }
-
-      nx/=L;ny/=L;
 
       let rvx=this.vx-h.vx,rvy=this.vy-h.vy;
 
       if(rvx*nx+rvy*ny>0){
-        nx*=-1;ny*=-1;
+        nx*=-1;
+        ny*=-1;
       }
 
       const dot=rvx*nx+rvy*ny,impact=Math.abs(dot),boost=clamp(h.sp/360,0,1);
@@ -984,6 +1199,24 @@ function drawSpinShape(z,c){
   }
 }
 
+function drawTextObject(t){
+  if(!t?.text)return;
+  ctx.save();
+  ctx.font=t.font || `${t.weight} ${t.size}px ${t.family}`;
+  ctx.textAlign="center";
+  ctx.textBaseline="middle";
+  ctx.lineJoin="round";
+  ctx.lineCap="round";
+  ctx.fillStyle=FX.lineColor;
+  ctx.strokeStyle=FX.lineColor;
+  ctx.lineWidth=Math.max(1,FX.lineWidth*.75);
+  ctx.shadowColor=FX.lineColor;
+  ctx.shadowBlur=0;
+  ctx.fillText(t.text,t.x,t.y);
+  ctx.strokeText(t.text,t.x,t.y);
+  ctx.restore();
+}
+
 function drawHole(h){
   const g=ctx.createRadialGradient(h.x,h.y,2,h.x,h.y,h.r);
   g.addColorStop(0,"#000");
@@ -1029,6 +1262,29 @@ function spawn(x,y,vx=null,vy=null,record=true,hist=true,o={}){
   }
 }
 
+function buildTextObject(x,y,text=null){
+  const raw = String(text ?? $("fontText").value ?? "").replace(/\s+/g," ").trim();
+  if(!raw) return null;
+
+  const t = {
+    type:"text",
+    id:objSeq++,
+    x,
+    y,
+    text:raw,
+    size:+$("fontSize").value,
+    weight:+$("fontWeight").value,
+    family:$("fontFamily").value,
+    note:note++
+  };
+
+  buildTextMask(t);
+  texts.push(t);
+  while(texts.length>MAX_TEXTS)texts.shift();
+  history.push({t:"text",r:t});
+  return t;
+}
+
 function panel(p){
   panels.forEach(x=>x.classList.remove("open"));
   if(p)p.classList.add("open");
@@ -1038,7 +1294,7 @@ function panel(p){
 function setMode(m){
   mode=m;
 
-  ["ball","line","slider","spin","hole"].forEach(x=>{
+  ["ball","line","slider","spin","hole","font"].forEach(x=>{
     $(x).classList.toggle("active",x===m);
   });
 
@@ -1060,6 +1316,7 @@ function setMode(m){
   }
 
   if(m==="hole")panel($("holePanel"));
+  if(m==="font")panel($("fontPanel"));
 }
 
 function removeAt(p){
@@ -1069,10 +1326,8 @@ function removeAt(p){
   const test=(arr,fn)=>{
     arr.forEach((o,i)=>{
       const q=fn(o);
-
       for(let j=0;j<q.length-1;j++){
         const d=seg(p.x,p.y,q[j],q[j+1]).d;
-
         if(d<lineErase&&(!best||d<best.d)){
           best={arr,i,d};
         }
@@ -1087,6 +1342,25 @@ function removeAt(p){
     const d=Math.hypot(p.x-o.x,p.y-o.y);
     const rr=o.r??(o.len?o.len/2:45);
     if(d<rr+12&&(!best||d<best.d))best={arr:spins,i,d};
+  });
+
+  texts.forEach((o,i)=>{
+    const box=o.mask;
+    const d=Math.hypot(p.x-o.x,p.y-o.y);
+    const pad=Math.max(10,FX.lineWidth*3);
+    if(box){
+      if(
+        p.x>=box.x0-pad &&
+        p.x<=box.x0+box.w+pad &&
+        p.y>=box.y0-pad &&
+        p.y<=box.y0+box.h+pad &&
+        (!best||d<best.d)
+      ){
+        best={arr:texts,i,d};
+      }
+    }else if(d<60&&(!best||d<best.d)){
+      best={arr:texts,i,d};
+    }
   });
 
   holes.forEach((o,i)=>{
@@ -1136,7 +1410,6 @@ function down(e){
     const h={type:"hole",id:objSeq++,x:p.x,y:p.y,r:+$("holeSize").value,note:note++};
     holes.push(h);
     history.push({t:"hole",r:h});
-
     while(holes.length>MAX_HOLES)holes.shift();
     return;
   }
@@ -1159,8 +1432,12 @@ function down(e){
 
     spins.push(s);
     history.push({t:"spin",r:s});
-
     while(spins.length>MAX_SPINS)spins.shift();
+    return;
+  }
+
+  if(mode==="font"){
+    buildTextObject(p.x,p.y);
     return;
   }
 
@@ -1217,7 +1494,6 @@ function move(e){
   if(stroke.k==="line"){
     const q=stroke.p.at(-1);
     const d=Math.hypot(p.x-q.x,p.y-q.y);
-
     if(d>4){
       stroke.p.push(p);
       drag+=d;
@@ -1260,7 +1536,6 @@ function up(){
 
     sliders.push(o);
     history.push({t:"slider",r:o});
-
     while(sliders.length>MAX_SLIDERS)sliders.shift();
   }
 
@@ -1286,7 +1561,6 @@ function playLoop(){
     for(const e of events){
       timers.push(setTimeout(()=>{
         if(sequenceStopped)return;
-
         spawn(e.x,e.y,e.vx,e.vy,false,false,{
           r:e.r,c:e.c,w:e.w,lim:e.lim,rel:e.s
         });
@@ -1301,7 +1575,6 @@ function playLoop(){
 
 function resumeLoop(){
   if(!events.length||loopDur<=200)return;
-
   sequenceStopped=false;
   $("seqStop").classList.remove("active");
   playLoop();
@@ -1342,7 +1615,7 @@ canvas.addEventListener("touchmove",move,{passive:false});
 canvas.addEventListener("touchend",up);
 canvas.addEventListener("touchcancel",up);
 
-["ball","line","slider","spin","hole"].forEach(x=>{
+["ball","line","slider","spin","hole","font"].forEach(x=>{
   $(x).onclick=()=>setMode(x);
 });
 
@@ -1357,7 +1630,6 @@ $("menu").onclick=()=>{
 };
 
 $("view").onclick=toggleView;
-
 $("overlay").onclick=()=>panel(null);
 
 document.querySelectorAll(".close").forEach(b=>{
@@ -1366,6 +1638,7 @@ document.querySelectorAll(".close").forEach(b=>{
 
 $("key").onchange=buildScale;
 $("scale").onchange=buildScale;
+$("fontWeight").onchange=updateFontUI;
 
 $("rec").onclick=()=>{
   ensureAudio();
@@ -1442,7 +1715,8 @@ $("undo").onclick=()=>{
     line:lines,
     slider:sliders,
     spin:spins,
-    hole:holes
+    hole:holes,
+    text:texts
   }[a.t];
 
   const i=z.indexOf(a.r);
@@ -1454,6 +1728,7 @@ $("clearObj").onclick=()=>{
   sliders=[];
   spins=[];
   holes=[];
+  texts=[];
   history=history.filter(x=>x.t==="ball");
 };
 
@@ -1493,10 +1768,11 @@ bind("release","releaseV","s");
 bind("ballLimit","ballLimitV");
 bind("gravity","gravityV");
 bind("bounce","bounceV");
+bind("fontSize","fontSizeV","px");
+updateFontUI();
 
 resize();
 buildScale();
-
 addEventListener("resize",resize);
 
 function render(){
@@ -1522,20 +1798,21 @@ function render(){
     drawSpinShape(z,FX.lineColor);
   });
 
+  texts.forEach(drawTextObject);
+
   if(stroke){
     const previewW = stroke.k==="line" ? strokeWidth(1) : strokeWidth(1.15);
     drawLine(
-      stroke.k==="line"?stroke.p:[stroke.a,stroke.e],
+      stroke.k==="line" ? stroke.p : [stroke.a,stroke.e],
       FX.lineColor,
       previewW,
-      stroke.k==="line"?[]:[8,8]
+      stroke.k==="line" ? [] : [8,8]
     );
   }
 
   for(let i=balls.length-1;i>=0;i--){
     balls[i].update(now);
     balls[i].draw();
-
     if(balls[i].al<=0||balls[i].r<.3){
       balls.splice(i,1);
     }
