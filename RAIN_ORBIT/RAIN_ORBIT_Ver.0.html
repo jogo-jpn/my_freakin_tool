@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>RAIN ORBIT</title>
   <style>
     :root {
@@ -56,61 +56,7 @@
       touch-action: none;
     }
 
-    .ui-panel {
-      position: absolute;
-      top: 14px;
-      left: 14px;
-      right: 14px;
-      z-index: 10;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      align-items: center;
-      justify-content: space-between;
-      pointer-events: none;
-    }
-
-    .ui-group {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: var(--panel);
-      border: 1px solid var(--border);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
-      border-radius: 14px;
-      padding: 10px 12px;
-      pointer-events: auto;
-      box-shadow: var(--shadow);
-    }
-
-    .ui-title {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-      line-height: 1.1;
-    }
-
-    .ui-title strong {
-      font-size: 14px;
-      letter-spacing: 0.18em;
-      font-weight: 700;
-      color: var(--text);
-    }
-
-    .ui-title span {
-      font-size: 10px;
-      color: var(--sub);
-      letter-spacing: 0.08em;
-    }
-
-    label {
-      font-size: 11px;
-      color: var(--sub);
-      white-space: nowrap;
-    }
-
-    select, button {
+    button, select, input[type="color"] {
       appearance: none;
       -webkit-appearance: none;
       border: 1px solid var(--border);
@@ -124,16 +70,282 @@
       transition: 0.18s ease;
       cursor: pointer;
       font: inherit;
+      touch-action: manipulation;
     }
 
-    select:hover, button:hover {
+    button:hover, select:hover, input[type="color"]:hover {
       border-color: var(--border-strong);
       background: rgba(255, 255, 255, 0.08);
     }
 
-    select:focus, button:focus {
+    button:focus, select:focus, input[type="color"]:focus {
       border-color: rgba(139, 233, 255, 0.5);
       box-shadow: 0 0 0 3px rgba(139, 233, 255, 0.10);
+    }
+
+    button:disabled, select:disabled, input[type="color"]:disabled, input[type="range"]:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    input[type="color"] {
+      min-width: 0;
+      width: 100%;
+      height: 34px;
+      padding: 4px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    input[type="color"]::-webkit-color-swatch-wrapper {
+      padding: 0;
+    }
+
+    input[type="color"]::-webkit-color-swatch {
+      border: none;
+      border-radius: 6px;
+    }
+
+    .menu-toggle {
+      position: fixed;
+      top: calc(14px + env(safe-area-inset-top));
+      right: calc(14px + env(safe-area-inset-right));
+      z-index: 30;
+      width: 52px;
+      height: 52px;
+      border-radius: 16px;
+      display: grid;
+      place-items: center;
+      font-size: 20px;
+      font-weight: 700;
+      background: rgba(10, 14, 22, 0.68);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+    }
+
+    .menu-toggle:hover {
+      transform: translateY(-1px);
+      border-color: var(--border-strong);
+    }
+
+    .settings-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 18;
+      background: rgba(0, 0, 0, 0.24);
+      backdrop-filter: blur(2px);
+      -webkit-backdrop-filter: blur(2px);
+      opacity: 0;
+      pointer-events: none;
+      transition: 0.18s ease;
+    }
+
+    .settings-overlay.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .settings-panel {
+      position: fixed;
+      right: calc(14px + env(safe-area-inset-right));
+      top: calc(74px + env(safe-area-inset-top));
+      z-index: 25;
+      width: min(392px, calc(100vw - 28px));
+      max-height: min(78vh, 760px);
+      overflow: auto;
+      padding: 14px;
+      border-radius: 18px;
+      background: var(--panel-strong);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      opacity: 0;
+      transform: translateY(12px) scale(0.98);
+      pointer-events: none;
+      visibility: hidden;
+      transition: 0.18s ease;
+    }
+
+    .settings-panel.open {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
+      visibility: visible;
+    }
+
+    .settings-panel::-webkit-scrollbar {
+      width: 10px;
+    }
+
+    .settings-panel::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.14);
+      border-radius: 999px;
+      border: 2px solid transparent;
+      background-clip: padding-box;
+    }
+
+    .settings-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .settings-title {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      line-height: 1.1;
+    }
+
+    .settings-title strong {
+      font-size: 14px;
+      letter-spacing: 0.18em;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .settings-title span {
+      font-size: 10px;
+      color: var(--sub);
+      letter-spacing: 0.08em;
+    }
+
+    .icon-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      padding: 0;
+      display: grid;
+      place-items: center;
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .settings-section {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 12px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      margin-bottom: 10px;
+    }
+
+    .settings-section-title {
+      font-size: 11px;
+      color: var(--accent);
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .control-row,
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .control-row label,
+    .slider-row label {
+      min-width: 86px;
+      font-size: 11px;
+      color: var(--sub);
+      white-space: nowrap;
+    }
+
+    .control-row select,
+    .slider-row select {
+      flex: 1;
+      min-width: 0;
+      width: 100%;
+    }
+
+    .control-row input[type="color"] {
+      flex: 1;
+      min-width: 0;
+      width: 100%;
+    }
+
+    .slider-row input[type="range"] {
+      flex: 1;
+      min-width: 0;
+      accent-color: var(--accent);
+    }
+
+    .slider-value {
+      min-width: 46px;
+      text-align: right;
+      font-size: 11px;
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .sound-legend {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+      color: var(--sub);
+    }
+
+    .legend-swatch {
+      width: 14px;
+      height: 14px;
+      border-radius: 999px;
+      box-shadow: 0 0 10px currentColor;
+      flex: 0 0 auto;
+    }
+
+    .legend-note {
+      font-size: 11px;
+      color: var(--sub);
+      line-height: 1.5;
+    }
+
+    .action-bar {
+      position: fixed;
+      left: 50%;
+      bottom: calc(14px + env(safe-area-inset-bottom));
+      transform: translateX(-50%);
+      z-index: 20;
+      width: min(1080px, calc(100vw - 28px));
+      padding: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      overflow-y: hidden;
+      background: rgba(10, 14, 22, 0.72);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      scrollbar-width: none;
+    }
+
+    .action-bar::-webkit-scrollbar {
+      display: none;
+    }
+
+    .action-bar button {
+      flex: 0 0 auto;
+      white-space: nowrap;
     }
 
     button.btn-rec {
@@ -163,86 +375,52 @@
     }
 
     .rec-time-display {
-      min-width: 48px;
+      min-width: 52px;
       font-size: 12px;
       font-weight: 700;
       color: #ff8ea1;
       display: none;
       font-variant-numeric: tabular-nums;
-    }
-
-    .settings-drawer {
-      position: absolute;
-      right: 14px;
-      bottom: 14px;
-      z-index: 10;
-      min-width: 280px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      padding: 12px 14px;
-      border-radius: 16px;
-      background: var(--panel-strong);
-      border: 1px solid var(--border);
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
-    }
-
-    .slider-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .slider-row label {
-      min-width: 86px;
-    }
-
-    .slider-row input[type="range"] {
-      flex: 1;
-      accent-color: var(--accent);
-    }
-
-    .slider-value {
-      min-width: 46px;
-      text-align: right;
-      font-size: 11px;
-      color: var(--text);
-      font-variant-numeric: tabular-nums;
+      align-self: center;
+      text-align: center;
+      padding: 0 4px;
     }
 
     .instructions {
       position: absolute;
-      left: 16px;
-      bottom: 16px;
+      left: calc(16px + env(safe-area-inset-left));
+      bottom: calc(92px + env(safe-area-inset-bottom));
       z-index: 5;
       color: rgba(234, 241, 248, 0.42);
       font-size: 12px;
       line-height: 1.65;
       pointer-events: none;
       text-shadow: 0 1px 10px rgba(0, 0, 0, 0.4);
+      max-width: min(320px, calc(100vw - 90px));
     }
 
     @media (max-width: 720px) {
-      .ui-panel {
-        gap: 8px;
-      }
-
-      .ui-group {
-        width: 100%;
-        flex-wrap: wrap;
-        justify-content: flex-start;
-      }
-
-      .settings-drawer {
+      .settings-panel {
         left: 14px;
         right: 14px;
-        min-width: 0;
+        width: auto;
+        top: calc(74px + env(safe-area-inset-top));
+        max-height: min(72vh, 700px);
       }
 
+      .control-row label,
       .slider-row label {
         min-width: 72px;
+      }
+
+      .action-bar {
+        justify-content: flex-start;
+        width: calc(100vw - 16px);
+        padding: 10px 12px;
+      }
+
+      .instructions {
+        max-width: calc(100vw - 32px);
       }
     }
   </style>
@@ -252,102 +430,154 @@
     <canvas id="mainCanvas"></canvas>
   </div>
 
-  <div class="ui-panel">
-    <div class="ui-group">
-      <div class="ui-title">
+  <button id="menuToggle" class="menu-toggle" aria-label="設定">⚙</button>
+
+  <div id="settingsOverlay" class="settings-overlay"></div>
+
+  <div id="settingsPanel" class="settings-panel" aria-hidden="true">
+    <div class="settings-header">
+      <div class="settings-title">
         <strong>RAIN ORBIT</strong>
-        <span>2026 / jogo.jpn</span>
+        <span>線の3色で ambient pad が変化</span>
+      </div>
+      <button id="closeMenuBtn" class="icon-btn" aria-label="閉じる">×</button>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-title">色設定</div>
+
+      <div class="control-row">
+        <label for="lineColorModeSelect">線の色</label>
+        <select id="lineColorModeSelect">
+          <option value="random" selected>ランダム</option>
+          <option value="manual">マニュアル</option>
+        </select>
+      </div>
+
+      <div class="control-row">
+        <label for="lineColorSelect">線色(手動)</label>
+        <select id="lineColorSelect">
+          <option value="0">Cyan</option>
+          <option value="1">Violet</option>
+          <option value="2">Mint</option>
+        </select>
+      </div>
+
+      <div class="control-row">
+        <label for="ballColorModeSelect">玉の色</label>
+        <select id="ballColorModeSelect">
+          <option value="random" selected>ランダム</option>
+          <option value="manual">マニュアル</option>
+        </select>
+      </div>
+
+      <div class="control-row">
+        <label for="ballColorInput">玉色(手動)</label>
+        <input type="color" id="ballColorInput" value="#8be9ff" />
+      </div>
+
+      <div class="slider-row">
+        <label for="ballSizeSlider">玉サイズ</label>
+        <input type="range" id="ballSizeSlider" min="4" max="30" step="1" value="10" />
+        <span id="ballSizeVal" class="slider-value">10px</span>
       </div>
     </div>
 
-    <div class="ui-group">
-      <label for="keySelect">Key</label>
-      <select id="keySelect">
-        <option value="C">C</option>
-        <option value="C#">C# / Db</option>
-        <option value="D">D</option>
-        <option value="D#">Eb</option>
-        <option value="E">E</option>
-        <option value="F">F</option>
-        <option value="F#">F# / Gb</option>
-        <option value="G">G</option>
-        <option value="G#">Ab</option>
-        <option value="A" selected>A</option>
-        <option value="A#">Bb</option>
-        <option value="B">B</option>
-      </select>
+    <div class="settings-section">
+      <div class="settings-section-title">音階</div>
+      <div class="control-row">
+        <label for="keySelect">Key</label>
+        <select id="keySelect">
+          <option value="C">C</option>
+          <option value="C#">C# / Db</option>
+          <option value="D">D</option>
+          <option value="D#">Eb</option>
+          <option value="E">E</option>
+          <option value="F">F</option>
+          <option value="F#">F# / Gb</option>
+          <option value="G">G</option>
+          <option value="G#">Ab</option>
+          <option value="A" selected>A</option>
+          <option value="A#">Bb</option>
+          <option value="B">B</option>
+        </select>
+      </div>
 
-      <label for="scaleSelect">Scale</label>
-      <select id="scaleSelect">
-        <option value="majorPentatonic">Major Pentatonic</option>
-        <option value="minorPentatonic" selected>Minor Pentatonic</option>
-        <option value="major">Major</option>
-        <option value="minor">Minor</option>
-        <option value="hirajoshi">Hirajoshi</option>
-        <option value="akebono">Akebono</option>
-        <option value="lydian">Lydian</option>
-        <option value="dorian">Dorian</option>
-      </select>
+      <div class="control-row">
+        <label for="scaleSelect">Scale</label>
+        <select id="scaleSelect">
+          <option value="majorPentatonic">Major Pentatonic</option>
+          <option value="minorPentatonic" selected>Minor Pentatonic</option>
+          <option value="major">Major</option>
+          <option value="minor">Minor</option>
+          <option value="hirajoshi">Hirajoshi</option>
+          <option value="akebono">Akebono</option>
+          <option value="lydian">Lydian</option>
+          <option value="dorian">Dorian</option>
+        </select>
+      </div>
     </div>
 
-    <div class="ui-group">
-      <button id="recBtn" class="btn-rec">START REC</button>
-      <div id="recTimeDisplay" class="rec-time-display">0.0s</div>
-      <button id="undoBtn">UNDO</button>
-      <button id="clearLinesBtn">線消去</button>
-      <button id="clearBallsBtn">玉消去</button>
-      <button id="clearLoopBtn">録音消去</button>
+    <div class="settings-section">
+      <div class="settings-section-title">重力</div>
+      <div class="control-row">
+        <label for="gravityModeSelect">重力モード</label>
+        <select id="gravityModeSelect">
+          <option value="manual" selected>通常（下方向）</option>
+          <option value="sensor">iPhone重力センサー</option>
+        </select>
+      </div>
+
+      <div class="control-row">
+        <button id="sensorBtn" style="width: 100%;">センサー許可</button>
+      </div>
+
+      <div class="slider-row">
+        <label for="gravitySlider">重力</label>
+        <input type="range" id="gravitySlider" min="0.00" max="1.50" step="0.05" value="0.45" />
+        <span id="gravityVal" class="slider-value">0.45</span>
+      </div>
+
+      <div class="slider-row">
+        <label for="bounceSlider">反発</label>
+        <input type="range" id="bounceSlider" min="0.10" max="0.98" step="0.01" value="0.68" />
+        <span id="bounceVal" class="slider-value">0.68</span>
+      </div>
+
+      <div class="slider-row">
+        <label for="bounceLimitSlider">バウンド上限</label>
+        <input type="range" id="bounceLimitSlider" min="1" max="50" step="1" value="10" />
+        <span id="bounceLimitVal" class="slider-value">10回</span>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-title">線の色 / 音色</div>
+      <div class="sound-legend">
+        <div class="legend-item"><span class="legend-swatch" style="background:#8be9ff; color:#8be9ff;"></span> Cyan → Mist Pad</div>
+        <div class="legend-item"><span class="legend-swatch" style="background:#b6a3ff; color:#b6a3ff;"></span> Violet → Dawn Pad</div>
+        <div class="legend-item"><span class="legend-swatch" style="background:#7ee0c1; color:#7ee0c1;"></span> Mint → Aurora Pad</div>
+      </div>
+      <div class="legend-note">新しい線は 3 色で切り替わり、各色に対応した ambient 寄りの pad 音色になります。</div>
     </div>
   </div>
 
-  <div class="settings-drawer">
-    <div class="slider-row">
-      <label for="waveSelect">音色</label>
-      <select id="waveSelect" style="width: 100%;">
-        <option value="sine">Sine</option>
-        <option value="triangle" selected>Triangle</option>
-        <option value="sine-bell">Bell</option>
-        <option value="soft-pad">Warm Pad</option>
-      </select>
-    </div>
-
-    <div class="slider-row">
-      <label for="gravityModeSelect">重力モード</label>
-      <select id="gravityModeSelect" style="width: 100%;">
-        <option value="manual" selected>通常（下方向）</option>
-        <option value="sensor">iPhone重力センサー</option>
-      </select>
-    </div>
-
-    <div class="slider-row">
-      <label></label>
-      <button id="sensorBtn" style="width: 100%;">センサー許可</button>
-    </div>
-
-    <div class="slider-row">
-      <label for="gravitySlider">重力</label>
-      <input type="range" id="gravitySlider" min="0.00" max="1.50" step="0.05" value="0.45" />
-      <span id="gravityVal" class="slider-value">0.45</span>
-    </div>
-
-    <div class="slider-row">
-      <label for="bounceSlider">反発</label>
-      <input type="range" id="bounceSlider" min="0.10" max="0.98" step="0.01" value="0.68" />
-      <span id="bounceVal" class="slider-value">0.68</span>
-    </div>
-
-    <div class="slider-row">
-      <label for="bounceLimitSlider">バウンド上限</label>
-      <input type="range" id="bounceLimitSlider" min="1" max="50" step="1" value="10" />
-      <span id="bounceLimitVal" class="slider-value">10回</span>
-    </div>
+  <div class="action-bar">
+    <button id="recBtn" class="btn-rec">START REC</button>
+    <div id="recTimeDisplay" class="rec-time-display">待機</div>
+    <button id="undoBtn">UNDO</button>
+    <button id="clearLinesBtn">線消去</button>
+    <button id="clearBallsBtn">玉消去</button>
+    <button id="clearLoopBtn">録音消去</button>
   </div>
 
   <div class="instructions">
     ・画面をドラッグして線を描く<br />
     ・タップすると玉を発生<br />
-    ・UNDO: Ctrl/⌘ + Z<br />
-    ・iPhoneでは「重力モード」をセンサーにして、許可ボタンを押すと傾き方向に落ちます
+    ・⚙で設定ウインドウを開く<br />
+    ・線/玉の色はランダム or マニュアルで変更可能<br />
+    ・玉サイズも調整可能<br />
+    ・録音は最初の玉が出た瞬間から開始
   </div>
 
   <script>
@@ -366,6 +596,69 @@
 
     const BALL_COLORS = ["#8be9ff", "#b6a3ff", "#7ee0c1", "#ffd27a"];
 
+    const LINE_STYLES = [
+      { color: "#8be9ff", soundPreset: "mist", name: "Mist Pad" },
+      { color: "#b6a3ff", soundPreset: "dawn", name: "Dawn Pad" },
+      { color: "#7ee0c1", soundPreset: "aurora", name: "Aurora Pad" }
+    ];
+
+    const PAD_PRESETS = {
+      mist: {
+        partials: [
+          { type: "sine", mult: 1, detune: -8, gain: 0.92 },
+          { type: "triangle", mult: 2, detune: 4, gain: 0.26 },
+          { type: "sine", mult: 0.5, detune: 0, gain: 0.16 }
+        ],
+        cutoffMul: 5.0,
+        cutoffTail: 2.0,
+        attack: 0.08,
+        release: 2.9,
+        volume: 0.20,
+        delayTime: 0.18,
+        wet: 0.16,
+        feedback: 0.14,
+        fbCutoff: 1800,
+        pan: -0.18,
+        panSpread: 0.20
+      },
+      dawn: {
+        partials: [
+          { type: "triangle", mult: 1, detune: -6, gain: 0.85 },
+          { type: "sine", mult: 1.5, detune: 6, gain: 0.24 },
+          { type: "sine", mult: 2, detune: 11, gain: 0.14 }
+        ],
+        cutoffMul: 4.0,
+        cutoffTail: 1.6,
+        attack: 0.10,
+        release: 3.2,
+        volume: 0.19,
+        delayTime: 0.24,
+        wet: 0.18,
+        feedback: 0.17,
+        fbCutoff: 1600,
+        pan: 0.10,
+        panSpread: 0.22
+      },
+      aurora: {
+        partials: [
+          { type: "sine", mult: 1, detune: -3, gain: 0.82 },
+          { type: "triangle", mult: 2, detune: 9, gain: 0.20 },
+          { type: "sine", mult: 3, detune: 0, gain: 0.10 }
+        ],
+        cutoffMul: 6.0,
+        cutoffTail: 2.4,
+        attack: 0.05,
+        release: 2.6,
+        volume: 0.18,
+        delayTime: 0.30,
+        wet: 0.20,
+        feedback: 0.19,
+        fbCutoff: 2000,
+        pan: 0.18,
+        panSpread: 0.24
+      }
+    };
+
     let audioCtx = null;
 
     function initAudio() {
@@ -375,6 +668,10 @@
       if (audioCtx.state === "suspended") {
         audioCtx.resume();
       }
+    }
+
+    function clamp(v, min, max) {
+      return Math.max(min, Math.min(max, v));
     }
 
     function midiToFreq(midi) {
@@ -395,77 +692,115 @@
       return freqs;
     }
 
-    function playSynthSound(freq, velocity = 1.0) {
+    function playAmbientPad(freq, velocity = 1.0, presetKey = "mist") {
       if (!audioCtx) return;
 
-      const waveType = document.getElementById("waveSelect").value;
+      const preset = PAD_PRESETS[presetKey] || PAD_PRESETS.mist;
       const now = audioCtx.currentTime;
-      const masterGain = audioCtx.createGain();
-      masterGain.gain.value = 0.95;
-      masterGain.connect(audioCtx.destination);
 
-      const dur = 1.5;
-      const vol = Math.min(Math.max(velocity, 0.2), 1.0) * 0.28;
+      const master = audioCtx.createGain();
+      master.gain.value = 0.9;
+      master.connect(audioCtx.destination);
 
-      if (waveType === "sine-bell") {
-        const osc1 = audioCtx.createOscillator();
-        const osc2 = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
+      const dryGain = audioCtx.createGain();
+      const wetGain = audioCtx.createGain();
+      dryGain.gain.value = 1 - preset.wet;
+      wetGain.gain.value = preset.wet;
 
-        osc1.type = "sine";
-        osc2.type = "sine";
-        osc1.frequency.setValueAtTime(freq, now);
-        osc2.frequency.setValueAtTime(freq * 2.76, now);
+      const mix = audioCtx.createGain();
+      mix.gain.value = 0.30;
 
-        gain.gain.setValueAtTime(vol, now);
-        gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+      const hp = audioCtx.createBiquadFilter();
+      hp.type = "highpass";
+      hp.frequency.setValueAtTime(70, now);
 
-        osc1.connect(gain);
-        osc2.connect(gain);
-        gain.connect(masterGain);
+      const lp = audioCtx.createBiquadFilter();
+      lp.type = "lowpass";
+      lp.frequency.setValueAtTime(clamp(freq * preset.cutoffMul * (1 + velocity * 0.12), 700, 8000), now);
+      lp.frequency.exponentialRampToValueAtTime(clamp(freq * preset.cutoffTail * (1 + velocity * 0.05), 500, 6000), now + preset.release);
 
-        osc1.start(now);
-        osc2.start(now);
-        osc1.stop(now + dur);
-        osc2.stop(now + dur);
-      } else if (waveType === "soft-pad") {
-        const osc = audioCtx.createOscillator();
-        const filter = audioCtx.createBiquadFilter();
-        const gain = audioCtx.createGain();
+      const env = audioCtx.createGain();
+      const vol = clamp(velocity, 0.15, 1.0) * preset.volume;
+      env.gain.setValueAtTime(0.0001, now);
+      env.gain.exponentialRampToValueAtTime(vol, now + preset.attack);
+      env.gain.exponentialRampToValueAtTime(0.0001, now + preset.release);
 
-        osc.type = "triangle";
-        osc.frequency.setValueAtTime(freq, now);
+      const delay = audioCtx.createDelay(2.0);
+      delay.delayTime.setValueAtTime(preset.delayTime, now);
 
-        filter.type = "lowpass";
-        filter.frequency.setValueAtTime(freq * 2.5, now);
-        filter.frequency.exponentialRampToValueAtTime(freq * 0.65, now + dur);
+      const fbFilter = audioCtx.createBiquadFilter();
+      fbFilter.type = "lowpass";
+      fbFilter.frequency.setValueAtTime(preset.fbCutoff, now);
 
-        gain.gain.setValueAtTime(0.01, now);
-        gain.gain.linearRampToValueAtTime(vol * 0.9, now + 0.05);
-        gain.gain.exponentialRampToValueAtTime(0.0001, now + dur * 1.2);
+      const fbGain = audioCtx.createGain();
+      fbGain.gain.setValueAtTime(preset.feedback, now);
 
-        osc.connect(filter);
-        filter.connect(gain);
-        gain.connect(masterGain);
-
-        osc.start(now);
-        osc.stop(now + dur * 1.2);
-      } else {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-
-        osc.type = waveType;
-        osc.frequency.setValueAtTime(freq, now);
-
-        gain.gain.setValueAtTime(vol, now);
-        gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
-
-        osc.connect(gain);
-        gain.connect(masterGain);
-
-        osc.start(now);
-        osc.stop(now + dur);
+      const canPan = typeof audioCtx.createStereoPanner === "function";
+      const panner = canPan ? audioCtx.createStereoPanner() : null;
+      if (panner) {
+        const pan = clamp(preset.pan + (Math.random() - 0.5) * preset.panSpread, -0.85, 0.85);
+        panner.pan.setValueAtTime(pan, now);
       }
+
+      mix.connect(hp);
+      hp.connect(lp);
+      lp.connect(env);
+
+      if (panner) {
+        env.connect(panner);
+        panner.connect(dryGain);
+        panner.connect(delay);
+      } else {
+        env.connect(dryGain);
+        env.connect(delay);
+      }
+
+      delay.connect(wetGain);
+      delay.connect(fbFilter);
+      fbFilter.connect(fbGain);
+      fbGain.connect(delay);
+
+      dryGain.connect(master);
+      wetGain.connect(master);
+
+      const cleanupNodes = () => {
+        try { master.disconnect(); } catch {}
+        try { dryGain.disconnect(); } catch {}
+        try { wetGain.disconnect(); } catch {}
+        try { mix.disconnect(); } catch {}
+        try { hp.disconnect(); } catch {}
+        try { lp.disconnect(); } catch {}
+        try { env.disconnect(); } catch {}
+        try { delay.disconnect(); } catch {}
+        try { fbFilter.disconnect(); } catch {}
+        try { fbGain.disconnect(); } catch {}
+        if (panner) {
+          try { panner.disconnect(); } catch {}
+        }
+      };
+
+      preset.partials.forEach((partial) => {
+        const osc = audioCtx.createOscillator();
+        const oscGain = audioCtx.createGain();
+
+        osc.type = partial.type;
+        osc.frequency.setValueAtTime(freq * (partial.mult || 1), now);
+        osc.detune.setValueAtTime(partial.detune || 0, now);
+        oscGain.gain.value = partial.gain ?? 1;
+
+        osc.connect(oscGain);
+        oscGain.connect(mix);
+
+        osc.start(now);
+        osc.stop(now + preset.release + 1.0);
+
+        setTimeout(() => {
+          try { osc.disconnect(); } catch {}
+          try { oscGain.disconnect(); } catch {}
+        }, (preset.release + 1.5) * 1000);
+      });
+
+      setTimeout(cleanupNodes, (preset.release + 3.0) * 1000);
     }
 
     const canvas = document.getElementById("mainCanvas");
@@ -495,10 +830,71 @@
     let historyStack = [];
 
     let isRecording = false;
-    let recStartTime = 0;
+    let recStartTime = null;
     let loopDuration = 0;
     let recordedEvents = [];
     let activeLoopTimeouts = [];
+
+    const menuToggle = document.getElementById("menuToggle");
+    const settingsPanel = document.getElementById("settingsPanel");
+    const settingsOverlay = document.getElementById("settingsOverlay");
+    const closeMenuBtn = document.getElementById("closeMenuBtn");
+
+    function setSettingsOpen(open) {
+      settingsPanel.classList.toggle("open", open);
+      settingsOverlay.classList.toggle("open", open);
+      settingsPanel.setAttribute("aria-hidden", open ? "false" : "true");
+    }
+
+    menuToggle.addEventListener("click", () => {
+      setSettingsOpen(!settingsPanel.classList.contains("open"));
+    });
+
+    closeMenuBtn.addEventListener("click", () => setSettingsOpen(false));
+    settingsOverlay.addEventListener("click", () => setSettingsOpen(false));
+
+    const lineColorModeSelect = document.getElementById("lineColorModeSelect");
+    const lineColorSelect = document.getElementById("lineColorSelect");
+    const ballColorModeSelect = document.getElementById("ballColorModeSelect");
+    const ballColorInput = document.getElementById("ballColorInput");
+    const ballSizeSlider = document.getElementById("ballSizeSlider");
+    const ballSizeVal = document.getElementById("ballSizeVal");
+
+    function updateColorControlStates() {
+      lineColorSelect.disabled = lineColorModeSelect.value !== "manual";
+      ballColorInput.disabled = ballColorModeSelect.value !== "manual";
+    }
+
+    function getSelectedLineStyle() {
+      if (lineColorModeSelect.value === "manual") {
+        const idx = clamp(parseInt(lineColorSelect.value, 10) || 0, 0, LINE_STYLES.length - 1);
+        return LINE_STYLES[idx];
+      }
+      return LINE_STYLES[Math.floor(Math.random() * LINE_STYLES.length)];
+    }
+
+    function getSelectedBallColor() {
+      if (ballColorModeSelect.value === "manual") {
+        return ballColorInput.value || BALL_COLORS[0];
+      }
+      return BALL_COLORS[Math.floor(Math.random() * BALL_COLORS.length)];
+    }
+
+    function getSelectedBallSize() {
+      return clamp(parseFloat(ballSizeSlider.value), 4, 30);
+    }
+
+    lineColorModeSelect.addEventListener("change", updateColorControlStates);
+    lineColorSelect.addEventListener("change", updateColorControlStates);
+    ballColorModeSelect.addEventListener("change", updateColorControlStates);
+    ballColorInput.addEventListener("input", updateColorControlStates);
+
+    ballSizeSlider.addEventListener("input", (e) => {
+      ballSizeVal.textContent = `${parseInt(e.target.value, 10)}px`;
+    });
+
+    updateColorControlStates();
+    ballSizeVal.textContent = `${parseInt(ballSizeSlider.value, 10)}px`;
 
     const gravitySlider = document.getElementById("gravitySlider");
     const gravityVal = document.getElementById("gravityVal");
@@ -524,13 +920,10 @@
     let sensorGravity = { x: 0, y: 0 };
     let sensorListenerAdded = false;
     let sensorReady = false;
-
-    function clamp(v, min, max) {
-      return Math.max(min, Math.min(max, v));
-    }
+    const isIPhone = /iPhone|iPod/i.test(navigator.userAgent);
 
     function handleDeviceOrientation(e) {
-      if (gravityModeSelect.value !== "sensor") return;
+      if (gravityModeSelect.value !== "sensor" || !sensorReady) return;
 
       const maxTilt = 35;
       const strength = parseFloat(gravitySlider.value) * 1.8;
@@ -539,7 +932,7 @@
       const gy = clamp(e.beta ?? 0, -maxTilt, maxTilt) / maxTilt;
 
       sensorGravity.x = gx * strength;
-      sensorGravity.y = -gy * strength;
+      sensorGravity.y = gy * strength * (isIPhone ? 1 : -1);
     }
 
     async function enableSensor() {
@@ -714,7 +1107,7 @@
                 }
 
                 if (impact > 1.1 && (now - this.lastSoundTime > cooldown)) {
-                  this.triggerSound(closest.y, impact);
+                  this.triggerSound(closest.y, impact, line.soundPreset);
                   this.lastSoundTime = now;
                   this.pulse = 1.0;
 
@@ -734,7 +1127,7 @@
         }
       }
 
-      triggerSound(hitY, impact) {
+      triggerSound(hitY, impact, soundPreset) {
         if (activeFreqs.length === 0) return;
 
         const normalizedY = Math.min(Math.max(hitY / height, 0), 1);
@@ -744,7 +1137,7 @@
         const freq = activeFreqs[freqIndex];
         const vel = Math.min(impact / 8, 1.0);
 
-        playSynthSound(freq, vel);
+        playAmbientPad(freq, vel, soundPreset);
       }
 
       draw(ctx) {
@@ -827,7 +1220,14 @@
     }
 
     function spawnBall(x, y, vx = 0, vy = 0, record = true, addHistory = true) {
-      const ball = new Ball(x, y, vx, vy);
+      const ball = new Ball(
+        x,
+        y,
+        vx,
+        vy,
+        getSelectedBallSize(),
+        getSelectedBallColor()
+      );
       balls.push(ball);
 
       if (addHistory) {
@@ -835,8 +1235,15 @@
       }
 
       if (isRecording && record) {
-        const relTime = Date.now() - recStartTime;
-        recordedEvents.push({ relTime, x, y, vx, vy });
+        const now = Date.now();
+
+        if (recStartTime === null) {
+          recStartTime = now;
+          recordedEvents.push({ relTime: 0, x, y, vx, vy });
+        } else {
+          const relTime = now - recStartTime;
+          recordedEvents.push({ relTime, x, y, vx, vy });
+        }
       }
 
       return ball;
@@ -850,7 +1257,7 @@
     }
 
     function handleStart(e) {
-      if (e.target.closest(".ui-panel") || e.target.closest(".settings-drawer")) return;
+      if (e.target.closest(".settings-panel") || e.target.closest(".action-bar") || e.target.closest(".menu-toggle")) return;
       if (e.button !== undefined && e.button !== 0) return;
 
       if (e.cancelable) e.preventDefault();
@@ -860,9 +1267,12 @@
       isDrawing = true;
       dragDistance = 0;
 
+      const style = getSelectedLineStyle();
       currentLine = {
         points: [pos],
-        color: "rgba(139, 233, 255, 0.92)"
+        color: style.color,
+        soundPreset: style.soundPreset,
+        styleName: style.name
       };
     }
 
@@ -928,6 +1338,7 @@
       }
 
       if (e.key === "Escape") {
+        setSettingsOpen(false);
         currentLine = null;
         isDrawing = false;
         dragDistance = 0;
@@ -936,20 +1347,27 @@
 
     function startRecording() {
       isRecording = true;
+      recStartTime = null;
       recordedEvents = [];
-      recStartTime = Date.now();
 
       recBtn.classList.add("recording");
       recBtn.innerText = "STOP REC";
       recTimeDisplay.style.display = "inline-block";
+      recTimeDisplay.textContent = "待機";
 
       stopLoopPlayback();
     }
 
     function stopRecording() {
       if (!isRecording) return;
+
       isRecording = false;
-      loopDuration = Date.now() - recStartTime;
+
+      if (recStartTime !== null) {
+        loopDuration = Date.now() - recStartTime;
+      } else {
+        loopDuration = 0;
+      }
 
       recBtn.classList.remove("recording");
       recBtn.innerText = "START REC";
@@ -958,6 +1376,8 @@
       if (recordedEvents.length > 0 && loopDuration > 200) {
         startLoopPlayback();
       }
+
+      recStartTime = null;
     }
 
     function startLoopPlayback() {
@@ -1035,7 +1455,7 @@
         for (let i = 1; i < currentLine.points.length; i++) {
           ctx.lineTo(currentLine.points[i].x, currentLine.points[i].y);
         }
-        ctx.strokeStyle = "rgba(255,255,255,0.88)";
+        ctx.strokeStyle = currentLine.color || "rgba(255,255,255,0.88)";
         ctx.lineWidth = 3.5;
         ctx.stroke();
       }
@@ -1052,8 +1472,12 @@
       }
 
       if (isRecording) {
-        const elapsed = (Date.now() - recStartTime) / 1000;
-        recTimeDisplay.textContent = `${elapsed.toFixed(1)}s`;
+        if (recStartTime !== null) {
+          const elapsed = (Date.now() - recStartTime) / 1000;
+          recTimeDisplay.textContent = `${elapsed.toFixed(1)}s`;
+        } else {
+          recTimeDisplay.textContent = "待機";
+        }
       }
 
       requestAnimationFrame(render);
