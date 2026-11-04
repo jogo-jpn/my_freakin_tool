@@ -1,0 +1,1335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
+  <title>RAIN ORBIT</title>
+  <style>
+    :root{--bg:#070b12;--bg2:#0b1120;--panel:rgba(12,17,27,.94);--bd:rgba(255,255,255,.14);--tx:#eaf1f8;--sub:#91a3b7;--ac:#8be9ff;--danger:#ff5d7a}
+    *{box-sizing:border-box;margin:0;padding:0;user-select:none;-webkit-user-select:none}
+  html,body{
+  width:100%;
+  height:100%;
+  overflow:hidden;
+  color:var(--tx);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+  background:var(--bg)
+}
+
+    #stage{position:fixed;inset:0;overflow:hidden;touch-action:none}
+    canvas{display:block;width:100%;height:100%;transform-origin:center;will-change:transform;touch-action:none}
+    button,select,input{font:inherit}
+    button,select{color:var(--tx);border:1px solid var(--bd);border-radius:9px;background:rgba(255,255,255,.06);padding:8px 10px;cursor:pointer}
+    input[type=range]{accent-color:var(--ac)}
+    .top{position:fixed;top:calc(8px + env(safe-area-inset-top));left:calc(8px + env(safe-area-inset-left));z-index:30;display:flex;gap:5px}
+    .tools{display:flex;gap:2px;padding:3px;border:1px solid var(--bd);border-radius:9px;background:rgba(8,12,20,.82)}
+    .tool,.eraser{min-height:25px;padding:4px 6px;border-radius:6px;font-size:9px;line-height:1}
+    .tool.active{color:#061018;background:var(--ac);border-color:var(--ac)}
+    .tool.hole.active{color:#fff;background:#454950;border-color:#9da3ae}
+    .eraser.active{color:#ff9aac;background:rgba(255,93,122,.16);border-color:rgba(255,93,122,.7)}
+    .top-actions{position:fixed;top:calc(8px + env(safe-area-inset-top));right:calc(8px + env(safe-area-inset-right));z-index:31;display:flex;gap:5px}
+    .top-actions button{width:40px;height:40px;padding:0;font-size:10px}
+    #overlay{position:fixed;inset:0;z-index:24;opacity:0;pointer-events:none;background:rgba(0,0,0,.32);transition:.18s}
+    #overlay.open{opacity:1;pointer-events:auto}
+    .panel{position:fixed;left:50%;bottom:calc(74px + env(safe-area-inset-bottom));z-index:25;width:min(92vw,560px);max-height:min(67vh,650px);overflow:auto;padding:14px;border:1px solid var(--bd);border-radius:18px;background:var(--panel);backdrop-filter:blur(14px);transform:translateX(-50%) translateY(16px);opacity:0;pointer-events:none;transition:.18s;touch-action:pan-y}
+    .panel.open{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0)}
+    .small{width:min(88vw,430px)}
+    .header,.row{display:flex;align-items:center;gap:10px}.header{justify-content:space-between;margin-bottom:12px}
+    .title{display:flex;flex-direction:column;gap:3px}.title strong{font-size:14px;letter-spacing:.12em}.title span,.note{color:var(--sub);font-size:11px;line-height:1.6}
+    .section{margin-bottom:10px;padding:12px;border:1px solid var(--bd);border-radius:14px;background:rgba(255,255,255,.04)}
+    .section-title{margin-bottom:10px;color:var(--ac);font-size:11px;letter-spacing:.12em}
+    .row{margin-top:8px}.row label{min-width:112px;color:var(--sub);font-size:12px}.row select,.row input{flex:1;min-width:0}
+    .value{min-width:58px;text-align:right;font-size:11px;font-variant-numeric:tabular-nums}
+    .bottom-wrap{position:fixed;left:0;right:0;bottom:0;z-index:22;padding:6px max(6px,env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom)) max(6px,env(safe-area-inset-left));pointer-events:none}
+    .bottom{width:100%;min-height:46px;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px;padding:6px;border:1px solid var(--bd);border-radius:14px;background:rgba(10,14,22,.9);pointer-events:auto}
+    .bottom button{min-width:0;min-height:32px;padding:5px 2px;overflow:hidden;border-radius:7px;font-size:clamp(8px,2.2vw,11px);line-height:1;white-space:nowrap;text-overflow:ellipsis}
+    #rec.recording{color:#ff9aac;background:rgba(255,93,122,.16);border-color:rgba(255,93,122,.7)}
+    #seqStop.active{color:#ffd27a;background:rgba(255,210,122,.12)}
+    #recTime{position:fixed;right:8px;bottom:calc(58px + env(safe-area-inset-bottom));z-index:23;display:none;min-width:56px;padding:5px 7px;border-radius:8px;background:rgba(10,14,22,.9);color:#ff9aac;font-size:11px;font-weight:700;text-align:center}
+    .hint{position:fixed;left:16px;bottom:calc(66px + env(safe-area-inset-bottom));z-index:2;color:rgba(234,241,248,.48);font-size:11px;line-height:1.6;pointer-events:none}
+    body.view-mode .top,body.view-mode #menu,body.view-mode .bottom-wrap,body.view-mode .hint,body.view-mode #recTime,body.view-mode .panel,body.view-mode #overlay{display:none!important}
+    body.view-mode #view{color:#061018;background:var(--ac);border-color:var(--ac)}
+    @media(max-width:420px){.bottom{gap:3px;padding:4px}.bottom button{min-height:29px;padding:4px 1px;font-size:7px}.tool,.eraser{padding:4px 5px;font-size:8px}.row label{min-width:88px}}
+  </style>
+</head>
+<body>
+  <div id="stage"><canvas id="canvas"></canvas></div>
+
+  <div class="top">
+    <div class="tools">
+      <button id="ball" class="tool">BALL</button>
+      <button id="line" class="tool active">LINE</button>
+      <button id="slider" class="tool">SLIDER</button>
+      <button id="spin" class="tool">SPIN</button>
+      <button id="hole" class="tool hole">HOLE</button>
+    </div>
+    <button id="eraser" class="eraser">ERASER</button>
+  </div>
+
+  <div class="top-actions">
+    <button id="menu">⚙</button>
+    <button id="view">VIEW</button>
+  </div>
+
+  <div id="overlay"></div>
+
+  <div id="settings" class="panel">
+    <div class="header">
+      <div class="title"><strong>RAIN ORBIT</strong><span>Ambient physics instrument</span></div>
+      <button class="close">×</button>
+    </div>
+
+    <div class="section">
+      <div class="section-title">MUSIC</div>
+      <div class="row"><label>Key</label><select id="key"><option>C</option><option>C#</option><option>D</option><option>D#</option><option>E</option><option>F</option><option>F#</option><option>G</option><option>G#</option><option selected>A</option><option>A#</option><option>B</option></select></div>
+      <div class="row"><label>Scale</label><select id="scale"><option value="minorPentatonic" selected>Minor Pentatonic</option><option value="majorPentatonic">Major Pentatonic</option><option value="major">Major</option><option value="minor">Minor</option><option value="dorian">Dorian</option><option value="lydian">Lydian</option></select></div>
+      <div class="row"><label>Master Volume</label><input id="masterVolume" type="range" min="0" max="1" step=".01" value=".72"><span id="masterVolumeV" class="value"></span></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">REVERB</div>
+      <div class="row"><label>Reverb Mix</label><input id="reverbMix" type="range" min="0" max="1" step=".01" value=".35"><span id="reverbMixV" class="value"></span></div>
+      <div class="row"><label>Pre Delay</label><input id="reverbPreDelay" type="range" min="0" max=".20" step=".005" value=".025"><span id="reverbPreDelayV" class="value"></span></div>
+      <div class="row"><label>Room Size</label><input id="reverbRoomSize" type="range" min=".02" max=".25" step=".005" value=".10"><span id="reverbRoomSizeV" class="value"></span></div>
+      <div class="row"><label>Decay</label><input id="reverbDecay" type="range" min="0" max=".75" step=".01" value=".25"><span id="reverbDecayV" class="value"></span></div>
+      <div class="row"><label>Brightness</label><input id="reverbBrightness" type="range" min="800" max="8000" step="100" value="4200"><span id="reverbBrightnessV" class="value"></span></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">DELAY</div>
+      <div class="row"><label>Delay Mix</label><input id="delayMix" type="range" min="0" max="1" step=".01" value=".20"><span id="delayMixV" class="value"></span></div>
+      <div class="row"><label>Delay Time</label><input id="delayTime" type="range" min=".05" max=".80" step=".01" value=".28"><span id="delayTimeV" class="value"></span></div>
+      <div class="row"><label>Feedback</label><input id="delayFeedback" type="range" min="0" max=".65" step=".01" value=".20"><span id="delayFeedbackV" class="value"></span></div>
+      <div class="row"><label>Delay Filter</label><input id="delayFilter" type="range" min="500" max="9000" step="100" value="4500"><span id="delayFilterV" class="value"></span></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">SYSTEM</div>
+      <div class="row"><label>Ball Limit</label><input id="ballLimit" type="range" min="1" max="80" value="30"><span id="ballLimitV" class="value"></span></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">PHYSICS</div>
+      <div class="row"><label>Gravity</label><input id="gravity" type="range" min="0" max="1.5" step=".05" value=".45"><span id="gravityV" class="value"></span></div>
+      <div class="row"><label>Bounce</label><input id="bounce" type="range" min=".1" max=".98" step=".01" value=".68"><span id="bounceV" class="value"></span></div>
+      <p class="note">Reverb uses a lightweight feedback-delay network to reduce memory usage.</p>
+    </div>
+  </div>
+
+  <div id="ballPanel" class="panel small">
+    <div class="header"><div class="title"><strong>BALL</strong><span>New ball settings</span></div><button class="close">×</button></div>
+    <div class="section">
+      <div class="row"><label>Size</label><input id="ballSize" type="range" min="4" max="30" value="10"><span id="ballSizeV" class="value"></span></div>
+      <div class="row"><label>Bounce Limit</label><input id="ballLimitPer" type="range" min="1" max="50" value="10"><span id="ballLimitPerV" class="value"></span></div>
+      <div class="row"><label>Weight</label><input id="weight" type="range" min=".2" max="3" step=".05" value="1"><span id="weightV" class="value"></span></div>
+      <div class="row"><label>Sound Release</label><input id="release" type="range" min=".15" max="3" step=".05" value="1"><span id="releaseV" class="value"></span></div>
+    </div>
+  </div>
+
+  <div id="motionPanel" class="panel small">
+    <div class="header"><div class="title"><strong id="motionTitle">SLIDER</strong><span>Moving bar / shape settings</span></div><button class="close">×</button></div>
+    <div class="section">
+      <div class="row"><label>Speed</label><input id="speed" type="range" min="20" max="360" step="5" value="120"><span id="speedV" class="value"></span></div>
+      <div class="row"><label>Bar Length</label><input id="length" type="range" min="20" max="180" step="2" value="64"><span id="lengthV" class="value"></span></div>
+      <div id="shapeRow" class="row" style="display:none"><label>Shape</label>
+	<select id="spinShape">
+  		<option value="bar" selected>BAR</option>
+  		<option value="tri">TRI</option>
+  		<option value="square">SQR</option>
+  		<option value="pent">PENT</option>
+  		<option value="hex">HEX</option>
+	</select>
+      </div>
+      <div id="dirRow" class="row" style="display:none"><label>Direction</label><select id="dir"><option value="1">Clockwise</option><option value="-1">Counterclockwise</option></select></div>
+    </div>
+  </div>
+
+  <div id="holePanel" class="panel small">
+    <div class="header"><div class="title"><strong>BLACK HOLE</strong><span>Absorption settings</span></div><button class="close">×</button></div>
+    <div class="section"><div class="row"><label>Hole Size</label><input id="holeSize" type="range" min="14" max="100" step="2" value="32"><span id="holeSizeV" class="value"></span></div></div>
+  </div>
+
+  <div id="recTime">WAITING</div>
+
+  <div class="bottom-wrap"><div class="bottom">
+    <button id="rec">REC</button>
+    <button id="seqStop">STOP</button>
+    <button id="clearRec">C REC</button>
+    <button id="undo">UNDO</button>
+    <button id="clearObj">C OBJ</button>
+    <button id="clearBalls">C BALLS</button>
+  </div></div>
+
+  <div class="hint">• BALL: tap to create<br>• LINE / SLIDER: drag<br>• SPIN / HOLE: tap<br>• VIEW hides controls</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const canvas = $("canvas");
+const ctx = canvas.getContext("2d");
+
+const COLORS = ["#8be9ff","#b6a3ff","#7ee0c1","#ffd27a"];
+const LC = COLORS.slice(0,3);
+const NAMES = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+
+const SCALES = {
+  majorPentatonic:[0,2,4,7,9],
+  minorPentatonic:[0,3,5,7,10],
+  major:[0,2,4,5,7,9,11],
+  minor:[0,2,3,5,7,8,10],
+  dorian:[0,2,3,5,7,9,10],
+  lydian:[0,2,4,6,7,9,11]
+};
+
+const PRESETS = [
+  ["sine","sine",4.1,.005,.2,.22,8.5],
+  ["triangle","sine",2.7,.008,.3,.2,7.2],
+  ["sine","sine",2,.01,.55,.18,8],
+  ["square","sine",.5,.012,.42,.1,4.2],
+  ["triangle","sine",3.5,.012,.75,.18,5.6],
+  ["triangle","sine",1.5,.03,1.1,.17,4.5],
+  ["sawtooth","sine",2,.06,1.45,.11,3.8],
+  ["sine","triangle",2,.1,2.1,.18,5],
+  ["triangle","sine",1.25,.15,2.55,.17,4.2],
+  ["sine","triangle",.5,.2,3,.19,3]
+];
+
+const SPIN_SIDES = { tri: 3, square: 4, pent: 5, hex: 6 };
+const SPIN_OFFSETS = {
+  tri: Math.PI / 2,
+  square: -Math.PI / 4,
+  pent: -Math.PI / 2,
+  hex: -Math.PI / 2
+};
+
+let W, H, D, zoom = 1, pinch = false, pinchStart = 0, pinchZoom = 1, mode = "line", drawing = false, erasing = false, eraserOn = false, stroke = null, drag = 0;
+let lines = [], sliders = [], spins = [], holes = [], balls = [], history = [], note = 0, notes = [];
+let audio = null, master = null, voices = 0, lastSound = 0, audioUnlocked = false;
+let recording = false, firstRec = true, recStart = null, loopDur = 0, events = [], timers = [], sequenceStopped = false;
+
+const FX = {
+  master: .72,
+  reverbMix: .35,
+  reverbPreDelay: .025,
+  reverbRoomSize: .10,
+  reverbDecay: .25,
+  reverbBrightness: 4200,
+  delayMix: .20,
+  delayTime: .28,
+  delayFeedback: .20,
+  delayFilter: 4500
+};
+
+const MAX_VOICES = 10, MAX_SLIDERS = 18, MAX_SPINS = 14, MAX_HOLES = 12, panels = [$("settings"), $("ballPanel"), $("motionPanel"), $("holePanel")];
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+function resize() {
+  D = Math.min(devicePixelRatio || 1, 2);
+  W = innerWidth;
+  H = innerHeight;
+  canvas.width = W * D;
+  canvas.height = H * D;
+  ctx.setTransform(D, 0, 0, D, 0, 0);
+}
+
+function touchDist(a, b) {
+  return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+}
+
+function pos(e) {
+  const p = e.touches ? e.touches[0] : e;
+  return {
+    x: (p.clientX - W / 2) / zoom + W / 2,
+    y: (p.clientY - H / 2) / zoom + H / 2
+  };
+}
+
+function seg(px, py, a, b) {
+  const dx = b.x - a.x, dy = b.y - a.y, l = dx * dx + dy * dy;
+  const t = l ? clamp(((px - a.x) * dx + (py - a.y) * dy) / l, 0, 1) : 0;
+  const x = a.x + dx * t, y = a.y + dy * t;
+  return { x, y, d: Math.hypot(px - x, py - y) };
+}
+
+function ensureAudio() {
+  try {
+    if (!audio) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      audio = new AC({ latencyHint: "interactive" });
+      master = audio.createGain();
+      master.gain.value = FX.master;
+      master.connect(audio.destination);
+    }
+
+    if (master && audio) {
+      master.gain.cancelScheduledValues(audio.currentTime);
+      master.gain.setTargetAtTime(FX.master, audio.currentTime, .015);
+    }
+
+    const unlock = () => {
+      if (audioUnlocked || !audio || !master || audio.state !== "running") return;
+
+      const src = audio.createBufferSource();
+      const buf = audio.createBuffer(1, 1, audio.sampleRate);
+      src.buffer = buf;
+
+      const g = audio.createGain();
+      g.gain.value = 0.0001;
+
+      src.connect(g);
+      g.connect(master);
+      src.start(0);
+
+      audioUnlocked = true;
+    };
+
+    if (audio.state === "running") {
+      unlock();
+    } else {
+      audio.resume().then(unlock).catch(() => {});
+    }
+  } catch (e) {}
+}
+
+function buildScale() {
+  const k = NAMES.indexOf($("key").value), s = SCALES[$("scale").value];
+  notes = [];
+  for (let o = 0; o < 4; o++) {
+    for (const n of s) {
+      notes.push(440 * Math.pow(2, (12 * (o + 4) + k + n - 69) / 12));
+    }
+  }
+}
+
+function updateFX() {
+  FX.master = +$("masterVolume").value;
+  FX.reverbMix = +$("reverbMix").value;
+  FX.reverbPreDelay = +$("reverbPreDelay").value;
+  FX.reverbRoomSize = +$("reverbRoomSize").value;
+  FX.reverbDecay = +$("reverbDecay").value;
+  FX.reverbBrightness = +$("reverbBrightness").value;
+  FX.delayMix = +$("delayMix").value;
+  FX.delayTime = +$("delayTime").value;
+  FX.delayFeedback = +$("delayFeedback").value;
+  FX.delayFilter = +$("delayFilter").value;
+
+  $("masterVolumeV").textContent = `${Math.round(FX.master * 100)}%`;
+  $("reverbMixV").textContent = `${Math.round(FX.reverbMix * 100)}%`;
+  $("reverbPreDelayV").textContent = `${FX.reverbPreDelay.toFixed(3)}s`;
+  $("reverbRoomSizeV").textContent = `${FX.reverbRoomSize.toFixed(3)}s`;
+  $("reverbDecayV").textContent = `${Math.round(FX.reverbDecay * 100)}%`;
+  $("reverbBrightnessV").textContent = `${Math.round(FX.reverbBrightness / 1000 * 10) / 10}k`;
+  $("delayMixV").textContent = `${Math.round(FX.delayMix * 100)}%`;
+  $("delayTimeV").textContent = `${FX.delayTime.toFixed(2)}s`;
+  $("delayFeedbackV").textContent = `${Math.round(FX.delayFeedback * 100)}%`;
+  $("delayFilterV").textContent = `${Math.round(FX.delayFilter / 1000 * 10) / 10}k`;
+
+  if (master && audio) {
+    master.gain.cancelScheduledValues(audio.currentTime);
+    master.gain.setTargetAtTime(FX.master, audio.currentTime, .015);
+  }
+}
+
+/*
+  Per-voice FX:
+  - Delay: time, mix, feedback, tone filter
+  - Reverb: pre-delay, room size, decay, brightness, mix
+  Lightweight feedback network; no ConvolverNode is used.
+*/
+function playSound(f, v, r, w = 1, rel = 1) {
+  try {
+    if (!audio || !master) {
+      ensureAudio();
+      return;
+    }
+    if (audio.state !== "running") {
+      ensureAudio();
+      return;
+    }
+    if (!Number.isFinite(f)) return;
+    if (performance.now() - lastSound < 45 || voices >= MAX_VOICES) return;
+
+    lastSound = performance.now();
+    voices++;
+
+    const p = PRESETS[clamp(Math.floor((r - 4) / 2.7), 0, 9)];
+    const now = audio.currentTime;
+    const release = clamp(p[4] * rel * clamp(.75 + w * .25, .8, 1.5), .08, 3);
+
+    const a = audio.createOscillator(), b = audio.createOscillator();
+    const ga = audio.createGain(), gb = audio.createGain();
+    const fi = audio.createBiquadFilter(), env = audio.createGain();
+
+    const dry = audio.createGain();
+
+    const delay = audio.createDelay(1.5);
+    const delayFilter = audio.createBiquadFilter();
+    const delayOut = audio.createGain();
+    const delayFeedback = audio.createGain();
+
+    const revPre = audio.createDelay(.25);
+    const revA = audio.createDelay(.35);
+    const revB = audio.createDelay(.35);
+    const revC = audio.createDelay(.35);
+    const revFilter = audio.createBiquadFilter();
+    const revGainA = audio.createGain();
+    const revGainB = audio.createGain();
+    const revGainC = audio.createGain();
+    const revFeedback = audio.createGain();
+    const revOut = audio.createGain();
+
+    a.type = p[0];
+    b.type = p[1];
+    a.frequency.setValueAtTime(f, now);
+    b.frequency.setValueAtTime(f * p[2], now);
+
+    ga.gain.value = .86;
+    gb.gain.value = .16;
+
+    fi.type = "lowpass";
+    fi.frequency.setValueAtTime(clamp(f * p[6], 650, 7600), now);
+    fi.Q.value = .65;
+
+    env.gain.setValueAtTime(.0001, now);
+    env.gain.exponentialRampToValueAtTime(clamp(v, .18, 1) * p[5], now + p[3]);
+    env.gain.exponentialRampToValueAtTime(.0001, now + release);
+
+    /*
+      Dry signal.
+    */
+    dry.gain.value = 1 - clamp(FX.delayMix * .18 + FX.reverbMix * .10, 0, .35);
+
+    /*
+      Delay parameters.
+    */
+    delay.delayTime.setValueAtTime(FX.delayTime, now);
+    delayFilter.type = "lowpass";
+    delayFilter.frequency.setValueAtTime(FX.delayFilter, now);
+    delayOut.gain.value = FX.delayMix * .55;
+    delayFeedback.gain.value = FX.delayFeedback;
+
+    /*
+      Reverb parameters.
+      Different prime-ish multipliers prevent obvious metallic repeats.
+    */
+    revPre.delayTime.setValueAtTime(FX.reverbPreDelay, now);
+    revA.delayTime.setValueAtTime(FX.reverbRoomSize * .73, now);
+    revB.delayTime.setValueAtTime(FX.reverbRoomSize * 1.17, now);
+    revC.delayTime.setValueAtTime(FX.reverbRoomSize * 1.61, now);
+
+    revFilter.type = "lowpass";
+    revFilter.frequency.setValueAtTime(FX.reverbBrightness, now);
+
+    revGainA.gain.value = FX.reverbMix * .18;
+    revGainB.gain.value = FX.reverbMix * .14;
+    revGainC.gain.value = FX.reverbMix * .10;
+    revFeedback.gain.value = FX.reverbDecay;
+    revOut.gain.value = FX.reverbMix;
+
+    a.connect(ga);
+    b.connect(gb);
+    ga.connect(fi);
+    gb.connect(fi);
+    fi.connect(env);
+
+    env.connect(dry);
+    dry.connect(master);
+
+    /*
+      Delay network.
+    */
+    env.connect(delay);
+    delay.connect(delayFilter);
+    delayFilter.connect(delayOut);
+    delayOut.connect(master);
+    delayFilter.connect(delayFeedback);
+    delayFeedback.connect(delay);
+
+    /*
+      Reverb network.
+    */
+    env.connect(revPre);
+    revPre.connect(revA);
+    revPre.connect(revB);
+    revPre.connect(revC);
+
+    revA.connect(revFilter);
+    revB.connect(revFilter);
+    revC.connect(revFilter);
+
+    revFilter.connect(revGainA);
+    revFilter.connect(revGainB);
+    revFilter.connect(revGainC);
+
+    revGainA.connect(revOut);
+    revGainB.connect(revOut);
+    revGainC.connect(revOut);
+
+    revOut.connect(master);
+
+    revFilter.connect(revFeedback);
+    revFeedback.connect(revA);
+
+    a.start(now);
+    b.start(now);
+    a.stop(now + release + .12);
+    b.stop(now + release + .12);
+
+    const cleanup = Math.max(
+      release + .35,
+      FX.delayTime * 5 + .5,
+      FX.reverbRoomSize * 6 + .8
+    );
+
+    setTimeout(() => {
+      try {
+        a.disconnect(); b.disconnect(); ga.disconnect(); gb.disconnect();
+        fi.disconnect(); env.disconnect(); dry.disconnect();
+
+        delay.disconnect(); delayFilter.disconnect(); delayOut.disconnect(); delayFeedback.disconnect();
+
+        revPre.disconnect(); revA.disconnect(); revB.disconnect(); revC.disconnect();
+        revFilter.disconnect(); revGainA.disconnect(); revGainB.disconnect();
+        revGainC.disconnect(); revFeedback.disconnect(); revOut.disconnect();
+      } catch (e) {}
+
+      voices = Math.max(0, voices - 1);
+    }, cleanup * 1000);
+  } catch (e) {
+    voices = Math.max(0, voices - 1);
+  }
+}
+
+function sliderState(s, t) {
+  const dx = s.e.x - s.a.x, dy = s.e.y - s.a.y, L = Math.hypot(dx, dy);
+  if (!L) return;
+
+  const tx = dx / L, ty = dy / L, c = L * 2;
+  let m = ((t - s.at) / 1000 * s.sp) % c;
+  if (m < 0) m += c;
+
+  const fw = m <= L, d = fw ? m : c - m, x = s.a.x + tx * d, y = s.a.y + ty * d, nx = -ty, ny = tx, h = s.len / 2;
+
+  return {
+    a: { x: x - nx * h, y: y - ny * h },
+    b: { x: x + nx * h, y: y + ny * h },
+    vx: tx * s.sp * (fw ? 1 : -1) / 60,
+    vy: ty * s.sp * (fw ? 1 : -1) / 60,
+    sp: s.sp
+  };
+}
+
+function spinState(s, t) {
+  const shape = s.shape || "bar";
+  const w = s.sp * Math.PI / 180 * s.dir;
+  const an = s.angle + (t - s.at) / 1000 * w;
+  const R = s.len / 2;
+
+  if (shape === "bar") {
+    const a = { x: s.x + Math.cos(an) * R, y: s.y + Math.sin(an) * R };
+    const b = { x: s.x - Math.cos(an) * R, y: s.y - Math.sin(an) * R };
+
+    return {
+      kind: shape,
+      x: s.x,
+      y: s.y,
+      pts: [a, b],
+      edges: [{
+        a,
+        b,
+        vx: -Math.sin(an) * R * w / 60,
+        vy: Math.cos(an) * R * w / 60,
+        sp: Math.abs(w) * R
+      }],
+      sp: Math.abs(w) * R
+    };
+  }
+
+  const sides = SPIN_SIDES[shape] || 3;
+  const base = SPIN_OFFSETS[shape] ?? -Math.PI / 2;
+  const pts = [];
+
+  for (let i = 0; i < sides; i++) {
+    const th = an + base + i * Math.PI * 2 / sides;
+    pts.push({ x: s.x + Math.cos(th) * R, y: s.y + Math.sin(th) * R });
+  }
+
+  const edges = [];
+  for (let i = 0; i < pts.length; i++) {
+    const a = pts[i], b = pts[(i + 1) % pts.length];
+    const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+    edges.push({
+      a,
+      b,
+      vx: -w * (my - s.y) / 60,
+      vy: w * (mx - s.x) / 60,
+      sp: Math.abs(w) * R
+    });
+  }
+
+  return {
+    kind: shape,
+    x: s.x,
+    y: s.y,
+    pts,
+    edges,
+    sp: Math.abs(w) * R
+  };
+}
+
+function sweep(x0, y0, x1, y1, a, b, r, src, vx = 0, vy = 0, sp = 0) {
+  const N = Math.max(4, Math.min(24, Math.ceil(Math.hypot(x1 - x0, y1 - y0) / Math.max(2.2, r * .42))));
+  let old = 0;
+
+  for (let i = 0; i <= N; i++) {
+    const t = i / N, q = seg(x0 + (x1 - x0) * t, y0 + (y1 - y0) * t, a, b);
+
+    if (q.d <= r) {
+      let lo = old, hi = t;
+
+      for (let j = 0; j < 8; j++) {
+        const m = (lo + hi) / 2, z = seg(x0 + (x1 - x0) * m, y0 + (y1 - y0) * m, a, b);
+        if (z.d <= r) hi = m; else lo = m;
+      }
+
+      const x = x0 + (x1 - x0) * hi, y = y0 + (y1 - y0) * hi, z = seg(x, y, a, b);
+      return { t: hi, x, y, sx: z.x, sy: z.y, a, b, r, src, vx, vy, sp };
+    }
+
+    old = t;
+  }
+
+  return null;
+}
+
+function collision(ball, x0, y0, x1, y1, now) {
+  let best = null;
+  const take = h => { if (h && (!best || h.t < best.t)) best = h; };
+
+  for (const l of lines) {
+    for (let i = 0; i < l.p.length - 1; i++) {
+      take(sweep(x0, y0, x1, y1, l.p[i], l.p[i + 1], ball.r + 2.5, l));
+    }
+  }
+
+  for (const s of sliders) {
+    const z = sliderState(s, now);
+    if (z) take(sweep(x0, y0, x1, y1, z.a, z.b, ball.r + 9.5, s, z.vx, z.vy, z.sp));
+  }
+
+  for (const s of spins) {
+    const z = spinState(s, now);
+    if (z) {
+      for (const e of z.edges) {
+        take(sweep(x0, y0, x1, y1, e.a, e.b, ball.r + 9.5, s, e.vx, e.vy, e.sp));
+      }
+    }
+  }
+
+  return best;
+}
+
+class Ball {
+  constructor(x, y, vx = null, vy = null, r = 10, c = COLORS[0], w = 1, lim = 10, rel = 1) {
+    this.x = x; this.y = y;
+    this.vx = vx ?? (Math.random() - .5) * 1.4;
+    this.vy = vy ?? 0;
+    this.r = r; this.c = c; this.w = w; this.lim = lim; this.rel = rel;
+    this.n = 0; this.al = 1; this.fade = false; this.last = 0;
+  }
+
+  update(now) {
+    if (this.fade) {
+      this.al -= .04;
+      this.r *= .965;
+      return;
+    }
+
+    this.vy += +$("gravity").value * this.w;
+
+    for (const h of holes) {
+      const dx = h.x - this.x, dy = h.y - this.y, d = Math.hypot(dx, dy) || .001;
+
+      if (d < h.r * 2.4) {
+        const f = (1 - d / (h.r * 2.4)) * .14;
+        this.vx += dx / d * f;
+        this.vy += dy / d * f;
+      }
+
+      if (d < h.r + this.r * .45) {
+        this.fade = true;
+        return;
+      }
+    }
+
+    let rem = 1, k = 0;
+
+    while (rem > .0001 && k++ < 6) {
+      const x0 = this.x, y0 = this.y;
+      const h = collision(this, x0, y0, x0 + this.vx * rem, y0 + this.vy * rem, now);
+
+      if (!h) {
+        this.x += this.vx * rem;
+        this.y += this.vy * rem;
+        break;
+      }
+
+      this.x = x0 + this.vx * rem * Math.max(0, h.t - .001);
+      this.y = y0 + this.vy * rem * Math.max(0, h.t - .001);
+
+      let nx = h.x - h.sx, ny = h.y - h.sy, L = Math.hypot(nx, ny);
+
+      if (L < .001) {
+        nx = -(h.b.y - h.a.y);
+        ny = h.b.x - h.a.x;
+        L = Math.hypot(nx, ny) || 1;
+      }
+
+      nx /= L; ny /= L;
+
+      let rvx = this.vx - h.vx, rvy = this.vy - h.vy;
+
+      if (rvx * nx + rvy * ny > 0) {
+        nx *= -1; ny *= -1;
+      }
+
+      const dot = rvx * nx + rvy * ny, impact = Math.abs(dot), boost = clamp(h.sp / 360, 0, 1);
+      const bo = clamp(+$("bounce").value + boost * .28, .1, .99);
+
+      rvx = (rvx - 2 * dot * nx) * bo;
+      rvy = (rvy - 2 * dot * ny) * bo;
+
+      this.vx = rvx + h.vx * (1 + boost);
+      this.vy = rvy + h.vy * (1 + boost);
+
+      this.x = h.sx + nx * (h.r + 3.5);
+      this.y = h.sy + ny * (h.r + 3.5);
+
+      if (impact > .2) {
+        this.n++;
+
+        if (now - this.last > 100 && h.src && notes.length) {
+          playSound(
+            notes[Math.abs(h.src.note) % notes.length],
+            clamp((impact + boost * 2) / 5, .25, 1),
+            this.r, this.w, this.rel
+          );
+          this.last = now;
+        }
+
+        if (this.n >= this.lim) {
+          this.fade = true;
+          return;
+        }
+      }
+
+      rem *= Math.max(0, 1 - h.t - .001);
+    }
+
+    if (this.y - this.r > H || this.x + this.r < 0 || this.x - this.r > W) {
+      this.fade = true;
+    }
+  }
+
+  draw() {
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, this.al);
+
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+    ctx.fillStyle = this.c;
+    ctx.shadowColor = this.c;
+    ctx.shadowBlur = 10;
+    ctx.fill();
+
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = "rgba(255,255,255,.22)";
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+function drawLine(p, c, w, d = []) {
+  if (p.length < 2) return;
+  ctx.beginPath();
+  ctx.moveTo(p[0].x, p[0].y);
+
+  for (let i = 1; i < p.length; i++) ctx.lineTo(p[i].x, p[i].y);
+
+  ctx.strokeStyle = c;
+  ctx.lineWidth = w;
+  ctx.setLineDash(d);
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+function drawSpinShape(z, c) {
+  if (!z || !z.pts || z.pts.length < 2) return;
+
+  if (z.kind === "bar") {
+    drawLine(z.pts, c, 12);
+  } else {
+    drawLine([...z.pts, z.pts[0]], c, 11);
+  }
+}
+
+function drawHole(h) {
+  const g = ctx.createRadialGradient(h.x, h.y, 2, h.x, h.y, h.r);
+  g.addColorStop(0, "#000");
+  g.addColorStop(.65, "#08090d");
+  g.addColorStop(.82, "#34363c");
+  g.addColorStop(1, "rgba(145,150,158,0)");
+
+  ctx.beginPath();
+  ctx.arc(h.x, h.y, h.r, 0, Math.PI * 2);
+  ctx.fillStyle = g;
+  ctx.fill();
+}
+
+function spawn(x, y, vx = null, vy = null, record = true, hist = true, o = {}) {
+  const b = new Ball(
+    x, y, vx, vy,
+    o.r ?? +$("ballSize").value,
+    o.c ?? COLORS[Math.random() * 4 | 0],
+    o.w ?? +$("weight").value,
+    o.lim ?? +$("ballLimitPer").value,
+    o.rel ?? +$("release").value
+  );
+
+  balls.push(b);
+
+  while (balls.length > +$("ballLimit").value) balls.shift();
+
+  if (hist) history.push({ t: "ball", r: b });
+
+  if (recording && record) {
+    const n = Date.now();
+
+    if (recStart === null) recStart = n;
+
+    let rel = n - recStart;
+    if (!firstRec && loopDur) rel %= loopDur;
+
+    events.push({
+      rel, x, y,
+      vx: b.vx, vy: b.vy,
+      r: b.r, c: b.c, w: b.w, lim: b.lim, s: b.rel
+    });
+  }
+}
+
+function panel(p) {
+  panels.forEach(x => x.classList.remove("open"));
+  if (p) p.classList.add("open");
+  $("overlay").classList.toggle("open", !!p);
+}
+
+function setMode(m) {
+  mode = m;
+
+  ["ball","line","slider","spin","hole"].forEach(x => {
+    $(x).classList.toggle("active", x === m);
+  });
+
+  $("shapeRow").style.display = "none";
+  $("dirRow").style.display = "none";
+
+  if (m === "ball") panel($("ballPanel"));
+
+  if (m === "slider") {
+    $("motionTitle").textContent = "SLIDER";
+    panel($("motionPanel"));
+  }
+
+  if (m === "spin") {
+    $("motionTitle").textContent = "SPIN";
+    $("shapeRow").style.display = "flex";
+    $("dirRow").style.display = "flex";
+    panel($("motionPanel"));
+  }
+
+  if (m === "hole") panel($("holePanel"));
+}
+
+function removeAt(p) {
+  let best = null;
+
+  const test = (arr, fn) => {
+    arr.forEach((o, i) => {
+      const q = fn(o);
+
+      for (let j = 0; j < q.length - 1; j++) {
+        const d = seg(p.x, p.y, q[j], q[j + 1]).d;
+
+        if (d < 22 && (!best || d < best.d)) {
+          best = { arr, i, d };
+        }
+      }
+    });
+  };
+
+  test(lines, o => o.p);
+  test(sliders, o => [o.a, o.e]);
+
+  spins.forEach((o, i) => {
+    const d = Math.hypot(p.x - o.x, p.y - o.y);
+    const rr = o.r ?? (o.len ? o.len / 2 : 45);
+
+    if (d < rr + 12 && (!best || d < best.d)) best = { arr: spins, i, d };
+  });
+
+  holes.forEach((o, i) => {
+    const d = Math.hypot(p.x - o.x, p.y - o.y);
+    if (d < o.r + 10 && (!best || d < best.d)) best = { arr: holes, i, d };
+  });
+
+  if (best) {
+    const r = best.arr.splice(best.i, 1)[0];
+    history = history.filter(x => x.r !== r);
+  }
+}
+
+function down(e) {
+  if (e.target.closest("button,select,input,.panel,.bottom-wrap")) return;
+
+  if (e.touches?.length >= 2) {
+    e.preventDefault();
+    pinch = true;
+    pinchStart = touchDist(e.touches[0], e.touches[1]);
+    pinchZoom = zoom;
+    drawing = false;
+    erasing = false;
+    stroke = null;
+    drag = 0;
+    return;
+  }
+
+  if (e.cancelable) e.preventDefault();
+
+  ensureAudio();
+
+  const p = pos(e);
+
+  if (eraserOn) {
+    erasing = true;
+    removeAt(p);
+    return;
+  }
+
+  if (mode === "ball") {
+    spawn(p.x, p.y);
+    return;
+  }
+
+  if (mode === "hole") {
+    const h = { x: p.x, y: p.y, r: +$("holeSize").value };
+    holes.push(h);
+    history.push({ t: "hole", r: h });
+
+    while (holes.length > MAX_HOLES) holes.shift();
+    return;
+  }
+
+  if (mode === "spin") {
+    const s = {
+      x: p.x, y: p.y,
+      c: LC[Math.random() * 3 | 0],
+      sp: +$("speed").value,
+      len: +$("length").value,
+      r: +$("length").value / 2,
+      dir: +$("dir").value,
+      shape: $("spinShape").value,
+      angle: Math.random() * Math.PI * 2,
+      at: Date.now(),
+      note: note++
+    };
+
+    spins.push(s);
+    history.push({ t: "spin", r: s });
+
+    while (spins.length > MAX_SPINS) spins.shift();
+    return;
+  }
+
+  drawing = true;
+  drag = 0;
+
+  stroke = {
+    k: mode,
+    a: p,
+    e: p,
+    p: [p],
+    c: LC[Math.random() * 3 | 0]
+  };
+}
+
+function move(e) {
+  if (e.touches?.length >= 2) {
+    e.preventDefault();
+
+    if (!pinch) {
+      pinch = true;
+      pinchStart = touchDist(e.touches[0], e.touches[1]);
+      pinchZoom = zoom;
+    }
+
+    zoom = clamp(
+      pinchZoom * touchDist(e.touches[0], e.touches[1]) / pinchStart,
+      .65,
+      2.8
+    );
+
+    canvas.style.transform = `scale(${zoom})`;
+
+    drawing = false;
+    erasing = false;
+    stroke = null;
+    drag = 0;
+    return;
+  }
+
+  if (pinch) return;
+
+  const p = pos(e);
+
+  if (erasing) {
+    if (e.cancelable) e.preventDefault();
+    removeAt(p);
+    return;
+  }
+
+  if (!drawing || !stroke) return;
+  if (e.cancelable) e.preventDefault();
+
+  if (stroke.k === "line") {
+    const q = stroke.p.at(-1);
+    const d = Math.hypot(p.x - q.x, p.y - q.y);
+
+    if (d > 4) {
+      stroke.p.push(p);
+      drag += d;
+    }
+  } else {
+    stroke.e = p;
+    drag = Math.hypot(p.x - stroke.a.x, p.y - stroke.a.y);
+  }
+}
+
+function up() {
+  if (pinch) {
+    pinch = false;
+    return;
+  }
+
+  if (erasing) {
+    erasing = false;
+    return;
+  }
+
+  if (!drawing || !stroke) return;
+
+  drawing = false;
+
+  if (stroke.k === "line" && stroke.p.length > 1) {
+    const o = { p: stroke.p, c: stroke.c, note: note++ };
+    lines.push(o);
+    history.push({ t: "line", r: o });
+  } else if (stroke.k === "slider" && drag >= 10) {
+    const o = {
+      a: stroke.a, e: stroke.e, c: stroke.c,
+      sp: +$("speed").value,
+      len: +$("length").value,
+      at: Date.now(),
+      note: note++
+    };
+
+    sliders.push(o);
+    history.push({ t: "slider", r: o });
+
+    while (sliders.length > MAX_SLIDERS) sliders.shift();
+  }
+
+  stroke = null;
+  drag = 0;
+}
+
+function stopLoop() {
+  timers.forEach(clearTimeout);
+  timers = [];
+  sequenceStopped = true;
+  $("seqStop").classList.add("active");
+}
+
+function playLoop() {
+  if (!events.length || loopDur <= 200 || timers.length || sequenceStopped) return;
+
+  const schedule = () => {
+    if (sequenceStopped) return;
+
+    timers = [];
+
+    for (const e of events) {
+      timers.push(setTimeout(() => {
+        if (sequenceStopped) return;
+
+        spawn(e.x, e.y, e.vx, e.vy, false, false, {
+          r: e.r, c: e.c, w: e.w, lim: e.lim, rel: e.s
+        });
+      }, e.rel));
+    }
+
+    timers.push(setTimeout(schedule, loopDur));
+  };
+
+  schedule();
+}
+
+function resumeLoop() {
+  if (!events.length || loopDur <= 200) return;
+
+  sequenceStopped = false;
+  $("seqStop").classList.remove("active");
+  playLoop();
+}
+
+function bind(a, b, s = "") {
+  const x = $(a), y = $(b);
+  const update = () => y.textContent = x.value + s;
+  x.oninput = update;
+  update();
+}
+
+function toggleView() {
+  const on = !document.body.classList.contains("view-mode");
+
+  document.body.classList.toggle("view-mode", on);
+
+  if (on) {
+    panel(null);
+    $("view").textContent = "BACK";
+  } else {
+    $("view").textContent = "VIEW";
+  }
+}
+
+["pointerdown","touchstart","mousedown","keydown"].forEach(ev => {
+  document.addEventListener(ev, () => {
+    ensureAudio();
+  }, { passive: true, capture: true });
+});
+
+canvas.addEventListener("mousedown", down);
+addEventListener("mousemove", move);
+addEventListener("mouseup", up);
+
+canvas.addEventListener("touchstart", down, { passive: false });
+canvas.addEventListener("touchmove", move, { passive: false });
+canvas.addEventListener("touchend", up);
+canvas.addEventListener("touchcancel", up);
+
+["ball","line","slider","spin","hole"].forEach(x => {
+  $(x).onclick = () => setMode(x);
+});
+
+$("eraser").onclick = () => {
+  eraserOn = !eraserOn;
+  $("eraser").classList.toggle("active", eraserOn);
+  $("eraser").textContent = eraserOn ? "ERASER ON" : "ERASER";
+};
+
+$("menu").onclick = () => {
+  panel($("settings").classList.contains("open") ? null : $("settings"));
+};
+
+$("view").onclick = toggleView;
+
+$("overlay").onclick = () => panel(null);
+
+document.querySelectorAll(".close").forEach(b => {
+  b.onclick = () => panel(null);
+});
+
+$("key").onchange = buildScale;
+$("scale").onchange = buildScale;
+
+$("rec").onclick = () => {
+  ensureAudio();
+
+  if (recording) {
+    recording = false;
+
+    if (firstRec && recStart !== null) {
+      loopDur = Math.max(200, Date.now() - recStart);
+      firstRec = false;
+      sequenceStopped = false;
+      $("seqStop").classList.remove("active");
+      playLoop();
+    }
+
+    recStart = null;
+    $("rec").classList.remove("recording");
+    $("rec").textContent = "REC";
+    $("recTime").style.display = "none";
+  } else {
+    recording = true;
+
+    if (!events.length || !loopDur) {
+      firstRec = true;
+      recStart = null;
+      $("recTime").textContent = "WAITING";
+    } else {
+      firstRec = false;
+      recStart = Date.now();
+      resumeLoop();
+    }
+
+    $("rec").classList.add("recording");
+    $("rec").textContent = "STOP";
+    $("recTime").style.display = "block";
+  }
+};
+
+$("seqStop").onclick = () => {
+  stopLoop();
+
+  if (recording) {
+    recording = false;
+    recStart = null;
+    $("rec").classList.remove("recording");
+    $("rec").textContent = "REC";
+    $("recTime").style.display = "none";
+  }
+};
+
+$("clearRec").onclick = () => {
+  stopLoop();
+
+  recording = false;
+  firstRec = true;
+  recStart = null;
+  loopDur = 0;
+  events = [];
+  sequenceStopped = false;
+
+  $("rec").classList.remove("recording");
+  $("rec").textContent = "REC";
+  $("recTime").style.display = "none";
+  $("recTime").textContent = "WAITING";
+  $("seqStop").classList.remove("active");
+};
+
+$("undo").onclick = () => {
+  const a = history.pop();
+  if (!a) return;
+
+  const z = {
+    ball: balls,
+    line: lines,
+    slider: sliders,
+    spin: spins,
+    hole: holes
+  }[a.t];
+
+  const i = z.indexOf(a.r);
+  if (i >= 0) z.splice(i, 1);
+};
+
+$("clearObj").onclick = () => {
+  lines = [];
+  sliders = [];
+  spins = [];
+  holes = [];
+  history = history.filter(x => x.t === "ball");
+};
+
+$("clearBalls").onclick = () => {
+  balls = [];
+  history = history.filter(x => x.t !== "ball");
+};
+
+[
+  "masterVolume",
+  "reverbMix",
+  "reverbPreDelay",
+  "reverbRoomSize",
+  "reverbDecay",
+  "reverbBrightness",
+  "delayMix",
+  "delayTime",
+  "delayFeedback",
+  "delayFilter"
+].forEach(id => {
+  $(id).addEventListener("input", updateFX);
+});
+
+updateFX();
+
+bind("speed", "speedV", "px/s");
+bind("length", "lengthV", "px");
+bind("holeSize", "holeSizeV", "px");
+bind("ballSize", "ballSizeV", "px");
+bind("ballLimitPer", "ballLimitPerV", "x");
+bind("weight", "weightV", "x");
+bind("release", "releaseV", "s");
+bind("ballLimit", "ballLimitV");
+bind("gravity", "gravityV");
+bind("bounce", "bounceV");
+
+resize();
+buildScale();
+
+addEventListener("resize", resize);
+
+function render() {
+  const now = Date.now();
+
+  ctx.clearRect(0, 0, W, H);
+
+  holes.forEach(drawHole);
+
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+
+  lines.forEach(l => drawLine(l.p, l.c, 3.5));
+
+  sliders.forEach(s => {
+    const z = sliderState(s, now);
+    drawLine([s.a, s.e], s.c, 5, [4, 10]);
+    if (z) drawLine([z.a, z.b], s.c, 12);
+  });
+
+  spins.forEach(s => {
+    const z = spinState(s, now);
+    drawSpinShape(z, s.c);
+  });
+
+  if (stroke) {
+    drawLine(
+      stroke.k === "line" ? stroke.p : [stroke.a, stroke.e],
+      stroke.c,
+      3.5,
+      stroke.k === "line" ? [] : [8, 8]
+    );
+  }
+
+  for (let i = balls.length - 1; i >= 0; i--) {
+    balls[i].update(now);
+    balls[i].draw();
+
+    if (balls[i].al <= 0 || balls[i].r < .3) {
+      balls.splice(i, 1);
+    }
+  }
+
+  if (recording) {
+    $("recTime").textContent = recStart === null
+      ? "WAITING"
+      : `${((firstRec ? now - recStart : (now - recStart) % loopDur) / 1000).toFixed(1)}s`;
+  }
+
+  requestAnimationFrame(render);
+}
+
+requestAnimationFrame(render);
+</script>
+</body>
+</html>
