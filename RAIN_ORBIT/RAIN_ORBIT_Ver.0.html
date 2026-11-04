@@ -1,1489 +1,1178 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
   <title>RAIN ORBIT</title>
   <style>
-    :root {
-      --bg-0: #070b12;
-      --bg-1: #0b1120;
-      --panel: rgba(10, 14, 22, 0.72);
-      --panel-strong: rgba(12, 17, 27, 0.88);
-      --border: rgba(255, 255, 255, 0.08);
-      --border-strong: rgba(255, 255, 255, 0.16);
-      --text: #eaf1f8;
-      --sub: #91a3b7;
-      --accent: #8be9ff;
-      --accent-2: #a78bfa;
-      --danger: #ff5d7a;
-      --shadow: 0 12px 34px rgba(0, 0, 0, 0.35);
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      user-select: none;
-      -webkit-user-select: none;
-    }
-
-    html, body {
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background:
-        radial-gradient(circle at 20% 10%, rgba(139, 233, 255, 0.10), transparent 24%),
-        radial-gradient(circle at 80% 20%, rgba(167, 139, 250, 0.08), transparent 26%),
-        linear-gradient(180deg, var(--bg-1), var(--bg-0));
-      color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      touch-action: none;
-    }
-
-    #canvas-container {
-      position: absolute;
-      inset: 0;
-      z-index: 1;
-      cursor: crosshair;
-      touch-action: none;
-    }
-
-    canvas {
-      display: block;
-      width: 100%;
-      height: 100%;
-      touch-action: none;
-    }
-
-    button, select, input[type="color"] {
-      appearance: none;
-      -webkit-appearance: none;
-      border: 1px solid var(--border);
-      background: rgba(255, 255, 255, 0.05);
-      color: var(--text);
-      border-radius: 10px;
-      padding: 7px 11px;
-      font-size: 13px;
-      line-height: 1;
-      outline: none;
-      transition: 0.18s ease;
-      cursor: pointer;
-      font: inherit;
-      touch-action: manipulation;
-    }
-
-    button:hover, select:hover, input[type="color"]:hover {
-      border-color: var(--border-strong);
-      background: rgba(255, 255, 255, 0.08);
-    }
-
-    button:focus, select:focus, input[type="color"]:focus {
-      border-color: rgba(139, 233, 255, 0.5);
-      box-shadow: 0 0 0 3px rgba(139, 233, 255, 0.10);
-    }
-
-    button:disabled, select:disabled, input[type="color"]:disabled, input[type="range"]:disabled {
-      opacity: 0.55;
-      cursor: not-allowed;
-    }
-
-    input[type="color"] {
-      min-width: 0;
-      width: 100%;
-      height: 34px;
-      padding: 4px;
-      border-radius: 10px;
-      background: rgba(255, 255, 255, 0.05);
-    }
-
-    input[type="color"]::-webkit-color-swatch-wrapper {
-      padding: 0;
-    }
-
-    input[type="color"]::-webkit-color-swatch {
-      border: none;
-      border-radius: 6px;
-    }
-
-    .menu-toggle {
-      position: fixed;
-      top: calc(14px + env(safe-area-inset-top));
-      right: calc(14px + env(safe-area-inset-right));
-      z-index: 30;
-      width: 52px;
-      height: 52px;
-      border-radius: 16px;
-      display: grid;
-      place-items: center;
-      font-size: 20px;
-      font-weight: 700;
-      background: rgba(10, 14, 22, 0.68);
-      border: 1px solid var(--border);
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
-    }
-
-    .menu-toggle:hover {
-      transform: translateY(-1px);
-      border-color: var(--border-strong);
-    }
-
-    .settings-overlay {
-      position: fixed;
-      inset: 0;
-      z-index: 18;
-      background: rgba(0, 0, 0, 0.24);
-      backdrop-filter: blur(2px);
-      -webkit-backdrop-filter: blur(2px);
-      opacity: 0;
-      pointer-events: none;
-      transition: 0.18s ease;
-    }
-
-    .settings-overlay.open {
-      opacity: 1;
-      pointer-events: auto;
-    }
-
-    .settings-panel {
-      position: fixed;
-      right: calc(14px + env(safe-area-inset-right));
-      top: calc(74px + env(safe-area-inset-top));
-      z-index: 25;
-      width: min(392px, calc(100vw - 28px));
-      max-height: min(78vh, 760px);
-      overflow: auto;
-      padding: 14px;
-      border-radius: 18px;
-      background: var(--panel-strong);
-      border: 1px solid var(--border);
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
-      opacity: 0;
-      transform: translateY(12px) scale(0.98);
-      pointer-events: none;
-      visibility: hidden;
-      transition: 0.18s ease;
-    }
-
-    .settings-panel.open {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-      pointer-events: auto;
-      visibility: visible;
-    }
-
-    .settings-panel::-webkit-scrollbar {
-      width: 10px;
-    }
-
-    .settings-panel::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.14);
-      border-radius: 999px;
-      border: 2px solid transparent;
-      background-clip: padding-box;
-    }
-
-    .settings-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 12px;
-      margin-bottom: 12px;
-    }
-
-    .settings-title {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-      line-height: 1.1;
-    }
-
-    .settings-title strong {
-      font-size: 14px;
-      letter-spacing: 0.18em;
-      font-weight: 700;
-      color: var(--text);
-    }
-
-    .settings-title span {
-      font-size: 10px;
-      color: var(--sub);
-      letter-spacing: 0.08em;
-    }
-
-    .icon-btn {
-      width: 34px;
-      height: 34px;
-      border-radius: 10px;
-      padding: 0;
-      display: grid;
-      place-items: center;
-      font-size: 18px;
-      line-height: 1;
-    }
-
-    .settings-section {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      padding: 12px;
-      border-radius: 14px;
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid var(--border);
-      margin-bottom: 10px;
-    }
-
-    .settings-section-title {
-      font-size: 11px;
-      color: var(--accent);
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-    }
-
-    .control-row,
-    .slider-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    .control-row label,
-    .slider-row label {
-      min-width: 86px;
-      font-size: 11px;
-      color: var(--sub);
-      white-space: nowrap;
-    }
-
-    .control-row select,
-    .slider-row select {
-      flex: 1;
-      min-width: 0;
-      width: 100%;
-    }
-
-    .control-row input[type="color"] {
-      flex: 1;
-      min-width: 0;
-      width: 100%;
-    }
-
-    .slider-row input[type="range"] {
-      flex: 1;
-      min-width: 0;
-      accent-color: var(--accent);
-    }
-
-    .slider-value {
-      min-width: 46px;
-      text-align: right;
-      font-size: 11px;
-      color: var(--text);
-      font-variant-numeric: tabular-nums;
-    }
-
-    .sound-legend {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .legend-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 12px;
-      color: var(--sub);
-    }
-
-    .legend-swatch {
-      width: 14px;
-      height: 14px;
-      border-radius: 999px;
-      box-shadow: 0 0 10px currentColor;
-      flex: 0 0 auto;
-    }
-
-    .legend-note {
-      font-size: 11px;
-      color: var(--sub);
-      line-height: 1.5;
-    }
-
-    .action-bar {
-      position: fixed;
-      left: 50%;
-      bottom: calc(14px + env(safe-area-inset-bottom));
-      transform: translateX(-50%);
-      z-index: 20;
-      width: min(1080px, calc(100vw - 28px));
-      padding: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      flex-wrap: nowrap;
-      overflow-x: auto;
-      overflow-y: hidden;
-      background: rgba(10, 14, 22, 0.72);
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
-      scrollbar-width: none;
-    }
-
-    .action-bar::-webkit-scrollbar {
-      display: none;
-    }
-
-    .action-bar button {
-      flex: 0 0 auto;
-      white-space: nowrap;
-    }
-
-    button.btn-rec {
-      position: relative;
-      padding-left: 30px;
-      font-weight: 700;
-      letter-spacing: 0.04em;
-    }
-
-    button.btn-rec::before {
-      content: "";
-      position: absolute;
-      left: 11px;
-      top: 50%;
-      width: 9px;
-      height: 9px;
-      border-radius: 50%;
-      transform: translateY(-50%);
-      background: var(--danger);
-      box-shadow: 0 0 10px rgba(255, 93, 122, 0.55);
-    }
-
-    button.btn-rec.recording {
-      border-color: rgba(255, 93, 122, 0.55);
-      background: rgba(255, 93, 122, 0.12);
-      color: #ff8ea1;
-    }
-
-    .rec-time-display {
-      min-width: 52px;
-      font-size: 12px;
-      font-weight: 700;
-      color: #ff8ea1;
-      display: none;
-      font-variant-numeric: tabular-nums;
-      align-self: center;
-      text-align: center;
-      padding: 0 4px;
-    }
-
-    .instructions {
-      position: absolute;
-      left: calc(16px + env(safe-area-inset-left));
-      bottom: calc(92px + env(safe-area-inset-bottom));
-      z-index: 5;
-      color: rgba(234, 241, 248, 0.42);
-      font-size: 12px;
-      line-height: 1.65;
-      pointer-events: none;
-      text-shadow: 0 1px 10px rgba(0, 0, 0, 0.4);
-      max-width: min(320px, calc(100vw - 90px));
-    }
-
-    @media (max-width: 720px) {
-      .settings-panel {
-        left: 14px;
-        right: 14px;
-        width: auto;
-        top: calc(74px + env(safe-area-inset-top));
-        max-height: min(72vh, 700px);
-      }
-
-      .control-row label,
-      .slider-row label {
-        min-width: 72px;
-      }
-
-      .action-bar {
-        justify-content: flex-start;
-        width: calc(100vw - 16px);
-        padding: 10px 12px;
-      }
-
-      .instructions {
-        max-width: calc(100vw - 32px);
-      }
-    }
+    :root{--bg:#070b12;--bg2:#0b1120;--panel:rgba(12,17,27,.94);--bd:rgba(255,255,255,.14);--tx:#eaf1f8;--sub:#91a3b7;--ac:#8be9ff;--danger:#ff5d7a}
+    *{box-sizing:border-box;margin:0;padding:0;user-select:none;-webkit-user-select:none}
+    html,body{width:100%;height:100%;overflow:hidden;color:var(--tx);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:radial-gradient(circle at 20% 10%,rgba(139,233,255,.1),transparent 24%),linear-gradient(180deg,var(--bg2),var(--bg))}
+    #stage{position:fixed;inset:0;overflow:hidden;touch-action:none}
+    canvas{display:block;width:100%;height:100%;transform-origin:center;will-change:transform;touch-action:none}
+    button,select,input{font:inherit}
+    button,select{color:var(--tx);border:1px solid var(--bd);border-radius:9px;background:rgba(255,255,255,.06);padding:8px 10px;cursor:pointer}
+    input[type=range]{accent-color:var(--ac)}
+    .top{position:fixed;top:calc(8px + env(safe-area-inset-top));left:calc(8px + env(safe-area-inset-left));z-index:30;display:flex;gap:5px}
+    .tools{display:flex;gap:2px;padding:3px;border:1px solid var(--bd);border-radius:9px;background:rgba(8,12,20,.82)}
+    .tool,.eraser{min-height:25px;padding:4px 6px;border-radius:6px;font-size:9px;line-height:1}
+    .tool.active{color:#061018;background:var(--ac);border-color:var(--ac)}
+    .tool.hole.active{color:#fff;background:#454950;border-color:#9da3ae}
+    .eraser.active{color:#ff9aac;background:rgba(255,93,122,.16);border-color:rgba(255,93,122,.7)}
+    .top-actions{position:fixed;top:calc(8px + env(safe-area-inset-top));right:calc(8px + env(safe-area-inset-right));z-index:31;display:flex;gap:5px}
+    .top-actions button{width:40px;height:40px;padding:0;font-size:10px}
+    #overlay{position:fixed;inset:0;z-index:24;opacity:0;pointer-events:none;background:rgba(0,0,0,.32);transition:.18s}
+    #overlay.open{opacity:1;pointer-events:auto}
+    .panel{position:fixed;left:50%;bottom:calc(74px + env(safe-area-inset-bottom));z-index:25;width:min(92vw,560px);max-height:min(67vh,650px);overflow:auto;padding:14px;border:1px solid var(--bd);border-radius:18px;background:var(--panel);backdrop-filter:blur(14px);transform:translateX(-50%) translateY(16px);opacity:0;pointer-events:none;transition:.18s;touch-action:pan-y}
+    .panel.open{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0)}
+    .small{width:min(88vw,430px)}
+    .header,.row{display:flex;align-items:center;gap:10px}.header{justify-content:space-between;margin-bottom:12px}
+    .title{display:flex;flex-direction:column;gap:3px}.title strong{font-size:14px;letter-spacing:.12em}.title span,.note{color:var(--sub);font-size:11px;line-height:1.6}
+    .section{margin-bottom:10px;padding:12px;border:1px solid var(--bd);border-radius:14px;background:rgba(255,255,255,.04)}
+    .section-title{margin-bottom:10px;color:var(--ac);font-size:11px;letter-spacing:.12em}
+    .row{margin-top:8px}.row label{min-width:112px;color:var(--sub);font-size:12px}.row select,.row input{flex:1;min-width:0}
+    .value{min-width:58px;text-align:right;font-size:11px;font-variant-numeric:tabular-nums}
+    .bottom-wrap{position:fixed;left:0;right:0;bottom:0;z-index:22;padding:6px max(6px,env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom)) max(6px,env(safe-area-inset-left));pointer-events:none}
+    .bottom{width:100%;min-height:46px;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px;padding:6px;border:1px solid var(--bd);border-radius:14px;background:rgba(10,14,22,.9);pointer-events:auto}
+    .bottom button{min-width:0;min-height:32px;padding:5px 2px;overflow:hidden;border-radius:7px;font-size:clamp(8px,2.2vw,11px);line-height:1;white-space:nowrap;text-overflow:ellipsis}
+    #rec.recording{color:#ff9aac;background:rgba(255,93,122,.16);border-color:rgba(255,93,122,.7)}
+    #seqStop.active{color:#ffd27a;background:rgba(255,210,122,.12)}
+    #recTime{position:fixed;right:8px;bottom:calc(58px + env(safe-area-inset-bottom));z-index:23;display:none;min-width:56px;padding:5px 7px;border-radius:8px;background:rgba(10,14,22,.9);color:#ff9aac;font-size:11px;font-weight:700;text-align:center}
+    .hint{position:fixed;left:16px;bottom:calc(66px + env(safe-area-inset-bottom));z-index:2;color:rgba(234,241,248,.48);font-size:11px;line-height:1.6;pointer-events:none}
+    body.view-mode .top,body.view-mode #menu,body.view-mode .bottom-wrap,body.view-mode .hint,body.view-mode #recTime,body.view-mode .panel,body.view-mode #overlay{display:none!important}
+    body.view-mode #view{color:#061018;background:var(--ac);border-color:var(--ac)}
+    @media(max-width:420px){.bottom{gap:3px;padding:4px}.bottom button{min-height:29px;padding:4px 1px;font-size:7px}.tool,.eraser{padding:4px 5px;font-size:8px}.row label{min-width:88px}}
   </style>
 </head>
 <body>
-  <div id="canvas-container">
-    <canvas id="mainCanvas"></canvas>
+  <div id="stage"><canvas id="canvas"></canvas></div>
+
+  <div class="top">
+    <div class="tools">
+      <button id="ball" class="tool">BALL</button>
+      <button id="line" class="tool active">LINE</button>
+      <button id="slider" class="tool">SLIDER</button>
+      <button id="spin" class="tool">SPIN</button>
+      <button id="hole" class="tool hole">HOLE</button>
+    </div>
+    <button id="eraser" class="eraser">ERASER</button>
   </div>
 
-  <button id="menuToggle" class="menu-toggle" aria-label="設定">⚙</button>
+  <div class="top-actions">
+    <button id="menu">⚙</button>
+    <button id="view">VIEW</button>
+  </div>
 
-  <div id="settingsOverlay" class="settings-overlay"></div>
+  <div id="overlay"></div>
 
-  <div id="settingsPanel" class="settings-panel" aria-hidden="true">
-    <div class="settings-header">
-      <div class="settings-title">
-        <strong>RAIN ORBIT</strong>
-        <span>線の3色で ambient pad が変化</span>
-      </div>
-      <button id="closeMenuBtn" class="icon-btn" aria-label="閉じる">×</button>
+  <div id="settings" class="panel">
+    <div class="header">
+      <div class="title"><strong>RAIN ORBIT</strong><span>Ambient physics instrument</span></div>
+      <button class="close">×</button>
     </div>
 
-    <div class="settings-section">
-      <div class="settings-section-title">色設定</div>
-
-      <div class="control-row">
-        <label for="lineColorModeSelect">線の色</label>
-        <select id="lineColorModeSelect">
-          <option value="random" selected>ランダム</option>
-          <option value="manual">マニュアル</option>
-        </select>
-      </div>
-
-      <div class="control-row">
-        <label for="lineColorSelect">線色(手動)</label>
-        <select id="lineColorSelect">
-          <option value="0">Cyan</option>
-          <option value="1">Violet</option>
-          <option value="2">Mint</option>
-        </select>
-      </div>
-
-      <div class="control-row">
-        <label for="ballColorModeSelect">玉の色</label>
-        <select id="ballColorModeSelect">
-          <option value="random" selected>ランダム</option>
-          <option value="manual">マニュアル</option>
-        </select>
-      </div>
-
-      <div class="control-row">
-        <label for="ballColorInput">玉色(手動)</label>
-        <input type="color" id="ballColorInput" value="#8be9ff" />
-      </div>
-
-      <div class="slider-row">
-        <label for="ballSizeSlider">玉サイズ</label>
-        <input type="range" id="ballSizeSlider" min="4" max="30" step="1" value="10" />
-        <span id="ballSizeVal" class="slider-value">10px</span>
-      </div>
+    <div class="section">
+      <div class="section-title">MUSIC</div>
+      <div class="row"><label>Key</label><select id="key"><option>C</option><option>C#</option><option>D</option><option>D#</option><option>E</option><option>F</option><option>F#</option><option>G</option><option>G#</option><option selected>A</option><option>A#</option><option>B</option></select></div>
+      <div class="row"><label>Scale</label><select id="scale"><option value="minorPentatonic" selected>Minor Pentatonic</option><option value="majorPentatonic">Major Pentatonic</option><option value="major">Major</option><option value="minor">Minor</option><option value="dorian">Dorian</option><option value="lydian">Lydian</option></select></div>
+      <div class="row"><label>Master Volume</label><input id="masterVolume" type="range" min="0" max="1" step=".01" value=".72"><span id="masterVolumeV" class="value"></span></div>
     </div>
 
-    <div class="settings-section">
-      <div class="settings-section-title">音階</div>
-      <div class="control-row">
-        <label for="keySelect">Key</label>
-        <select id="keySelect">
-          <option value="C">C</option>
-          <option value="C#">C# / Db</option>
-          <option value="D">D</option>
-          <option value="D#">Eb</option>
-          <option value="E">E</option>
-          <option value="F">F</option>
-          <option value="F#">F# / Gb</option>
-          <option value="G">G</option>
-          <option value="G#">Ab</option>
-          <option value="A" selected>A</option>
-          <option value="A#">Bb</option>
-          <option value="B">B</option>
-        </select>
-      </div>
-
-      <div class="control-row">
-        <label for="scaleSelect">Scale</label>
-        <select id="scaleSelect">
-          <option value="majorPentatonic">Major Pentatonic</option>
-          <option value="minorPentatonic" selected>Minor Pentatonic</option>
-          <option value="major">Major</option>
-          <option value="minor">Minor</option>
-          <option value="hirajoshi">Hirajoshi</option>
-          <option value="akebono">Akebono</option>
-          <option value="lydian">Lydian</option>
-          <option value="dorian">Dorian</option>
-        </select>
-      </div>
+    <div class="section">
+      <div class="section-title">REVERB</div>
+      <div class="row"><label>Reverb Mix</label><input id="reverbMix" type="range" min="0" max="1" step=".01" value=".35"><span id="reverbMixV" class="value"></span></div>
+      <div class="row"><label>Pre Delay</label><input id="reverbPreDelay" type="range" min="0" max=".20" step=".005" value=".025"><span id="reverbPreDelayV" class="value"></span></div>
+      <div class="row"><label>Room Size</label><input id="reverbRoomSize" type="range" min=".02" max=".25" step=".005" value=".10"><span id="reverbRoomSizeV" class="value"></span></div>
+      <div class="row"><label>Decay</label><input id="reverbDecay" type="range" min="0" max=".75" step=".01" value=".25"><span id="reverbDecayV" class="value"></span></div>
+      <div class="row"><label>Brightness</label><input id="reverbBrightness" type="range" min="800" max="8000" step="100" value="4200"><span id="reverbBrightnessV" class="value"></span></div>
     </div>
 
-    <div class="settings-section">
-      <div class="settings-section-title">重力</div>
-      <div class="control-row">
-        <label for="gravityModeSelect">重力モード</label>
-        <select id="gravityModeSelect">
-          <option value="manual" selected>通常（下方向）</option>
-          <option value="sensor">iPhone重力センサー</option>
-        </select>
-      </div>
-
-      <div class="control-row">
-        <button id="sensorBtn" style="width: 100%;">センサー許可</button>
-      </div>
-
-      <div class="slider-row">
-        <label for="gravitySlider">重力</label>
-        <input type="range" id="gravitySlider" min="0.00" max="1.50" step="0.05" value="0.45" />
-        <span id="gravityVal" class="slider-value">0.45</span>
-      </div>
-
-      <div class="slider-row">
-        <label for="bounceSlider">反発</label>
-        <input type="range" id="bounceSlider" min="0.10" max="0.98" step="0.01" value="0.68" />
-        <span id="bounceVal" class="slider-value">0.68</span>
-      </div>
-
-      <div class="slider-row">
-        <label for="bounceLimitSlider">バウンド上限</label>
-        <input type="range" id="bounceLimitSlider" min="1" max="50" step="1" value="10" />
-        <span id="bounceLimitVal" class="slider-value">10回</span>
-      </div>
+    <div class="section">
+      <div class="section-title">DELAY</div>
+      <div class="row"><label>Delay Mix</label><input id="delayMix" type="range" min="0" max="1" step=".01" value=".20"><span id="delayMixV" class="value"></span></div>
+      <div class="row"><label>Delay Time</label><input id="delayTime" type="range" min=".05" max=".80" step=".01" value=".28"><span id="delayTimeV" class="value"></span></div>
+      <div class="row"><label>Feedback</label><input id="delayFeedback" type="range" min="0" max=".65" step=".01" value=".20"><span id="delayFeedbackV" class="value"></span></div>
+      <div class="row"><label>Delay Filter</label><input id="delayFilter" type="range" min="500" max="9000" step="100" value="4500"><span id="delayFilterV" class="value"></span></div>
     </div>
 
-    <div class="settings-section">
-      <div class="settings-section-title">線の色 / 音色</div>
-      <div class="sound-legend">
-        <div class="legend-item"><span class="legend-swatch" style="background:#8be9ff; color:#8be9ff;"></span> Cyan → Mist Pad</div>
-        <div class="legend-item"><span class="legend-swatch" style="background:#b6a3ff; color:#b6a3ff;"></span> Violet → Dawn Pad</div>
-        <div class="legend-item"><span class="legend-swatch" style="background:#7ee0c1; color:#7ee0c1;"></span> Mint → Aurora Pad</div>
-      </div>
-      <div class="legend-note">新しい線は 3 色で切り替わり、各色に対応した ambient 寄りの pad 音色になります。</div>
+    <div class="section">
+      <div class="section-title">SYSTEM</div>
+      <div class="row"><label>Ball Limit</label><input id="ballLimit" type="range" min="1" max="80" value="30"><span id="ballLimitV" class="value"></span></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">PHYSICS</div>
+      <div class="row"><label>Gravity</label><input id="gravity" type="range" min="0" max="1.5" step=".05" value=".45"><span id="gravityV" class="value"></span></div>
+      <div class="row"><label>Bounce</label><input id="bounce" type="range" min=".1" max=".98" step=".01" value=".68"><span id="bounceV" class="value"></span></div>
+      <p class="note">Reverb uses a lightweight feedback-delay network to reduce memory usage.</p>
     </div>
   </div>
 
-  <div class="action-bar">
-    <button id="recBtn" class="btn-rec">START REC</button>
-    <div id="recTimeDisplay" class="rec-time-display">待機</div>
-    <button id="undoBtn">UNDO</button>
-    <button id="clearLinesBtn">線消去</button>
-    <button id="clearBallsBtn">玉消去</button>
-    <button id="clearLoopBtn">録音消去</button>
+  <div id="ballPanel" class="panel small">
+    <div class="header"><div class="title"><strong>BALL</strong><span>New ball settings</span></div><button class="close">×</button></div>
+    <div class="section">
+      <div class="row"><label>Size</label><input id="ballSize" type="range" min="4" max="30" value="10"><span id="ballSizeV" class="value"></span></div>
+      <div class="row"><label>Bounce Limit</label><input id="ballLimitPer" type="range" min="1" max="50" value="10"><span id="ballLimitPerV" class="value"></span></div>
+      <div class="row"><label>Weight</label><input id="weight" type="range" min=".2" max="3" step=".05" value="1"><span id="weightV" class="value"></span></div>
+      <div class="row"><label>Sound Release</label><input id="release" type="range" min=".15" max="3" step=".05" value="1"><span id="releaseV" class="value"></span></div>
+    </div>
   </div>
 
-  <div class="instructions">
-    ・画面をドラッグして線を描く<br />
-    ・タップすると玉を発生<br />
-    ・⚙で設定ウインドウを開く<br />
-    ・線/玉の色はランダム or マニュアルで変更可能<br />
-    ・玉サイズも調整可能<br />
-    ・録音は最初の玉が出た瞬間から開始
+  <div id="motionPanel" class="panel small">
+    <div class="header"><div class="title"><strong id="motionTitle">SLIDER</strong><span>Moving bar settings</span></div><button class="close">×</button></div>
+    <div class="section">
+      <div class="row"><label>Speed</label><input id="speed" type="range" min="20" max="360" step="5" value="120"><span id="speedV" class="value"></span></div>
+      <div class="row"><label>Bar Length</label><input id="length" type="range" min="20" max="180" step="2" value="64"><span id="lengthV" class="value"></span></div>
+      <div id="dirRow" class="row" style="display:none"><label>Direction</label><select id="dir"><option value="1">Clockwise</option><option value="-1">Counterclockwise</option></select></div>
+    </div>
   </div>
 
-  <script>
-    const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+  <div id="holePanel" class="panel small">
+    <div class="header"><div class="title"><strong>BLACK HOLE</strong><span>Absorption settings</span></div><button class="close">×</button></div>
+    <div class="section"><div class="row"><label>Hole Size</label><input id="holeSize" type="range" min="14" max="100" step="2" value="32"><span id="holeSizeV" class="value"></span></div></div>
+  </div>
 
-    const SCALES = {
-      majorPentatonic: [0, 2, 4, 7, 9],
-      minorPentatonic: [0, 3, 5, 7, 10],
-      major: [0, 2, 4, 5, 7, 9, 11],
-      minor: [0, 2, 3, 5, 7, 8, 10],
-      hirajoshi: [0, 2, 3, 7, 8],
-      akebono: [0, 2, 3, 7, 9],
-      lydian: [0, 2, 4, 6, 7, 9, 11],
-      dorian: [0, 2, 3, 5, 7, 9, 10]
-    };
+  <div id="recTime">WAITING</div>
 
-    const BALL_COLORS = ["#8be9ff", "#b6a3ff", "#7ee0c1", "#ffd27a"];
+  <div class="bottom-wrap"><div class="bottom">
+    <button id="rec">REC</button>
+    <button id="seqStop">STOP</button>
+    <button id="clearRec">C REC</button>
+    <button id="undo">UNDO</button>
+    <button id="clearObj">C OBJ</button>
+    <button id="clearBalls">C BALLS</button>
+  </div></div>
 
-    const LINE_STYLES = [
-      { color: "#8be9ff", soundPreset: "mist", name: "Mist Pad" },
-      { color: "#b6a3ff", soundPreset: "dawn", name: "Dawn Pad" },
-      { color: "#7ee0c1", soundPreset: "aurora", name: "Aurora Pad" }
-    ];
+  <div class="hint">• BALL: tap to create<br>• LINE / SLIDER: drag<br>• SPIN / HOLE: tap<br>• VIEW hides controls</div>
 
-    const PAD_PRESETS = {
-      mist: {
-        partials: [
-          { type: "sine", mult: 1, detune: -8, gain: 0.92 },
-          { type: "triangle", mult: 2, detune: 4, gain: 0.26 },
-          { type: "sine", mult: 0.5, detune: 0, gain: 0.16 }
-        ],
-        cutoffMul: 5.0,
-        cutoffTail: 2.0,
-        attack: 0.08,
-        release: 2.9,
-        volume: 0.20,
-        delayTime: 0.18,
-        wet: 0.16,
-        feedback: 0.14,
-        fbCutoff: 1800,
-        pan: -0.18,
-        panSpread: 0.20
-      },
-      dawn: {
-        partials: [
-          { type: "triangle", mult: 1, detune: -6, gain: 0.85 },
-          { type: "sine", mult: 1.5, detune: 6, gain: 0.24 },
-          { type: "sine", mult: 2, detune: 11, gain: 0.14 }
-        ],
-        cutoffMul: 4.0,
-        cutoffTail: 1.6,
-        attack: 0.10,
-        release: 3.2,
-        volume: 0.19,
-        delayTime: 0.24,
-        wet: 0.18,
-        feedback: 0.17,
-        fbCutoff: 1600,
-        pan: 0.10,
-        panSpread: 0.22
-      },
-      aurora: {
-        partials: [
-          { type: "sine", mult: 1, detune: -3, gain: 0.82 },
-          { type: "triangle", mult: 2, detune: 9, gain: 0.20 },
-          { type: "sine", mult: 3, detune: 0, gain: 0.10 }
-        ],
-        cutoffMul: 6.0,
-        cutoffTail: 2.4,
-        attack: 0.05,
-        release: 2.6,
-        volume: 0.18,
-        delayTime: 0.30,
-        wet: 0.20,
-        feedback: 0.19,
-        fbCutoff: 2000,
-        pan: 0.18,
-        panSpread: 0.24
-      }
-    };
+<script>
+const $=id=>document.getElementById(id),canvas=$("canvas"),ctx=canvas.getContext("2d");
+const COLORS=["#8be9ff","#b6a3ff","#7ee0c1","#ffd27a"],LC=COLORS.slice(0,3),NAMES=["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+const SCALES={majorPentatonic:[0,2,4,7,9],minorPentatonic:[0,3,5,7,10],major:[0,2,4,5,7,9,11],minor:[0,2,3,5,7,8,10],dorian:[0,2,3,5,7,9,10],lydian:[0,2,4,6,7,9,11]};
+const PRESETS=[
+["sine","sine",4.1,.005,.2,.22,8.5],["triangle","sine",2.7,.008,.3,.2,7.2],["sine","sine",2,.01,.55,.18,8],["square","sine",.5,.012,.42,.1,4.2],["triangle","sine",3.5,.012,.75,.18,5.6],["triangle","sine",1.5,.03,1.1,.17,4.5],["sawtooth","sine",2,.06,1.45,.11,3.8],["sine","triangle",2,.1,2.1,.18,5],["triangle","sine",1.25,.15,2.55,.17,4.2],["sine","triangle",.5,.2,3,.19,3]
+];
 
-    let audioCtx = null;
+let W,H,D,zoom=1,pinch=false,pinchStart=0,pinchZoom=1,mode="line",drawing=false,erasing=false,eraserOn=false,stroke=null,drag=0;
+let lines=[],sliders=[],spins=[],holes=[],balls=[],history=[],note=0,notes=[];
+let audio=null,master=null,voices=0,lastSound=0;
+let recording=false,firstRec=true,recStart=null,loopDur=0,events=[],timers=[],sequenceStopped=false;
 
-    function initAudio() {
-      if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      }
-      if (audioCtx.state === "suspended") {
-        audioCtx.resume();
-      }
+const FX={
+  master:.72,
+  reverbMix:.35,
+  reverbPreDelay:.025,
+  reverbRoomSize:.10,
+  reverbDecay:.25,
+  reverbBrightness:4200,
+  delayMix:.20,
+  delayTime:.28,
+  delayFeedback:.20,
+  delayFilter:4500
+};
+
+const MAX_VOICES=10,MAX_SLIDERS=18,MAX_SPINS=14,MAX_HOLES=12,panels=[$("settings"),$("ballPanel"),$("motionPanel"),$("holePanel")];
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+
+function resize(){
+  D=Math.min(devicePixelRatio||1,2);
+  W=innerWidth;H=innerHeight;
+  canvas.width=W*D;canvas.height=H*D;
+  ctx.setTransform(D,0,0,D,0,0);
+}
+
+function touchDist(a,b){
+  return Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY);
+}
+
+function pos(e){
+  const p=e.touches?e.touches[0]:e;
+  return {
+    x:(p.clientX-W/2)/zoom+W/2,
+    y:(p.clientY-H/2)/zoom+H/2
+  };
+}
+
+function seg(px,py,a,b){
+  const dx=b.x-a.x,dy=b.y-a.y,l=dx*dx+dy*dy;
+  const t=l?clamp(((px-a.x)*dx+(py-a.y)*dy)/l,0,1):0;
+  const x=a.x+dx*t,y=a.y+dy*t;
+  return {x,y,d:Math.hypot(px-x,py-y)};
+}
+
+function ensureAudio(){
+  try{
+    if(!audio){
+      audio=new(window.AudioContext||window.webkitAudioContext)();
+      master=audio.createGain();
+      master.gain.value=FX.master;
+      master.connect(audio.destination);
     }
 
-    function clamp(v, min, max) {
-      return Math.max(min, Math.min(max, v));
+    if(audio.state==="suspended")audio.resume();
+  }catch(e){}
+}
+
+function buildScale(){
+  const k=NAMES.indexOf($("key").value),s=SCALES[$("scale").value];
+  notes=[];
+
+  for(let o=0;o<4;o++){
+    for(const n of s){
+      notes.push(440*Math.pow(2,(12*(o+4)+k+n-69)/12));
     }
-
-    function midiToFreq(midi) {
-      return 440 * Math.pow(2, (midi - 69) / 12);
-    }
-
-    function getScaleNotes(keyName, scaleName, octaveStart = 3, octaveCount = 4) {
-      const keyIndex = NOTE_NAMES.indexOf(keyName);
-      const intervals = SCALES[scaleName] || SCALES.minorPentatonic;
-      const freqs = [];
-
-      for (let oct = 0; oct < octaveCount; oct++) {
-        for (let i = 0; i < intervals.length; i++) {
-          const midi = 12 * (octaveStart + oct + 1) + keyIndex + intervals[i];
-          freqs.push(midiToFreq(midi));
-        }
-      }
-      return freqs;
-    }
-
-    function playAmbientPad(freq, velocity = 1.0, presetKey = "mist") {
-      if (!audioCtx) return;
-
-      const preset = PAD_PRESETS[presetKey] || PAD_PRESETS.mist;
-      const now = audioCtx.currentTime;
-
-      const master = audioCtx.createGain();
-      master.gain.value = 0.9;
-      master.connect(audioCtx.destination);
-
-      const dryGain = audioCtx.createGain();
-      const wetGain = audioCtx.createGain();
-      dryGain.gain.value = 1 - preset.wet;
-      wetGain.gain.value = preset.wet;
-
-      const mix = audioCtx.createGain();
-      mix.gain.value = 0.30;
-
-      const hp = audioCtx.createBiquadFilter();
-      hp.type = "highpass";
-      hp.frequency.setValueAtTime(70, now);
-
-      const lp = audioCtx.createBiquadFilter();
-      lp.type = "lowpass";
-      lp.frequency.setValueAtTime(clamp(freq * preset.cutoffMul * (1 + velocity * 0.12), 700, 8000), now);
-      lp.frequency.exponentialRampToValueAtTime(clamp(freq * preset.cutoffTail * (1 + velocity * 0.05), 500, 6000), now + preset.release);
-
-      const env = audioCtx.createGain();
-      const vol = clamp(velocity, 0.15, 1.0) * preset.volume;
-      env.gain.setValueAtTime(0.0001, now);
-      env.gain.exponentialRampToValueAtTime(vol, now + preset.attack);
-      env.gain.exponentialRampToValueAtTime(0.0001, now + preset.release);
-
-      const delay = audioCtx.createDelay(2.0);
-      delay.delayTime.setValueAtTime(preset.delayTime, now);
-
-      const fbFilter = audioCtx.createBiquadFilter();
-      fbFilter.type = "lowpass";
-      fbFilter.frequency.setValueAtTime(preset.fbCutoff, now);
-
-      const fbGain = audioCtx.createGain();
-      fbGain.gain.setValueAtTime(preset.feedback, now);
-
-      const canPan = typeof audioCtx.createStereoPanner === "function";
-      const panner = canPan ? audioCtx.createStereoPanner() : null;
-      if (panner) {
-        const pan = clamp(preset.pan + (Math.random() - 0.5) * preset.panSpread, -0.85, 0.85);
-        panner.pan.setValueAtTime(pan, now);
-      }
-
-      mix.connect(hp);
-      hp.connect(lp);
-      lp.connect(env);
-
-      if (panner) {
-        env.connect(panner);
-        panner.connect(dryGain);
-        panner.connect(delay);
-      } else {
-        env.connect(dryGain);
-        env.connect(delay);
-      }
-
-      delay.connect(wetGain);
-      delay.connect(fbFilter);
-      fbFilter.connect(fbGain);
-      fbGain.connect(delay);
-
-      dryGain.connect(master);
-      wetGain.connect(master);
-
-      const cleanupNodes = () => {
-        try { master.disconnect(); } catch {}
-        try { dryGain.disconnect(); } catch {}
-        try { wetGain.disconnect(); } catch {}
-        try { mix.disconnect(); } catch {}
-        try { hp.disconnect(); } catch {}
-        try { lp.disconnect(); } catch {}
-        try { env.disconnect(); } catch {}
-        try { delay.disconnect(); } catch {}
-        try { fbFilter.disconnect(); } catch {}
-        try { fbGain.disconnect(); } catch {}
-        if (panner) {
-          try { panner.disconnect(); } catch {}
-        }
-      };
-
-      preset.partials.forEach((partial) => {
-        const osc = audioCtx.createOscillator();
-        const oscGain = audioCtx.createGain();
-
-        osc.type = partial.type;
-        osc.frequency.setValueAtTime(freq * (partial.mult || 1), now);
-        osc.detune.setValueAtTime(partial.detune || 0, now);
-        oscGain.gain.value = partial.gain ?? 1;
-
-        osc.connect(oscGain);
-        oscGain.connect(mix);
-
-        osc.start(now);
-        osc.stop(now + preset.release + 1.0);
-
-        setTimeout(() => {
-          try { osc.disconnect(); } catch {}
-          try { oscGain.disconnect(); } catch {}
-        }, (preset.release + 1.5) * 1000);
-      });
-
-      setTimeout(cleanupNodes, (preset.release + 3.0) * 1000);
-    }
-
-    const canvas = document.getElementById("mainCanvas");
-    const ctx = canvas.getContext("2d");
-
-    let width = 0;
-    let height = 0;
-    let dpr = 1;
-
-    function resizeCanvas() {
-      dpr = Math.min(window.devicePixelRatio || 1, 2);
-      width = window.innerWidth;
-      height = window.innerHeight;
-
-      canvas.width = Math.floor(width * dpr);
-      canvas.height = Math.floor(height * dpr);
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    }
-
-    window.addEventListener("resize", resizeCanvas);
-    resizeCanvas();
-
-    let lines = [];
-    let currentLine = null;
-    let balls = [];
-    let activeFreqs = [];
-    let historyStack = [];
-
-    let isRecording = false;
-    let recStartTime = null;
-    let loopDuration = 0;
-    let recordedEvents = [];
-    let activeLoopTimeouts = [];
-
-    const menuToggle = document.getElementById("menuToggle");
-    const settingsPanel = document.getElementById("settingsPanel");
-    const settingsOverlay = document.getElementById("settingsOverlay");
-    const closeMenuBtn = document.getElementById("closeMenuBtn");
-
-    function setSettingsOpen(open) {
-      settingsPanel.classList.toggle("open", open);
-      settingsOverlay.classList.toggle("open", open);
-      settingsPanel.setAttribute("aria-hidden", open ? "false" : "true");
-    }
-
-    menuToggle.addEventListener("click", () => {
-      setSettingsOpen(!settingsPanel.classList.contains("open"));
-    });
-
-    closeMenuBtn.addEventListener("click", () => setSettingsOpen(false));
-    settingsOverlay.addEventListener("click", () => setSettingsOpen(false));
-
-    const lineColorModeSelect = document.getElementById("lineColorModeSelect");
-    const lineColorSelect = document.getElementById("lineColorSelect");
-    const ballColorModeSelect = document.getElementById("ballColorModeSelect");
-    const ballColorInput = document.getElementById("ballColorInput");
-    const ballSizeSlider = document.getElementById("ballSizeSlider");
-    const ballSizeVal = document.getElementById("ballSizeVal");
-
-    function updateColorControlStates() {
-      lineColorSelect.disabled = lineColorModeSelect.value !== "manual";
-      ballColorInput.disabled = ballColorModeSelect.value !== "manual";
-    }
-
-    function getSelectedLineStyle() {
-      if (lineColorModeSelect.value === "manual") {
-        const idx = clamp(parseInt(lineColorSelect.value, 10) || 0, 0, LINE_STYLES.length - 1);
-        return LINE_STYLES[idx];
-      }
-      return LINE_STYLES[Math.floor(Math.random() * LINE_STYLES.length)];
-    }
-
-    function getSelectedBallColor() {
-      if (ballColorModeSelect.value === "manual") {
-        return ballColorInput.value || BALL_COLORS[0];
-      }
-      return BALL_COLORS[Math.floor(Math.random() * BALL_COLORS.length)];
-    }
-
-    function getSelectedBallSize() {
-      return clamp(parseFloat(ballSizeSlider.value), 4, 30);
-    }
-
-    lineColorModeSelect.addEventListener("change", updateColorControlStates);
-    lineColorSelect.addEventListener("change", updateColorControlStates);
-    ballColorModeSelect.addEventListener("change", updateColorControlStates);
-    ballColorInput.addEventListener("input", updateColorControlStates);
-
-    ballSizeSlider.addEventListener("input", (e) => {
-      ballSizeVal.textContent = `${parseInt(e.target.value, 10)}px`;
-    });
-
-    updateColorControlStates();
-    ballSizeVal.textContent = `${parseInt(ballSizeSlider.value, 10)}px`;
-
-    const gravitySlider = document.getElementById("gravitySlider");
-    const gravityVal = document.getElementById("gravityVal");
-    gravitySlider.addEventListener("input", (e) => {
-      gravityVal.textContent = parseFloat(e.target.value).toFixed(2);
-    });
-
-    const bounceSlider = document.getElementById("bounceSlider");
-    const bounceVal = document.getElementById("bounceVal");
-    bounceSlider.addEventListener("input", (e) => {
-      bounceVal.textContent = parseFloat(e.target.value).toFixed(2);
-    });
-
-    const bounceLimitSlider = document.getElementById("bounceLimitSlider");
-    const bounceLimitVal = document.getElementById("bounceLimitVal");
-    bounceLimitSlider.addEventListener("input", (e) => {
-      bounceLimitVal.textContent = `${e.target.value}回`;
-    });
-
-    const gravityModeSelect = document.getElementById("gravityModeSelect");
-    const sensorBtn = document.getElementById("sensorBtn");
-
-    let sensorGravity = { x: 0, y: 0 };
-    let sensorListenerAdded = false;
-    let sensorReady = false;
-    const isIPhone = /iPhone|iPod/i.test(navigator.userAgent);
-
-    function handleDeviceOrientation(e) {
-      if (gravityModeSelect.value !== "sensor" || !sensorReady) return;
-
-      const maxTilt = 35;
-      const strength = parseFloat(gravitySlider.value) * 1.8;
-
-      const gx = clamp(e.gamma ?? 0, -maxTilt, maxTilt) / maxTilt;
-      const gy = clamp(e.beta ?? 0, -maxTilt, maxTilt) / maxTilt;
-
-      sensorGravity.x = gx * strength;
-      sensorGravity.y = gy * strength * (isIPhone ? 1 : -1);
-    }
-
-    async function enableSensor() {
-      initAudio();
-
-      try {
-        if (
-          typeof DeviceOrientationEvent !== "undefined" &&
-          typeof DeviceOrientationEvent.requestPermission === "function"
-        ) {
-          const permission = await DeviceOrientationEvent.requestPermission();
-          if (permission !== "granted") {
-            alert("重力センサーの許可が必要です。");
-            return;
-          }
-        }
-
-        if (!sensorListenerAdded) {
-          window.addEventListener("deviceorientation", handleDeviceOrientation, true);
-          sensorListenerAdded = true;
-        }
-
-        sensorReady = true;
-        gravityModeSelect.value = "sensor";
-        sensorBtn.textContent = "センサー許可済み";
-      } catch (err) {
-        console.error(err);
-        alert("センサーの初期化に失敗しました。HTTPS環境のSafariで開いてください。");
-      }
-    }
-
-    sensorBtn.addEventListener("click", enableSensor);
-
-    function updateScaleNotes() {
-      const key = document.getElementById("keySelect").value;
-      const scale = document.getElementById("scaleSelect").value;
-      activeFreqs = getScaleNotes(key, scale);
-    }
-
-    updateScaleNotes();
-    document.getElementById("keySelect").addEventListener("change", updateScaleNotes);
-    document.getElementById("scaleSelect").addEventListener("change", updateScaleNotes);
-
-    function getClosestPointOnSegment(px, py, ax, ay, bx, by) {
-      const abx = bx - ax;
-      const aby = by - ay;
-      const apx = px - ax;
-      const apy = py - ay;
-
-      const abLenSq = abx * abx + aby * aby;
-      if (abLenSq === 0) return { x: ax, y: ay };
-
-      let t = (apx * abx + apy * aby) / abLenSq;
-      t = Math.max(0, Math.min(1, t));
-
-      return { x: ax + t * abx, y: ay + t * aby };
-    }
-
-    function getLineIntersection(p0_x, p0_y, p1_x, p1_y, p2_x, p2_y, p3_x, p3_y) {
-      const s1_x = p1_x - p0_x;
-      const s1_y = p1_y - p0_y;
-      const s2_x = p3_x - p2_x;
-      const s2_y = p3_y - p2_y;
-
-      const denom = (-s2_x * s1_y + s1_x * s2_y);
-      if (denom === 0) return false;
-
-      const s = (-s1_y * (p0_x - p2_x) + s1_x * (p0_y - p2_y)) / denom;
-      const t = (s2_x * (p0_y - p2_y) - s2_y * (p0_x - p2_x)) / denom;
-
-      return (s >= 0 && s <= 1 && t >= 0 && t <= 1);
-    }
-
-    class Ball {
-      constructor(x, y, vx = null, vy = null, radius = 10, color = null) {
-        this.x = x;
-        this.y = y;
-        this.vx = (vx === null || vx === undefined) ? (Math.random() - 0.5) * 1.4 : vx;
-        this.vy = (vy === null || vy === undefined) ? 0 : vy;
-        this.radius = radius;
-        this.color = color || BALL_COLORS[Math.floor(Math.random() * BALL_COLORS.length)];
-        this.lastSoundTime = 0;
-        this.alpha = 1.0;
-        this.pulse = 0;
-        this.bounceCount = 0;
-        this.isExpiring = false;
+  }
+}
+
+function updateFX(){
+  FX.master=+$("masterVolume").value;
+  FX.reverbMix=+$("reverbMix").value;
+  FX.reverbPreDelay=+$("reverbPreDelay").value;
+  FX.reverbRoomSize=+$("reverbRoomSize").value;
+  FX.reverbDecay=+$("reverbDecay").value;
+  FX.reverbBrightness=+$("reverbBrightness").value;
+  FX.delayMix=+$("delayMix").value;
+  FX.delayTime=+$("delayTime").value;
+  FX.delayFeedback=+$("delayFeedback").value;
+  FX.delayFilter=+$("delayFilter").value;
+
+  $("masterVolumeV").textContent=`${Math.round(FX.master*100)}%`;
+  $("reverbMixV").textContent=`${Math.round(FX.reverbMix*100)}%`;
+  $("reverbPreDelayV").textContent=`${FX.reverbPreDelay.toFixed(3)}s`;
+  $("reverbRoomSizeV").textContent=`${FX.reverbRoomSize.toFixed(3)}s`;
+  $("reverbDecayV").textContent=`${Math.round(FX.reverbDecay*100)}%`;
+  $("reverbBrightnessV").textContent=`${Math.round(FX.reverbBrightness/1000*10)/10}k`;
+  $("delayMixV").textContent=`${Math.round(FX.delayMix*100)}%`;
+  $("delayTimeV").textContent=`${FX.delayTime.toFixed(2)}s`;
+  $("delayFeedbackV").textContent=`${Math.round(FX.delayFeedback*100)}%`;
+  $("delayFilterV").textContent=`${Math.round(FX.delayFilter/1000*10)/10}k`;
+
+  if(master&&audio){
+    master.gain.cancelScheduledValues(audio.currentTime);
+    master.gain.setTargetAtTime(FX.master,audio.currentTime,.015);
+  }
+}
+
+/*
+  Per-voice FX:
+  - Delay: time, mix, feedback, tone filter
+  - Reverb: pre-delay, room size, decay, brightness, mix
+  Lightweight feedback network; no ConvolverNode is used.
+*/
+function playSound(f,v,r,w=1,rel=1){
+  try{
+    if(!audio||!master||audio.state!=="running"||!Number.isFinite(f))return;
+    if(performance.now()-lastSound<45||voices>=MAX_VOICES)return;
+
+    lastSound=performance.now();
+    voices++;
+
+    const p=PRESETS[clamp(Math.floor((r-4)/2.7),0,9)];
+    const now=audio.currentTime;
+    const release=clamp(p[4]*rel*clamp(.75+w*.25,.8,1.5),.08,3);
+
+    const a=audio.createOscillator(),b=audio.createOscillator();
+    const ga=audio.createGain(),gb=audio.createGain();
+    const fi=audio.createBiquadFilter(),env=audio.createGain();
+
+    const dry=audio.createGain();
+
+    const delay=audio.createDelay(1.5);
+    const delayFilter=audio.createBiquadFilter();
+    const delayOut=audio.createGain();
+    const delayFeedback=audio.createGain();
+
+    const revPre=audio.createDelay(.25);
+    const revA=audio.createDelay(.35);
+    const revB=audio.createDelay(.35);
+    const revC=audio.createDelay(.35);
+    const revFilter=audio.createBiquadFilter();
+    const revGainA=audio.createGain();
+    const revGainB=audio.createGain();
+    const revGainC=audio.createGain();
+    const revFeedback=audio.createGain();
+    const revOut=audio.createGain();
+
+    a.type=p[0];
+    b.type=p[1];
+    a.frequency.setValueAtTime(f,now);
+    b.frequency.setValueAtTime(f*p[2],now);
+
+    ga.gain.value=.86;
+    gb.gain.value=.16;
+
+    fi.type="lowpass";
+    fi.frequency.setValueAtTime(clamp(f*p[6],650,7600),now);
+    fi.Q.value=.65;
+
+    env.gain.setValueAtTime(.0001,now);
+    env.gain.exponentialRampToValueAtTime(clamp(v,.18,1)*p[5],now+p[3]);
+    env.gain.exponentialRampToValueAtTime(.0001,now+release);
+
+    /*
+      Dry signal.
+    */
+    dry.gain.value=1-clamp(FX.delayMix*.18+FX.reverbMix*.10,0,.35);
+
+    /*
+      Delay parameters.
+    */
+    delay.delayTime.setValueAtTime(FX.delayTime,now);
+    delayFilter.type="lowpass";
+    delayFilter.frequency.setValueAtTime(FX.delayFilter,now);
+    delayOut.gain.value=FX.delayMix*.55;
+    delayFeedback.gain.value=FX.delayFeedback;
+
+    /*
+      Reverb parameters.
+      Different prime-ish multipliers prevent obvious metallic repeats.
+    */
+    revPre.delayTime.setValueAtTime(FX.reverbPreDelay,now);
+    revA.delayTime.setValueAtTime(FX.reverbRoomSize*.73,now);
+    revB.delayTime.setValueAtTime(FX.reverbRoomSize*1.17,now);
+    revC.delayTime.setValueAtTime(FX.reverbRoomSize*1.61,now);
+
+    revFilter.type="lowpass";
+    revFilter.frequency.setValueAtTime(FX.reverbBrightness,now);
+
+    revGainA.gain.value=FX.reverbMix*.18;
+    revGainB.gain.value=FX.reverbMix*.14;
+    revGainC.gain.value=FX.reverbMix*.10;
+    revFeedback.gain.value=FX.reverbDecay;
+    revOut.gain.value=FX.reverbMix;
+
+    a.connect(ga);
+    b.connect(gb);
+    ga.connect(fi);
+    gb.connect(fi);
+    fi.connect(env);
+
+    env.connect(dry);
+    dry.connect(master);
+
+    /*
+      Delay network.
+    */
+    env.connect(delay);
+    delay.connect(delayFilter);
+    delayFilter.connect(delayOut);
+    delayOut.connect(master);
+    delayFilter.connect(delayFeedback);
+    delayFeedback.connect(delay);
+
+    /*
+      Reverb network.
+    */
+    env.connect(revPre);
+    revPre.connect(revA);
+    revPre.connect(revB);
+    revPre.connect(revC);
+
+    revA.connect(revFilter);
+    revB.connect(revFilter);
+    revC.connect(revFilter);
+
+    revFilter.connect(revGainA);
+    revFilter.connect(revGainB);
+    revFilter.connect(revGainC);
+
+    revGainA.connect(revOut);
+    revGainB.connect(revOut);
+    revGainC.connect(revOut);
+
+    revOut.connect(master);
+
+    revFilter.connect(revFeedback);
+    revFeedback.connect(revA);
+
+    a.start(now);
+    b.start(now);
+    a.stop(now+release+.12);
+    b.stop(now+release+.12);
+
+    const cleanup=Math.max(
+      release+.35,
+      FX.delayTime*5+.5,
+      FX.reverbRoomSize*6+.8
+    );
+
+    setTimeout(()=>{
+      try{
+        a.disconnect();b.disconnect();ga.disconnect();gb.disconnect();
+        fi.disconnect();env.disconnect();dry.disconnect();
+
+        delay.disconnect();delayFilter.disconnect();delayOut.disconnect();delayFeedback.disconnect();
+
+        revPre.disconnect();revA.disconnect();revB.disconnect();revC.disconnect();
+        revFilter.disconnect();revGainA.disconnect();revGainB.disconnect();
+        revGainC.disconnect();revFeedback.disconnect();revOut.disconnect();
+      }catch(e){}
+
+      voices=Math.max(0,voices-1);
+    },cleanup*1000);
+  }catch(e){
+    voices=Math.max(0,voices-1);
+  }
+}
+
+function sliderState(s,t){
+  const dx=s.e.x-s.a.x,dy=s.e.y-s.a.y,L=Math.hypot(dx,dy);
+  if(!L)return;
+
+  const tx=dx/L,ty=dy/L,c=L*2;
+  let m=((t-s.at)/1000*s.sp)%c;
+  if(m<0)m+=c;
+
+  const fw=m<=L,d=fw?m:c-m,x=s.a.x+tx*d,y=s.a.y+ty*d,nx=-ty,ny=tx,h=s.len/2;
+
+  return {
+    a:{x:x-nx*h,y:y-ny*h},
+    b:{x:x+nx*h,y:y+ny*h},
+    vx:tx*s.sp*(fw?1:-1)/60,
+    vy:ty*s.sp*(fw?1:-1)/60,
+    sp:s.sp
+  };
+}
+
+function spinState(s,t){
+  const w=s.sp*Math.PI/180*s.dir,an=s.angle+(t-s.at)/1000*w,h=s.len/2;
+
+  return {
+    a:{x:s.x+Math.cos(an)*h,y:s.y+Math.sin(an)*h},
+    b:{x:s.x-Math.cos(an)*h,y:s.y-Math.sin(an)*h},
+    vx:-Math.sin(an)*h*w/60,
+    vy:Math.cos(an)*h*w/60,
+    sp:Math.abs(h*w)
+  };
+}
+
+function sweep(x0,y0,x1,y1,a,b,r,src,vx=0,vy=0,sp=0){
+  const N=Math.max(4,Math.min(24,Math.ceil(Math.hypot(x1-x0,y1-y0)/Math.max(2.2,r*.42))));
+  let old=0;
+
+  for(let i=0;i<=N;i++){
+    const t=i/N,q=seg(x0+(x1-x0)*t,y0+(y1-y0)*t,a,b);
+
+    if(q.d<=r){
+      let lo=old,hi=t;
+
+      for(let j=0;j<8;j++){
+        const m=(lo+hi)/2,z=seg(x0+(x1-x0)*m,y0+(y1-y0)*m,a,b);
+        if(z.d<=r)hi=m;else lo=m;
       }
 
-      update(gravityX, gravityY) {
-        this.vx += gravityX;
-        this.vy += gravityY;
-
-        const nextX = this.x + this.vx;
-        const nextY = this.y + this.vy;
-
-        if (!this.isExpiring) {
-          this.checkCollisions(nextX, nextY);
-        }
-
-        this.x += this.vx;
-        this.y += this.vy;
-
-        if (this.isExpiring) {
-          this.alpha -= 0.08;
-        } else if (
-          this.y - this.radius > height ||
-          this.x + this.radius < 0 ||
-          this.x - this.radius > width
-        ) {
-          this.alpha -= 0.02;
-        }
-
-        if (this.pulse > 0) {
-          this.pulse -= 0.05;
-        }
-      }
-
-      checkCollisions(nextX, nextY) {
-        const cooldown = 180;
-        const now = Date.now();
-        const steps = 4;
-        let p1 = { x: this.x, y: this.y };
-
-        const bounce = clamp(parseFloat(bounceSlider.value), 0.10, 0.98);
-        const maxBounces = parseInt(bounceLimitSlider.value, 10);
-
-        for (let s = 1; s <= steps; s++) {
-          const t = s / steps;
-          const p2 = {
-            x: this.x + (nextX - this.x) * t,
-            y: this.y + (nextY - this.y) * t
-          };
-
-          for (const line of lines) {
-            const pts = line.points;
-            if (pts.length < 2) continue;
-
-            for (let i = 0; i < pts.length - 1; i++) {
-              const a = pts[i];
-              const b = pts[i + 1];
-
-              const intersect = getLineIntersection(p1.x, p1.y, p2.x, p2.y, a.x, a.y, b.x, b.y);
-              const closest = getClosestPointOnSegment(p2.x, p2.y, a.x, a.y, b.x, b.y);
-              const dx = p2.x - closest.x;
-              const dy = p2.y - closest.y;
-              const dist = Math.sqrt(dx * dx + dy * dy);
-
-              if (intersect || dist < this.radius) {
-                let nx = -(b.y - a.y);
-                let ny = b.x - a.x;
-                const len = Math.sqrt(nx * nx + ny * ny);
-                if (len === 0) continue;
-                nx /= len;
-                ny /= len;
-
-                const dot = this.vx * nx + this.vy * ny;
-                if (dot > 0) {
-                  nx = -nx;
-                  ny = -ny;
-                }
-
-                const vDotN = this.vx * nx + this.vy * ny;
-                const impact = Math.abs(vDotN);
-
-                this.vx = (this.vx - 2 * vDotN * nx) * bounce;
-                this.vy = (this.vy - 2 * vDotN * ny) * bounce;
-
-                const overlap = this.radius - dist;
-                if (overlap > 0) {
-                  this.x += nx * (overlap + 1.2);
-                  this.y += ny * (overlap + 1.2);
-                }
-
-                if (impact > 1.1 && (now - this.lastSoundTime > cooldown)) {
-                  this.triggerSound(closest.y, impact, line.soundPreset);
-                  this.lastSoundTime = now;
-                  this.pulse = 1.0;
-
-                  this.bounceCount++;
-                  if (this.bounceCount >= maxBounces) {
-                    this.isExpiring = true;
-                  }
-                }
-
-                this.vx *= 0.99;
-                this.vy *= 0.99;
-                return;
-              }
-            }
-          }
-          p1 = p2;
-        }
-      }
-
-      triggerSound(hitY, impact, soundPreset) {
-        if (activeFreqs.length === 0) return;
-
-        const normalizedY = Math.min(Math.max(hitY / height, 0), 1);
-        const index = Math.floor((1 - normalizedY) * activeFreqs.length);
-        const freqIndex = Math.min(Math.max(index, 0), activeFreqs.length - 1);
-
-        const freq = activeFreqs[freqIndex];
-        const vel = Math.min(impact / 8, 1.0);
-
-        playAmbientPad(freq, vel, soundPreset);
-      }
-
-      draw(ctx) {
-        ctx.save();
-        ctx.globalAlpha = Math.max(this.alpha, 0);
-
-        if (this.pulse > 0) {
-          ctx.save();
-          ctx.globalAlpha = this.pulse * 0.55;
-          ctx.beginPath();
-          ctx.arc(this.x, this.y, this.radius + this.pulse * 12, 0, Math.PI * 2);
-          ctx.strokeStyle = this.color;
-          ctx.lineWidth = 2;
-          ctx.stroke();
-          ctx.restore();
-        }
-
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-        ctx.fillStyle = this.color;
-        ctx.shadowColor = this.color;
-        ctx.shadowBlur = 10;
-        ctx.fill();
-
-        ctx.shadowBlur = 0;
-        ctx.lineWidth = 1;
-        ctx.strokeStyle = "rgba(255,255,255,0.16)";
-        ctx.stroke();
-
-        ctx.restore();
-      }
+      const x=x0+(x1-x0)*hi,y=y0+(y1-y0)*hi,z=seg(x,y,a,b);
+      return {t:hi,x,y,sx:z.x,sy:z.y,a,b,r,src,vx,vy,sp};
     }
 
-    let isDrawing = false;
-    let dragDistance = 0;
+    old=t;
+  }
 
-    function getPos(e) {
-      if (e.touches && e.touches.length > 0) {
-        return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  return null;
+}
+
+function collision(ball,x0,y0,x1,y1,now){
+  let best=null;
+  const take=h=>{if(h&&(!best||h.t<best.t))best=h;};
+
+  for(const l of lines){
+    for(let i=0;i<l.p.length-1;i++){
+      take(sweep(x0,y0,x1,y1,l.p[i],l.p[i+1],ball.r+2.5,l));
+    }
+  }
+
+  for(const s of sliders){
+    const z=sliderState(s,now);
+    if(z)take(sweep(x0,y0,x1,y1,z.a,z.b,ball.r+9.5,s,z.vx,z.vy,z.sp));
+  }
+
+  for(const s of spins){
+    const z=spinState(s,now);
+    if(z)take(sweep(x0,y0,x1,y1,z.a,z.b,ball.r+9.5,s,z.vx,z.vy,z.sp));
+  }
+
+  return best;
+}
+
+class Ball{
+  constructor(x,y,vx=null,vy=null,r=10,c=COLORS[0],w=1,lim=10,rel=1){
+    this.x=x;this.y=y;
+    this.vx=vx??(Math.random()-.5)*1.4;
+    this.vy=vy??0;
+    this.r=r;this.c=c;this.w=w;this.lim=lim;this.rel=rel;
+    this.n=0;this.al=1;this.fade=false;this.last=0;
+  }
+
+  update(now){
+    if(this.fade){
+      this.al-=.04;
+      this.r*=.965;
+      return;
+    }
+
+    this.vy+=+$("gravity").value*this.w;
+
+    for(const h of holes){
+      const dx=h.x-this.x,dy=h.y-this.y,d=Math.hypot(dx,dy)||.001;
+
+      if(d<h.r*2.4){
+        const f=(1-d/(h.r*2.4))*.14;
+        this.vx+=dx/d*f;
+        this.vy+=dy/d*f;
       }
-      return { x: e.clientX, y: e.clientY };
-    }
 
-    function pushHistory(action) {
-      historyStack.push(action);
-      if (historyStack.length > 600) {
-        historyStack.shift();
-      }
-    }
-
-    function pruneHistory(type) {
-      historyStack = historyStack.filter((a) => a.type !== type);
-    }
-
-    function undoLastAction() {
-      if (currentLine) {
-        currentLine = null;
-        isDrawing = false;
-        dragDistance = 0;
+      if(d<h.r+this.r*.45){
+        this.fade=true;
         return;
       }
+    }
 
-      while (historyStack.length > 0) {
-        const action = historyStack.pop();
+    let rem=1,k=0;
 
-        if (action.type === "line") {
-          const idx = lines.indexOf(action.ref);
-          if (idx !== -1) {
-            lines.splice(idx, 1);
-            return;
-          }
-        } else if (action.type === "ball") {
-          const idx = balls.indexOf(action.ref);
-          if (idx !== -1) {
-            balls.splice(idx, 1);
-            return;
-          }
+    while(rem>.0001&&k++<6){
+      const x0=this.x,y0=this.y;
+      const h=collision(this,x0,y0,x0+this.vx*rem,y0+this.vy*rem,now);
+
+      if(!h){
+        this.x+=this.vx*rem;
+        this.y+=this.vy*rem;
+        break;
+      }
+
+      this.x=x0+this.vx*rem*Math.max(0,h.t-.001);
+      this.y=y0+this.vy*rem*Math.max(0,h.t-.001);
+
+      let nx=h.x-h.sx,ny=h.y-h.sy,L=Math.hypot(nx,ny);
+
+      if(L<.001){
+        nx=-(h.b.y-h.a.y);
+        ny=h.b.x-h.a.x;
+        L=Math.hypot(nx,ny)||1;
+      }
+
+      nx/=L;ny/=L;
+
+      let rvx=this.vx-h.vx,rvy=this.vy-h.vy;
+
+      if(rvx*nx+rvy*ny>0){
+        nx*=-1;ny*=-1;
+      }
+
+      const dot=rvx*nx+rvy*ny,impact=Math.abs(dot),boost=clamp(h.sp/360,0,1);
+      const bo=clamp(+$("bounce").value+boost*.28,.1,.99);
+
+      rvx=(rvx-2*dot*nx)*bo;
+      rvy=(rvy-2*dot*ny)*bo;
+
+      this.vx=rvx+h.vx*(1+boost);
+      this.vy=rvy+h.vy*(1+boost);
+
+      this.x=h.sx+nx*(h.r+3.5);
+      this.y=h.sy+ny*(h.r+3.5);
+
+      if(impact>.2){
+        this.n++;
+
+        if(now-this.last>100&&h.src&&notes.length){
+          playSound(
+            notes[Math.abs(h.src.note)%notes.length],
+            clamp((impact+boost*2)/5,.25,1),
+            this.r,this.w,this.rel
+          );
+          this.last=now;
+        }
+
+        if(this.n>=this.lim){
+          this.fade=true;
+          return;
         }
       }
+
+      rem*=Math.max(0,1-h.t-.001);
     }
 
-    function spawnBall(x, y, vx = 0, vy = 0, record = true, addHistory = true) {
-      const ball = new Ball(
-        x,
-        y,
-        vx,
-        vy,
-        getSelectedBallSize(),
-        getSelectedBallColor()
-      );
-      balls.push(ball);
+    if(this.y-this.r>H||this.x+this.r<0||this.x-this.r>W){
+      this.fade=true;
+    }
+  }
 
-      if (addHistory) {
-        pushHistory({ type: "ball", ref: ball });
-      }
+  draw(){
+    ctx.save();
+    ctx.globalAlpha=Math.max(0,this.al);
 
-      if (isRecording && record) {
-        const now = Date.now();
+    ctx.beginPath();
+    ctx.arc(this.x,this.y,this.r,0,Math.PI*2);
+    ctx.fillStyle=this.c;
+    ctx.shadowColor=this.c;
+    ctx.shadowBlur=10;
+    ctx.fill();
 
-        if (recStartTime === null) {
-          recStartTime = now;
-          recordedEvents.push({ relTime: 0, x, y, vx, vy });
-        } else {
-          const relTime = now - recStartTime;
-          recordedEvents.push({ relTime, x, y, vx, vy });
+    ctx.shadowBlur=0;
+    ctx.strokeStyle="rgba(255,255,255,.22)";
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+function drawLine(p,c,w,d=[]){
+  if(p.length<2)return;
+  ctx.beginPath();
+  ctx.moveTo(p[0].x,p[0].y);
+
+  for(let i=1;i<p.length;i++)ctx.lineTo(p[i].x,p[i].y);
+
+  ctx.strokeStyle=c;
+  ctx.lineWidth=w;
+  ctx.setLineDash(d);
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+function drawHole(h){
+  const g=ctx.createRadialGradient(h.x,h.y,2,h.x,h.y,h.r);
+  g.addColorStop(0,"#000");
+  g.addColorStop(.65,"#08090d");
+  g.addColorStop(.82,"#34363c");
+  g.addColorStop(1,"rgba(145,150,158,0)");
+
+  ctx.beginPath();
+  ctx.arc(h.x,h.y,h.r,0,Math.PI*2);
+  ctx.fillStyle=g;
+  ctx.fill();
+}
+
+function spawn(x,y,vx=null,vy=null,record=true,hist=true,o={}){
+  const b=new Ball(
+    x,y,vx,vy,
+    o.r??+$("ballSize").value,
+    o.c??COLORS[Math.random()*4|0],
+    o.w??+$("weight").value,
+    o.lim??+$("ballLimitPer").value,
+    o.rel??+$("release").value
+  );
+
+  balls.push(b);
+
+  while(balls.length>+$("ballLimit").value)balls.shift();
+
+  if(hist)history.push({t:"ball",r:b});
+
+  if(recording&&record){
+    const n=Date.now();
+
+    if(recStart===null)recStart=n;
+
+    let rel=n-recStart;
+    if(!firstRec&&loopDur)rel%=loopDur;
+
+    events.push({
+      rel,x,y,
+      vx:b.vx,vy:b.vy,
+      r:b.r,c:b.c,w:b.w,lim:b.lim,s:b.rel
+    });
+  }
+}
+
+function panel(p){
+  panels.forEach(x=>x.classList.remove("open"));
+  if(p)p.classList.add("open");
+  $("overlay").classList.toggle("open",!!p);
+}
+
+function setMode(m){
+  mode=m;
+
+  ["ball","line","slider","spin","hole"].forEach(x=>{
+    $(x).classList.toggle("active",x===m);
+  });
+
+  if(m==="ball")panel($("ballPanel"));
+
+  if(m==="slider"){
+    $("motionTitle").textContent="SLIDER";
+    $("dirRow").style.display="none";
+    panel($("motionPanel"));
+  }
+
+  if(m==="spin"){
+    $("motionTitle").textContent="SPIN";
+    $("dirRow").style.display="flex";
+    panel($("motionPanel"));
+  }
+
+  if(m==="hole")panel($("holePanel"));
+}
+
+function removeAt(p){
+  let best=null;
+
+  const test=(arr,fn)=>{
+    arr.forEach((o,i)=>{
+      const q=fn(o);
+
+      for(let j=0;j<q.length-1;j++){
+        const d=seg(p.x,p.y,q[j],q[j+1]).d;
+
+        if(d<22&&(!best||d<best.d)){
+          best={arr,i,d};
         }
       }
-
-      return ball;
-    }
-
-    function commitLine(line, addHistory = true) {
-      lines.push(line);
-      if (addHistory) {
-        pushHistory({ type: "line", ref: line });
-      }
-    }
-
-    function handleStart(e) {
-      if (e.target.closest(".settings-panel") || e.target.closest(".action-bar") || e.target.closest(".menu-toggle")) return;
-      if (e.button !== undefined && e.button !== 0) return;
-
-      if (e.cancelable) e.preventDefault();
-      initAudio();
-
-      const pos = getPos(e);
-      isDrawing = true;
-      dragDistance = 0;
-
-      const style = getSelectedLineStyle();
-      currentLine = {
-        points: [pos],
-        color: style.color,
-        soundPreset: style.soundPreset,
-        styleName: style.name
-      };
-    }
-
-    function handleMove(e) {
-      if (!isDrawing || !currentLine) return;
-      if (e.cancelable) e.preventDefault();
-
-      const pos = getPos(e);
-      const lastPos = currentLine.points[currentLine.points.length - 1];
-      const dist = Math.hypot(pos.x - lastPos.x, pos.y - lastPos.y);
-
-      if (dist > 5) {
-        currentLine.points.push(pos);
-        dragDistance += dist;
-      }
-    }
-
-    function handleEnd() {
-      if (!isDrawing) return;
-      isDrawing = false;
-
-      if (dragDistance < 10 && currentLine && currentLine.points.length > 0) {
-        const pos = currentLine.points[0];
-        spawnBall(pos.x, pos.y, 0, 0, true, true);
-      } else if (currentLine && currentLine.points.length > 1) {
-        commitLine(currentLine, true);
-      }
-
-      currentLine = null;
-    }
-
-    canvas.addEventListener("mousedown", handleStart);
-    window.addEventListener("mousemove", handleMove);
-    window.addEventListener("mouseup", handleEnd);
-    canvas.addEventListener("contextmenu", (e) => e.preventDefault());
-
-    canvas.addEventListener("touchstart", handleStart, { passive: false });
-    canvas.addEventListener("touchmove", handleMove, { passive: false });
-    window.addEventListener("touchend", handleEnd);
-    window.addEventListener("touchcancel", handleEnd);
-
-    const recBtn = document.getElementById("recBtn");
-    const recTimeDisplay = document.getElementById("recTimeDisplay");
-    const undoBtn = document.getElementById("undoBtn");
-
-    recBtn.addEventListener("click", () => {
-      initAudio();
-      if (isRecording) {
-        stopRecording();
-      } else {
-        startRecording();
-      }
     });
+  };
 
-    undoBtn.addEventListener("click", () => {
-      undoLastAction();
-    });
+  test(lines,o=>o.p);
+  test(sliders,o=>[o.a,o.e]);
 
-    window.addEventListener("keydown", (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
-        e.preventDefault();
-        undoLastAction();
-      }
+  spins.forEach((o,i)=>{
+    const d=Math.hypot(p.x-o.x,p.y-o.y);
+    if(d<45&&(!best||d<best.d))best={arr:spins,i,d};
+  });
 
-      if (e.key === "Escape") {
-        setSettingsOpen(false);
-        currentLine = null;
-        isDrawing = false;
-        dragDistance = 0;
-      }
-    });
+  holes.forEach((o,i)=>{
+    const d=Math.hypot(p.x-o.x,p.y-o.y);
+    if(d<o.r+10&&(!best||d<best.d))best={arr:holes,i,d};
+  });
 
-    function startRecording() {
-      isRecording = true;
-      recStartTime = null;
-      recordedEvents = [];
+  if(best){
+    const r=best.arr.splice(best.i,1)[0];
+    history=history.filter(x=>x.r!==r);
+  }
+}
 
-      recBtn.classList.add("recording");
-      recBtn.innerText = "STOP REC";
-      recTimeDisplay.style.display = "inline-block";
-      recTimeDisplay.textContent = "待機";
+function down(e){
+  if(e.target.closest("button,select,input,.panel,.bottom-wrap"))return;
 
-      stopLoopPlayback();
+  if(e.touches?.length>=2){
+    e.preventDefault();
+    pinch=true;
+    pinchStart=touchDist(e.touches[0],e.touches[1]);
+    pinchZoom=zoom;
+    drawing=false;
+    erasing=false;
+    stroke=null;
+    drag=0;
+    return;
+  }
+
+  if(e.cancelable)e.preventDefault();
+
+  ensureAudio();
+
+  const p=pos(e);
+
+  if(eraserOn){
+    erasing=true;
+    removeAt(p);
+    return;
+  }
+
+  if(mode==="ball"){
+    spawn(p.x,p.y);
+    return;
+  }
+
+  if(mode==="hole"){
+    const h={x:p.x,y:p.y,r:+$("holeSize").value};
+    holes.push(h);
+    history.push({t:"hole",r:h});
+
+    while(holes.length>MAX_HOLES)holes.shift();
+    return;
+  }
+
+  if(mode==="spin"){
+    const s={
+      x:p.x,y:p.y,
+      c:LC[Math.random()*3|0],
+      sp:+$("speed").value,
+      len:+$("length").value,
+      dir:+$("dir").value,
+      angle:Math.random()*Math.PI*2,
+      at:Date.now(),
+      note:note++
+    };
+
+    spins.push(s);
+    history.push({t:"spin",r:s});
+
+    while(spins.length>MAX_SPINS)spins.shift();
+    return;
+  }
+
+  drawing=true;
+  drag=0;
+
+  stroke={
+    k:mode,
+    a:p,
+    e:p,
+    p:[p],
+    c:LC[Math.random()*3|0]
+  };
+}
+
+function move(e){
+  if(e.touches?.length>=2){
+    e.preventDefault();
+
+    if(!pinch){
+      pinch=true;
+      pinchStart=touchDist(e.touches[0],e.touches[1]);
+      pinchZoom=zoom;
     }
 
-    function stopRecording() {
-      if (!isRecording) return;
+    zoom=clamp(
+      pinchZoom*touchDist(e.touches[0],e.touches[1])/pinchStart,
+      .65,
+      2.8
+    );
 
-      isRecording = false;
+    canvas.style.transform=`scale(${zoom})`;
 
-      if (recStartTime !== null) {
-        loopDuration = Date.now() - recStartTime;
-      } else {
-        loopDuration = 0;
-      }
+    drawing=false;
+    erasing=false;
+    stroke=null;
+    drag=0;
+    return;
+  }
 
-      recBtn.classList.remove("recording");
-      recBtn.innerText = "START REC";
-      recTimeDisplay.style.display = "none";
+  if(pinch)return;
 
-      if (recordedEvents.length > 0 && loopDuration > 200) {
-        startLoopPlayback();
-      }
+  const p=pos(e);
 
-      recStartTime = null;
+  if(erasing){
+    if(e.cancelable)e.preventDefault();
+    removeAt(p);
+    return;
+  }
+
+  if(!drawing||!stroke)return;
+  if(e.cancelable)e.preventDefault();
+
+  if(stroke.k==="line"){
+    const q=stroke.p.at(-1);
+    const d=Math.hypot(p.x-q.x,p.y-q.y);
+
+    if(d>4){
+      stroke.p.push(p);
+      drag+=d;
     }
+  }else{
+    stroke.e=p;
+    drag=Math.hypot(p.x-stroke.a.x,p.y-stroke.a.y);
+  }
+}
 
-    function startLoopPlayback() {
-      stopLoopPlayback();
-      if (recordedEvents.length === 0 || loopDuration <= 0) return;
+function up(){
+  if(pinch){
+    pinch=false;
+    return;
+  }
 
-      const scheduleLoop = () => {
-        recordedEvents.forEach((evt) => {
-          const tid = setTimeout(() => {
-            spawnBall(evt.x, evt.y, evt.vx, evt.vy, false, false);
-          }, evt.relTime);
-          activeLoopTimeouts.push(tid);
+  if(erasing){
+    erasing=false;
+    return;
+  }
+
+  if(!drawing||!stroke)return;
+
+  drawing=false;
+
+  if(stroke.k==="line"&&stroke.p.length>1){
+    const o={p:stroke.p,c:stroke.c,note:note++};
+    lines.push(o);
+    history.push({t:"line",r:o});
+  }else if(stroke.k==="slider"&&drag>=10){
+    const o={
+      a:stroke.a,e:stroke.e,c:stroke.c,
+      sp:+$("speed").value,
+      len:+$("length").value,
+      at:Date.now(),
+      note:note++
+    };
+
+    sliders.push(o);
+    history.push({t:"slider",r:o});
+
+    while(sliders.length>MAX_SLIDERS)sliders.shift();
+  }
+
+  stroke=null;
+  drag=0;
+}
+
+function stopLoop(){
+  timers.forEach(clearTimeout);
+  timers=[];
+  sequenceStopped=true;
+  $("seqStop").classList.add("active");
+}
+
+function playLoop(){
+  if(!events.length||loopDur<=200||timers.length||sequenceStopped)return;
+
+  const schedule=()=>{
+    if(sequenceStopped)return;
+
+    timers=[];
+
+    for(const e of events){
+      timers.push(setTimeout(()=>{
+        if(sequenceStopped)return;
+
+        spawn(e.x,e.y,e.vx,e.vy,false,false,{
+          r:e.r,c:e.c,w:e.w,lim:e.lim,rel:e.s
         });
-
-        const loopTid = setTimeout(scheduleLoop, loopDuration);
-        activeLoopTimeouts.push(loopTid);
-      };
-
-      scheduleLoop();
+      },e.rel));
     }
 
-    function stopLoopPlayback() {
-      activeLoopTimeouts.forEach((id) => clearTimeout(id));
-      activeLoopTimeouts = [];
+    timers.push(setTimeout(schedule,loopDur));
+  };
+
+  schedule();
+}
+
+function resumeLoop(){
+  if(!events.length||loopDur<=200)return;
+
+  sequenceStopped=false;
+  $("seqStop").classList.remove("active");
+  playLoop();
+}
+
+function bind(a,b,s=""){
+  const x=$(a),y=$(b);
+  const update=()=>y.textContent=x.value+s;
+  x.oninput=update;
+  update();
+}
+
+function toggleView(){
+  const on=!document.body.classList.contains("view-mode");
+
+  document.body.classList.toggle("view-mode",on);
+
+  if(on){
+    panel(null);
+    $("view").textContent="BACK";
+  }else{
+    $("view").textContent="VIEW";
+  }
+}
+
+canvas.addEventListener("mousedown",down);
+addEventListener("mousemove",move);
+addEventListener("mouseup",up);
+
+canvas.addEventListener("touchstart",down,{passive:false});
+canvas.addEventListener("touchmove",move,{passive:false});
+canvas.addEventListener("touchend",up);
+canvas.addEventListener("touchcancel",up);
+
+["ball","line","slider","spin","hole"].forEach(x=>{
+  $(x).onclick=()=>setMode(x);
+});
+
+$("eraser").onclick=()=>{
+  eraserOn=!eraserOn;
+  $("eraser").classList.toggle("active",eraserOn);
+  $("eraser").textContent=eraserOn?"ERASER ON":"ERASER";
+};
+
+$("menu").onclick=()=>{
+  panel($("settings").classList.contains("open")?null:$("settings"));
+};
+
+$("view").onclick=toggleView;
+
+$("overlay").onclick=()=>panel(null);
+
+document.querySelectorAll(".close").forEach(b=>{
+  b.onclick=()=>panel(null);
+});
+
+$("key").onchange=buildScale;
+$("scale").onchange=buildScale;
+
+$("rec").onclick=()=>{
+  ensureAudio();
+
+  if(recording){
+    recording=false;
+
+    if(firstRec&&recStart!==null){
+      loopDur=Math.max(200,Date.now()-recStart);
+      firstRec=false;
+      sequenceStopped=false;
+      $("seqStop").classList.remove("active");
+      playLoop();
     }
 
-    document.getElementById("clearLinesBtn").addEventListener("click", () => {
-      lines = [];
-      currentLine = null;
-      isDrawing = false;
-      dragDistance = 0;
-      pruneHistory("line");
-    });
+    recStart=null;
+    $("rec").classList.remove("recording");
+    $("rec").textContent="REC";
+    $("recTime").style.display="none";
+  }else{
+    recording=true;
 
-    document.getElementById("clearBallsBtn").addEventListener("click", () => {
-      balls = [];
-      pruneHistory("ball");
-    });
-
-    document.getElementById("clearLoopBtn").addEventListener("click", () => {
-      recordedEvents = [];
-      stopLoopPlayback();
-    });
-
-    function render() {
-      ctx.clearRect(0, 0, width, height);
-
-      const gravity = parseFloat(gravitySlider.value);
-      const useSensor = gravityModeSelect.value === "sensor" && sensorReady;
-
-      const gravityX = useSensor ? sensorGravity.x : 0;
-      const gravityY = useSensor ? sensorGravity.y : gravity;
-
-      ctx.save();
-      ctx.lineWidth = 3.5;
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
-      ctx.shadowBlur = 0;
-
-      for (const line of lines) {
-        if (line.points.length < 2) continue;
-
-        ctx.beginPath();
-        ctx.moveTo(line.points[0].x, line.points[0].y);
-        for (let i = 1; i < line.points.length; i++) {
-          ctx.lineTo(line.points[i].x, line.points[i].y);
-        }
-        ctx.strokeStyle = line.color;
-        ctx.stroke();
-      }
-
-      if (currentLine && currentLine.points.length > 1) {
-        ctx.beginPath();
-        ctx.moveTo(currentLine.points[0].x, currentLine.points[0].y);
-        for (let i = 1; i < currentLine.points.length; i++) {
-          ctx.lineTo(currentLine.points[i].x, currentLine.points[i].y);
-        }
-        ctx.strokeStyle = currentLine.color || "rgba(255,255,255,0.88)";
-        ctx.lineWidth = 3.5;
-        ctx.stroke();
-      }
-      ctx.restore();
-
-      for (let i = balls.length - 1; i >= 0; i--) {
-        const ball = balls[i];
-        ball.update(gravityX, gravityY);
-        ball.draw(ctx);
-
-        if (ball.alpha <= 0) {
-          balls.splice(i, 1);
-        }
-      }
-
-      if (isRecording) {
-        if (recStartTime !== null) {
-          const elapsed = (Date.now() - recStartTime) / 1000;
-          recTimeDisplay.textContent = `${elapsed.toFixed(1)}s`;
-        } else {
-          recTimeDisplay.textContent = "待機";
-        }
-      }
-
-      requestAnimationFrame(render);
+    if(!events.length||!loopDur){
+      firstRec=true;
+      recStart=null;
+      $("recTime").textContent="WAITING";
+    }else{
+      firstRec=false;
+      recStart=Date.now();
+      resumeLoop();
     }
 
-    render();
-  </script>
+    $("rec").classList.add("recording");
+    $("rec").textContent="STOP";
+    $("recTime").style.display="block";
+  }
+};
+
+$("seqStop").onclick=()=>{
+  stopLoop();
+
+  if(recording){
+    recording=false;
+    recStart=null;
+    $("rec").classList.remove("recording");
+    $("rec").textContent="REC";
+    $("recTime").style.display="none";
+  }
+};
+
+$("clearRec").onclick=()=>{
+  stopLoop();
+
+  recording=false;
+  firstRec=true;
+  recStart=null;
+  loopDur=0;
+  events=[];
+  sequenceStopped=false;
+
+  $("rec").classList.remove("recording");
+  $("rec").textContent="REC";
+  $("recTime").style.display="none";
+  $("recTime").textContent="WAITING";
+  $("seqStop").classList.remove("active");
+};
+
+$("undo").onclick=()=>{
+  const a=history.pop();
+  if(!a)return;
+
+  const z={
+    ball:balls,
+    line:lines,
+    slider:sliders,
+    spin:spins,
+    hole:holes
+  }[a.t];
+
+  const i=z.indexOf(a.r);
+  if(i>=0)z.splice(i,1);
+};
+
+$("clearObj").onclick=()=>{
+  lines=[];
+  sliders=[];
+  spins=[];
+  holes=[];
+  history=history.filter(x=>x.t==="ball");
+};
+
+$("clearBalls").onclick=()=>{
+  balls=[];
+  history=history.filter(x=>x.t!=="ball");
+};
+
+[
+  "masterVolume",
+  "reverbMix",
+  "reverbPreDelay",
+  "reverbRoomSize",
+  "reverbDecay",
+  "reverbBrightness",
+  "delayMix",
+  "delayTime",
+  "delayFeedback",
+  "delayFilter"
+].forEach(id=>{
+  $(id).addEventListener("input",updateFX);
+});
+
+updateFX();
+
+bind("speed","speedV","px/s");
+bind("length","lengthV","px");
+bind("holeSize","holeSizeV","px");
+bind("ballSize","ballSizeV","px");
+bind("ballLimitPer","ballLimitPerV","x");
+bind("weight","weightV","x");
+bind("release","releaseV","s");
+bind("ballLimit","ballLimitV");
+bind("gravity","gravityV");
+bind("bounce","bounceV");
+
+resize();
+buildScale();
+
+addEventListener("resize",resize);
+
+function render(){
+  const now=Date.now();
+
+  ctx.clearRect(0,0,W,H);
+
+  holes.forEach(drawHole);
+
+  ctx.lineCap="round";
+  ctx.lineJoin="round";
+
+  lines.forEach(l=>drawLine(l.p,l.c,3.5));
+
+  sliders.forEach(s=>{
+    const z=sliderState(s,now);
+    drawLine([s.a,s.e],s.c,5,[4,10]);
+    if(z)drawLine([z.a,z.b],s.c,12);
+  });
+
+  spins.forEach(s=>{
+    const z=spinState(s,now);
+    if(z)drawLine([z.a,z.b],s.c,12);
+  });
+
+  if(stroke){
+    drawLine(
+      stroke.k==="line"?stroke.p:[stroke.a,stroke.e],
+      stroke.c,
+      3.5,
+      stroke.k==="line"?[]:[8,8]
+    );
+  }
+
+  for(let i=balls.length-1;i>=0;i--){
+    balls[i].update(now);
+    balls[i].draw();
+
+    if(balls[i].al<=0||balls[i].r<.3){
+      balls.splice(i,1);
+    }
+  }
+
+  if(recording){
+    $("recTime").textContent=recStart===null
+      ?"WAITING"
+      :`${((firstRec?now-recStart:(now-recStart)%loopDur)/1000).toFixed(1)}s`;
+  }
+
+  requestAnimationFrame(render);
+}
+
+requestAnimationFrame(render);
+</script>
 </body>
 </html>
