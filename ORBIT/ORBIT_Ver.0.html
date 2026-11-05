@@ -77,6 +77,7 @@
     .tool,.eraser{min-height:25px;padding:4px 6px;border-radius:6px;font-size:9px;line-height:1}
     .tool.active{color:#061018;background:var(--ac);border-color:var(--ac)}
     .tool.hole.active{color:#fff;background:#454950;border-color:#9da3ae}
+    .tool.fill.active{color:#061018;background:#78dbff;border-color:#78dbff}
     .eraser.active{color:#ff9aac;background:rgba(255,93,122,.16);border-color:rgba(255,93,122,.7)}
     .top-actions{
       position:fixed;
@@ -254,6 +255,7 @@
       <button id="slider" class="tool">SLIDER</button>
       <button id="spin" class="tool">SPIN</button>
       <button id="hole" class="tool hole">HOLE</button>
+      <button id="fill" class="tool fill">FILL</button>
       <button id="font" class="tool">FONT</button>
     </div>
     <button id="eraser" class="eraser">ERASER</button>
@@ -415,6 +417,14 @@
     <div class="section"><div class="row"><label>Hole Size</label><input id="holeSize" type="range" min="14" max="100" step="2" value="32"><span id="holeSizeV" class="value"></span></div></div>
   </div>
 
+  <div id="fillPanel" class="panel small">
+    <div class="header"><div class="title"><strong>FILL</strong><span>Flood fill settings</span></div><button class="close">×</button></div>
+    <div class="section">
+      <div class="row"><label>Fill Opacity</label><input id="fillAlpha" type="range" min="0.05" max="1" step="0.05" value="0.35"><span id="fillAlphaV" class="value"></span></div>
+      <p class="note">FILL mode: tap inside closed lines to fill them with color.</p>
+    </div>
+  </div>
+
   <div id="fontPanel" class="panel small">
     <div class="header"><div class="title"><strong>FONT</strong><span>Text object settings</span></div><button class="close">×</button></div>
     <div class="section">
@@ -448,7 +458,7 @@
     <button id="clearBalls">C BALLS</button>
   </div></div>
 
-  <div class="hint">• BALL: choose a tone in the panel, then tap<br>• LINE / SLIDER: drag<br>• SPIN / HOLE / FONT: tap<br>• VIEW hides controls</div>
+  <div class="hint">• BALL: choose a tone in the panel, then tap<br>• LINE / SLIDER: drag<br>• SPIN / HOLE / FILL / FONT: tap<br>• VIEW hides controls</div>
 
 <script>
 const $ = id => document.getElementById(id);
@@ -596,20 +606,23 @@ const SPIN_OFFSETS = {
 };
 
 let W,H,D,zoom=1,pinch=false,pinchStart=0,pinchZoom=1,mode="line",drawing=false,erasing=false,eraserOn=false,stroke=null,drag=0;
-let lines=[],sliders=[],spins=[],holes=[],texts=[],balls=[],history=[],note=0,notes=[];
+let lines=[],sliders=[],spins=[],holes=[],fills=[],texts=[],balls=[],history=[],note=0,notes=[];
 let audio=null,master=null,mainFilter=null,outputComp=null,voices=0,lastSound=0,audioUnlocked=false;
 let chorusLFO=null, chorusGain=null, tapeLFO=null, tapeGainNode=null;
 let recording=false,firstRec=true,recStart=null,loopDur=0,events=[],timers=[],sequenceStopped=false;
 let objSeq=0;
 let lastTextMaskLineWidth = 2;
 
-const MAX_VOICES = 32;
+const MAX_VOICES = 16; // 音声の同時発音数を抑えてメモリ負荷を軽減
 const CONTACT_IMPACT_MIN = .04;
-const MAX_SLIDERS = 18;
-const MAX_SPINS = 14;
-const MAX_HOLES = 12;
-const MAX_TEXTS = 24;
-const panels = [$("settings"),$("ballPanel"),$("motionPanel"),$("linePanel"),$("holePanel"),$("fontPanel")];
+const MAX_LINES = 60;
+const MAX_SLIDERS = 12;
+const MAX_SPINS = 10;
+const MAX_HOLES = 8;
+const MAX_FILLS = 15;
+const MAX_TEXTS = 16;
+const MAX_HISTORY = 40; // 履歴の上限を設けてメモリ肥大化を防止
+const panels = [$("settings"),$("ballPanel"),$("motionPanel"),$("linePanel"),$("holePanel"),$("fillPanel"),$("fontPanel")];
 
 const FX = {
   master:.72,
@@ -640,7 +653,8 @@ const FX = {
   ballTone:"pad",
   ballColor:DEFAULT_BALL_COLOR,
   motionSpeed:1,
-  lineStraight:false
+  lineStraight:false,
+  fillAlpha:0.35
 };
 
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -814,6 +828,7 @@ function updateFX(){
   FX.lineColor=$("lineColor").value;
   FX.motionSpeed=+$("motionSpeed").value;
   FX.ballTone=$("ballTone").value;
+  FX.fillAlpha=+$("fillAlpha").value;
 
   const tone = getTone(FX.ballTone);
   FX.ballColor = tone.color;
@@ -842,6 +857,7 @@ function updateFX(){
   $("motionSpeedV").textContent=`${FX.motionSpeed.toFixed(2)}x`;
   $("ballToneV").textContent=tone.label;
   $("ballToneV").style.color=tone.color;
+  $("fillAlphaV").textContent=`${Math.round(FX.fillAlpha*100)}%`;
 
   applyTheme();
 
@@ -907,7 +923,7 @@ function playSound(f,v,r,w=1,rel=1,toneKey=FX.ballTone){
 
     const now=audio.currentTime;
     const amp=clamp(v,.18,1);
-    const release=clamp(tone.release*rel*clamp(.85+w*.25,.75,1.8),.08,12);
+    const release=clamp(tone.release*rel*clamp(.85+w*.25,.75,1.8),.08,8);
 
     const a=audio.createOscillator();
     const b=audio.createOscillator();
@@ -938,9 +954,6 @@ function playSound(f,v,r,w=1,rel=1,toneKey=FX.ballTone){
 
     let fm=null;
     let fmGain=null;
-    let noise=null;
-    let noiseFilter=null;
-    let noiseEnv=null;
 
     if(toneKey==="metal"){
       a.type="sine";
@@ -965,28 +978,6 @@ function playSound(f,v,r,w=1,rel=1,toneKey=FX.ballTone){
       fm.connect(fmGain);
       fmGain.connect(a.frequency);
       fmGain.connect(b.frequency);
-
-      const noiseBuffer = audio.createBuffer(1,Math.max(1,Math.floor(audio.sampleRate*0.04)),audio.sampleRate);
-      const noiseData = noiseBuffer.getChannelData(0);
-      for(let i=0;i<noiseData.length;i++){
-        noiseData[i]=(Math.random()*2-1)*(1-i/noiseData.length);
-      }
-
-      noise=audio.createBufferSource();
-      noise.buffer=noiseBuffer;
-
-      noiseFilter=audio.createBiquadFilter();
-      noiseFilter.type="highpass";
-      noiseFilter.frequency.setValueAtTime(5200,now);
-
-      noiseEnv=audio.createGain();
-      noiseEnv.gain.setValueAtTime(.0001,now);
-      noiseEnv.gain.exponentialRampToValueAtTime(tone.noiseLevel ?? .03,now+.001);
-      noiseEnv.gain.exponentialRampToValueAtTime(.0001,now+.045);
-
-      noise.connect(noiseFilter);
-      noiseFilter.connect(noiseEnv);
-      noiseEnv.connect(master);
     }else{
       a.type=tone.wave1;
       b.type=tone.wave2;
@@ -1071,18 +1062,6 @@ function playSound(f,v,r,w=1,rel=1,toneKey=FX.ballTone){
     delayFilter.connect(delayFeedback);
     delayFeedback.connect(delay);
 
-    if(FX.delayEnabled && FX.granularMix > 0.04) {
-      for(let i=1; i<=4; i++){
-        const grainDelay = audio.createDelay(1.2);
-        const grainGain = audio.createGain();
-        grainDelay.delayTime.value = FX.delayTime*tone.delayTimeMul*(0.18*i);
-        grainGain.gain.value = FX.granularMix*tone.grain*(0.36/i);
-        env.connect(grainDelay);
-        grainDelay.connect(grainGain);
-        grainGain.connect(master);
-      }
-    }
-
     if(FX.revEnabled) {
       env.connect(revPre);
       shimOsc.connect(shimGain);
@@ -1113,20 +1092,14 @@ function playSound(f,v,r,w=1,rel=1,toneKey=FX.ballTone){
     a.start(now);
     b.start(now);
     if(fm) fm.start(now);
-    if(noise) noise.start(now);
     if(FX.revEnabled) shimOsc.start(now);
 
-    a.stop(now+release+.15);
-    b.stop(now+release+.15);
-    if(fm) fm.stop(now+release+.15);
-    if(noise) noise.stop(now+.06);
-    if(FX.revEnabled) shimOsc.stop(now+release*1.4);
+    a.stop(now+release+.1);
+    b.stop(now+release+.1);
+    if(fm) fm.stop(now+release+.1);
+    if(FX.revEnabled) shimOsc.stop(now+release*1.2);
 
-    const cleanup=Math.max(
-      release+.45,
-      FX.delayTime*5+.6,
-      FX.reverbRoomSize*8+.9
-    );
+    const cleanup=Math.max(release+.3, 2.0);
 
     setTimeout(()=>{
       try{
@@ -1138,9 +1111,6 @@ function playSound(f,v,r,w=1,rel=1,toneKey=FX.ballTone){
         revFeedback.disconnect();revOut.disconnect();shimOsc.disconnect();shimGain.disconnect();
         if(fm){fm.disconnect();}
         if(fmGain){fmGain.disconnect();}
-        if(noise){noise.disconnect();}
-        if(noiseFilter){noiseFilter.disconnect();}
-        if(noiseEnv){noiseEnv.disconnect();}
       }catch(e){}
       voices=Math.max(0,voices-1);
     },cleanup*1000);
@@ -1657,6 +1627,159 @@ function drawHole(h){
   ctx.fill();
 }
 
+function drawFill(f){
+  if(!f || !f.pixels || f.pixels.length === 0 || !f.canvas) return;
+  ctx.save();
+  ctx.globalAlpha = f.alpha;
+  ctx.drawImage(f.canvas, 0, 0, W, H);
+  ctx.restore();
+}
+
+function floodFill(startX, startY, fillColor, alphaVal){
+  const cW = canvas.width;
+  const cH = canvas.height;
+  const intX = Math.round(startX * D);
+  const intY = Math.round(startY * D);
+  if(intX < 0 || intY < 0 || intX >= cW || intY >= cH) return;
+
+  const tempCanvas = document.createElement("canvas");
+  tempCanvas.width = cW;
+  tempCanvas.height = cH;
+  const tCtx = tempCanvas.getContext("2d", {willReadFrequently:true});
+
+  tCtx.clearRect(0,0,cW,cH);
+  tCtx.setTransform(D,0,0,D,0,0);
+  tCtx.lineCap = "round";
+  tCtx.lineJoin = "round";
+  lines.forEach(l => drawLineCtx(tCtx, l.p, "#ffffff", strokeWidth(1)));
+  sliders.forEach(s => drawLineCtx(tCtx, [s.a, s.e], "#ffffff", strokeWidth(1.15), [4,10]));
+  spins.forEach(s => {
+    const z = spinState(s, Date.now());
+    if(z) drawSpinShapeCtx(tCtx, z, "#ffffff");
+  });
+  texts.forEach(t => drawTextObjectCtx(tCtx, t));
+
+  const imgData = tCtx.getImageData(0, 0, cW, cH);
+  const data = imgData.data;
+  
+  const getAlpha = (x, y) => data[(y * cW + x) * 4 + 3];
+  
+  if(getAlpha(intX, intY) > 20) return;
+
+  const visited = new Uint8Array(cW * cH);
+  const queue = [intX, intY];
+  const pixels = [];
+  visited[intY * cW + intX] = 1;
+
+  let head = 0;
+  while(head < queue.length){
+    const cx = queue[head++];
+    const cy = queue[head++];
+
+    pixels.push(cy * cW + cx);
+
+    const neighbors = [cx+1, cy, cx-1, cy, cx, cy+1, cx, cy-1];
+    for(let i = 0; i < neighbors.length; i += 2){
+      const nx = neighbors[i];
+      const ny = neighbors[i+1];
+      if(nx >= 0 && ny >= 0 && nx < cW && ny < cH){
+        const idx = ny * cW + nx;
+        if(!visited[idx]){
+          visited[idx] = 1;
+          if(getAlpha(nx, ny) <= 20){
+            queue.push(nx, ny);
+          }
+        }
+      }
+    }
+    if(pixels.length > cW * cH * 0.4) break;
+  }
+
+  if(pixels.length > 0){
+    const fillCanvas = document.createElement("canvas");
+    fillCanvas.width = cW;
+    fillCanvas.height = cH;
+    const fCtx = fillCanvas.getContext("2d");
+    const fillImgData = fCtx.createImageData(cW, cH);
+    const fillData = fillImgData.data;
+    const rgb = hexToRgb(fillColor);
+
+    for(let i = 0; i < pixels.length; i++){
+      const idx = pixels[i] * 4;
+      fillData[idx] = rgb.r;
+      fillData[idx+1] = rgb.g;
+      fillData[idx+2] = rgb.b;
+      fillData[idx+3] = 255;
+    }
+    fCtx.putImageData(fillImgData, 0, 0);
+
+    const fillObj = {
+      type: "fill",
+      id: objSeq++,
+      canvas: fillCanvas,
+      pixels: new Int32Array(pixels),
+      c: fillColor,
+      alpha: alphaVal,
+      note: note++
+    };
+    fills.push(fillObj);
+    history.push({t:"fill", r:fillObj});
+    if(history.length > MAX_HISTORY) history.shift();
+    while(fills.length > MAX_FILLS) {
+      const removed = fills.shift();
+      history = history.filter(x => x.r !== removed);
+    }
+  }
+}
+
+function drawLineCtx(c, p, col, w, d=[]){
+  if(p.length<2)return;
+  c.beginPath();
+  c.moveTo(p[0].x,p[0].y);
+  for(let i=1;i<p.length;i++)c.lineTo(p[i].x,p[i].y);
+  c.strokeStyle=col;
+  c.lineWidth=w;
+  c.setLineDash(d);
+  c.stroke();
+  c.setLineDash([]);
+}
+
+function drawSpinShapeCtx(c, z, col){
+  if(!z||!z.pts||z.pts.length<2)return;
+  if(z.kind==="bar"){
+    drawLineCtx(c, z.pts, col, strokeWidth(2.8));
+  }else{
+    const missing = z.src?.missingEdges || {};
+    const hasMissing = Object.keys(missing).length > 0;
+    if(!hasMissing){
+      drawLineCtx(c, [...z.pts,z.pts[0]], col, strokeWidth(2.4));
+    }else{
+      const sides = z.pts.length;
+      for(let i=0;i<sides;i++){
+        if(!missing[i]){
+          drawLineCtx(c, [z.pts[i],z.pts[(i+1)%sides]], col, strokeWidth(2.4));
+        }
+      }
+    }
+  }
+}
+
+function drawTextObjectCtx(c, t){
+  if(!t?.text)return;
+  c.save();
+  c.font=t.font || `${t.weight} ${t.size}px ${t.family}`;
+  c.textAlign="center";
+  c.textBaseline="middle";
+  c.lineJoin="round";
+  c.lineCap="round";
+  c.fillStyle="#ffffff";
+  c.strokeStyle="#ffffff";
+  c.lineWidth=Math.max(1,FX.lineWidth*.75);
+  c.fillText(t.text,t.x,t.y);
+  c.strokeText(t.text,t.x,t.y);
+  c.restore();
+}
+
 function spawn(x,y,vx=null,vy=null,record=true,hist=true,o={}){
   const toneKey = o.tone ?? FX.ballTone;
   const tone = getTone(toneKey);
@@ -1675,7 +1798,10 @@ function spawn(x,y,vx=null,vy=null,record=true,hist=true,o={}){
 
   while(balls.length>+$("ballLimit").value)balls.shift();
 
-  if(hist)history.push({t:"ball",r:b});
+  if(hist){
+    history.push({t:"ball",r:b});
+    if(history.length > MAX_HISTORY) history.shift();
+  }
 
   if(recording&&record){
     const n=Date.now();
@@ -1690,6 +1816,7 @@ function spawn(x,y,vx=null,vy=null,record=true,hist=true,o={}){
       r:b.r,c:b.c,w:b.w,lim:b.lim,s:b.rel,
       tone:b.tone
     });
+    if(events.length > 300) events.shift(); // 録音イベント数の上限
   }
 }
 
@@ -1711,8 +1838,12 @@ function buildTextObject(x,y,text=null){
 
   buildTextMask(t);
   texts.push(t);
-  while(texts.length>MAX_TEXTS)texts.shift();
+  while(texts.length>MAX_TEXTS) {
+    const removed = texts.shift();
+    history = history.filter(x => x.r !== removed);
+  }
   history.push({t:"text",r:t});
+  if(history.length > MAX_HISTORY) history.shift();
   return t;
 }
 
@@ -1725,7 +1856,7 @@ function panel(p){
 function setMode(m){
   mode=m;
 
-  ["ball","line","slider","spin","hole","font"].forEach(x=>{
+  ["ball","line","slider","spin","hole","fill","font"].forEach(x=>{
     $(x).classList.toggle("active",x===m);
   });
 
@@ -1748,6 +1879,7 @@ function setMode(m){
 
   if(m==="line")panel($("linePanel"));
   if(m==="hole")panel($("holePanel"));
+  if(m==="fill")panel($("fillPanel"));
   if(m==="font")panel($("fontPanel"));
 }
 
@@ -1790,6 +1922,25 @@ function removeAt(p, now=Date.now()){
         best={kind:"spin-edge",arr:spins,i,d,edgeIndex:e.edgeIndex,spin:o};
       }
     });
+  });
+
+  fills.forEach((o,i)=>{
+    const intX = Math.round(p.x * D);
+    const intY = Math.round(p.y * D);
+    const cW = canvas.width;
+    const cH = canvas.height;
+    if(intX>=0 && intY>=0 && intX<cW && intY<cH){
+      const idx = intY * cW + intX;
+      for(let k=0; k<o.pixels.length; k++){
+        if(o.pixels[k] === idx){
+          const d = 0;
+          if(!best || d < best.d){
+            best={kind:"remove",arr:fills,i,d};
+          }
+          break;
+        }
+      }
+    }
   });
 
   texts.forEach((o,i)=>{
@@ -1877,7 +2028,16 @@ function down(e){
     const h={type:"hole",id:objSeq++,x:p.x,y:p.y,r:+$("holeSize").value,note:note++};
     holes.push(h);
     history.push({t:"hole",r:h});
-    while(holes.length>MAX_HOLES)holes.shift();
+    if(history.length > MAX_HISTORY) history.shift();
+    while(holes.length>MAX_HOLES) {
+      const removed = holes.shift();
+      history = history.filter(x => x.r !== removed);
+    }
+    return;
+  }
+
+  if(mode==="fill"){
+    floodFill(p.x, p.y, FX.lineColor, FX.fillAlpha);
     return;
   }
 
@@ -1899,7 +2059,11 @@ function down(e){
 
     spins.push(s);
     history.push({t:"spin",r:s});
-    while(spins.length>MAX_SPINS)spins.shift();
+    if(history.length > MAX_HISTORY) history.shift();
+    while(spins.length>MAX_SPINS) {
+      const removed = spins.shift();
+      history = history.filter(x => x.r !== removed);
+    }
     return;
   }
 
@@ -2003,6 +2167,11 @@ function up(){
       };
       lines.push(o);
       history.push({t:"line",r:o});
+      if(history.length > MAX_HISTORY) history.shift();
+      while(lines.length > MAX_LINES) {
+        const removed = lines.shift();
+        history = history.filter(x => x.r !== removed);
+      }
     }
   }else if(stroke.k==="slider"&&drag>=10){
     const o={
@@ -2017,7 +2186,11 @@ function up(){
 
     sliders.push(o);
     history.push({t:"slider",r:o});
-    while(sliders.length>MAX_SLIDERS)sliders.shift();
+    if(history.length > MAX_HISTORY) history.shift();
+    while(sliders.length>MAX_SLIDERS) {
+      const removed = sliders.shift();
+      history = history.filter(x => x.r !== removed);
+    }
   }
 
   stroke=null;
@@ -2114,7 +2287,7 @@ canvas.addEventListener("touchmove",move,{passive:false});
 canvas.addEventListener("touchend",up);
 canvas.addEventListener("touchcancel",up);
 
-["ball","line","slider","spin","hole","font"].forEach(x=>{
+["ball","line","slider","spin","hole","fill","font"].forEach(x=>{
   $(x).onclick=()=>setMode(x);
 });
 
@@ -2216,6 +2389,7 @@ $("undo").onclick=()=>{
     slider:sliders,
     spin:spins,
     hole:holes,
+    fill:fills,
     text:texts
   }[a.t];
 
@@ -2228,8 +2402,9 @@ $("clearObj").onclick=()=>{
   sliders=[];
   spins=[];
   holes=[];
+  fills=[];
   texts=[];
-  history=history.filter(x=>x.t==="ball");
+  history=[];
 };
 
 $("clearBalls").onclick=()=>{
@@ -2259,7 +2434,8 @@ $("clearBalls").onclick=()=>{
   "lineWidth",
   "bgColor",
   "lineColor",
-  "motionSpeed"
+  "motionSpeed",
+  "fillAlpha"
 ].forEach(id=>{
   $(id).addEventListener("input", updateFX);
 });
@@ -2280,6 +2456,7 @@ bind("gravity","gravityV");
 bind("motionSpeed","motionSpeedV","x");
 bind("bounce","bounceV");
 bind("fontSize","fontSizeV","px");
+bind("fillAlpha","fillAlphaV","%");
 updateFontUI();
 
 resize();
@@ -2291,6 +2468,7 @@ function render(){
 
   ctx.clearRect(0,0,W,H);
 
+  fills.forEach(drawFill);
   holes.forEach(drawHole);
 
   ctx.lineCap="round";
