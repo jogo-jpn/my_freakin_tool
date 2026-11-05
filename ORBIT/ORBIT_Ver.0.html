@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
-  <title>ORBIT</title>
+  <title>ORBIT - Ambient Edition Pro</title>
   <style>
     :root{
       --bg:#042A57;
@@ -130,12 +130,40 @@
       border-radius:14px;
       background:rgba(255,255,255,.04)
     }
+    .section-header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom:8px;
+    }
     .section-title{
-      margin-bottom:10px;
       color:var(--ac);
       font-size:11px;
-      letter-spacing:.12em
+      letter-spacing:.12em;
+      font-weight:700
     }
+    .fx-toggle{
+      padding:2px 8px;
+      font-size:10px;
+      border-radius:6px;
+      border:1px solid var(--bd);
+      background:rgba(255,255,255,.04);
+      color:var(--sub);
+      cursor:pointer
+    }
+    .fx-toggle.active{
+      background:var(--ac);
+      border-color:var(--ac);
+      color:#061018;
+      font-weight:700
+    }
+    .fx-content{
+      display:none;
+      flex-direction:column;
+      gap:8px;
+      margin-top:4px
+    }
+    .section.enabled .fx-content{display:flex}
     .row{margin-top:8px}
     .row label{min-width:112px;color:var(--sub);font-size:12px}
     .row select,.row input{flex:1;min-width:0}
@@ -245,57 +273,110 @@
     </div>
 
     <div class="section">
-      <div class="section-title">MUSIC</div>
-      <div class="row"><label>Key</label><select id="key"><option>C</option><option>C#</option><option>D</option><option>D#</option><option>E</option><option>F</option><option>F#</option><option>G</option><option>G#</option><option selected>A</option><option>A#</option><option>B</option></select></div>
-      <div class="row"><label>Scale</label><select id="scale"><option value="minorPentatonic" selected>Minor Pentatonic</option><option value="majorPentatonic">Major Pentatonic</option><option value="major">Major</option><option value="minor">Minor</option><option value="dorian">Dorian</option><option value="lydian">Lydian</option></select></div>
-      <div class="row"><label>Master Volume</label><input id="masterVolume" type="range" min="0" max="1" step=".01" value=".72"><span id="masterVolumeV" class="value"></span></div>
+      <div class="section-header">
+        <span class="section-title">MUSIC & MASTER</span>
+      </div>
+      <div class="fx-content" style="display:flex;">
+        <div class="row"><label>Key</label><select id="key"><option>C</option><option>C#</option><option>D</option><option>D#</option><option>E</option><option>F</option><option>F#</option><option>G</option><option>G#</option><option selected>A</option><option>A#</option><option>B</option></select></div>
+        <div class="row"><label>Scale</label><select id="scale"><option value="minorPentatonic" selected>Minor Pentatonic</option><option value="majorPentatonic">Major Pentatonic</option><option value="major">Major</option><option value="minor">Minor</option><option value="dorian">Dorian</option><option value="lydian">Lydian</option></select></div>
+        <div class="row"><label>Master Volume</label><input id="masterVolume" type="range" min="0" max="1" step=".01" value=".72"><span id="masterVolumeV" class="value"></span></div>
+      </div>
+    </div>
+
+    <div class="section" id="sec-lpf">
+      <div class="section-header">
+        <span class="section-title">LOW-PASS FILTER</span>
+        <button class="fx-toggle" data-target="sec-lpf">OFF</button>
+      </div>
+      <div class="fx-content">
+        <div class="row"><label>Cutoff Freq</label><input id="lpfFreq" type="range" min="200" max="12000" step="100" value="6500"><span id="lpfFreqV" class="value"></span></div>
+        <div class="row"><label>Resonance (Q)</label><input id="lpfQ" type="range" min="0" max="12" step=".1" value="1.1"><span id="lpfQV" class="value"></span></div>
+      </div>
+    </div>
+
+    <div class="section" id="sec-rev">
+      <div class="section-header">
+        <span class="section-title">SHIMMER REVERB</span>
+        <button class="fx-toggle" data-target="sec-rev">OFF</button>
+      </div>
+      <div class="fx-content">
+        <div class="row"><label>Reverb Mix</label><input id="reverbMix" type="range" min="0" max="1" step=".01" value=".62"><span id="reverbMixV" class="value"></span></div>
+        <div class="row"><label>Shimmer (+1 Oct)</label><input id="shimmerMix" type="range" min="0" max="1" step=".01" value="0"><span id="shimmerMixV" class="value"></span></div>
+        <div class="row"><label>Pre Delay</label><input id="reverbPreDelay" type="range" min="0" max=".20" step=".005" value=".028"><span id="reverbPreDelayV" class="value"></span></div>
+        <div class="row"><label>Room Size</label><input id="reverbRoomSize" type="range" min=".02" max=".25" step=".005" value=".16"><span id="reverbRoomSizeV" class="value"></span></div>
+        <div class="row"><label>Decay</label><input id="reverbDecay" type="range" min="0" max=".85" step=".01" value=".62"><span id="reverbDecayV" class="value"></span></div>
+        <div class="row"><label>Brightness</label><input id="reverbBrightness" type="range" min="800" max="10000" step="100" value="7000"><span id="reverbBrightnessV" class="value"></span></div>
+      </div>
+    </div>
+
+    <div class="section" id="sec-delay">
+      <div class="section-header">
+        <span class="section-title">TAPE & GRANULAR DELAY</span>
+        <button class="fx-toggle" data-target="sec-delay">OFF</button>
+      </div>
+      <div class="fx-content">
+        <div class="row"><label>Delay Mix</label><input id="delayMix" type="range" min="0" max="1" step=".01" value=".42"><span id="delayMixV" class="value"></span></div>
+        <div class="row"><label>Delay Time</label><input id="delayTime" type="range" min=".05" max="1.20" step=".01" value=".34"><span id="delayTimeV" class="value"></span></div>
+        <div class="row"><label>Feedback</label><input id="delayFeedback" type="range" min="0" max=".80" step=".01" value=".55"><span id="delayFeedbackV" class="value"></span></div>
+        <div class="row"><label>Granular Grains</label><input id="granularMix" type="range" min="0" max="1" step=".01" value=".35"><span id="granularMixV" class="value"></span></div>
+        <div class="row"><label>Delay Filter</label><input id="delayFilter" type="range" min="500" max="9000" step="100" value="6200"><span id="delayFilterV" class="value"></span></div>
+      </div>
+    </div>
+
+    <div class="section" id="sec-mod">
+      <div class="section-header">
+        <span class="section-title">MODULATION & TAPE WARMTH</span>
+        <button class="fx-toggle" data-target="sec-mod">OFF</button>
+      </div>
+      <div class="fx-content">
+        <div class="row"><label>Chorus Mix</label><input id="chorusMix" type="range" min="0" max="1" step=".01" value=".42"><span id="chorusMixV" class="value"></span></div>
+        <div class="row"><label>Mod Rate</label><input id="chorusRate" type="range" min=".1" max="5" step=".1" value="0.85"><span id="chorusRateV" class="value"></span></div>
+        <div class="row"><label>Tape Warmth</label><input id="tapeSat" type="range" min="0" max="1" step=".01" value=".48"><span id="tapeSatV" class="value"></span></div>
+        <div class="row"><label>Tape Flutter</label><input id="tapeFlutter" type="range" min="0" max="1" step=".01" value=".28"><span id="tapeFlutterV" class="value"></span></div>
+      </div>
     </div>
 
     <div class="section">
-      <div class="section-title">REVERB</div>
-      <div class="row"><label>Reverb Mix</label><input id="reverbMix" type="range" min="0" max="1" step=".01" value=".35"><span id="reverbMixV" class="value"></span></div>
-      <div class="row"><label>Pre Delay</label><input id="reverbPreDelay" type="range" min="0" max=".20" step=".005" value=".025"><span id="reverbPreDelayV" class="value"></span></div>
-      <div class="row"><label>Room Size</label><input id="reverbRoomSize" type="range" min=".02" max=".25" step=".005" value=".10"><span id="reverbRoomSizeV" class="value"></span></div>
-      <div class="row"><label>Decay</label><input id="reverbDecay" type="range" min="0" max=".75" step=".01" value=".25"><span id="reverbDecayV" class="value"></span></div>
-      <div class="row"><label>Brightness</label><input id="reverbBrightness" type="range" min="800" max="8000" step="100" value="4200"><span id="reverbBrightnessV" class="value"></span></div>
+      <div class="section-header">
+        <span class="section-title">SYSTEM & APPEARANCE</span>
+      </div>
+      <div class="fx-content" style="display:flex;">
+        <div class="row"><label>Ball Limit</label><input id="ballLimit" type="range" min="1" max="80" value="30"><span id="ballLimitV" class="value"></span></div>
+        <div class="row"><label>Stroke Width</label><input id="lineWidth" type="range" min="1" max="18" step=".5" value="2"><span id="lineWidthV" class="value"></span></div>
+        <div class="row"><label>Background</label><input id="bgColor" type="color" value="#042A57"><span id="bgColorV" class="value"></span></div>
+        <div class="row"><label>Line Color</label><input id="lineColor" type="color" value="#EAE9F1"><span id="lineColorV" class="value"></span></div>
+      </div>
     </div>
 
     <div class="section">
-      <div class="section-title">DELAY</div>
-      <div class="row"><label>Delay Mix</label><input id="delayMix" type="range" min="0" max="1" step=".01" value=".20"><span id="delayMixV" class="value"></span></div>
-      <div class="row"><label>Delay Time</label><input id="delayTime" type="range" min=".05" max=".80" step=".01" value=".28"><span id="delayTimeV" class="value"></span></div>
-      <div class="row"><label>Feedback</label><input id="delayFeedback" type="range" min="0" max=".65" step=".01" value=".20"><span id="delayFeedbackV" class="value"></span></div>
-      <div class="row"><label>Delay Filter</label><input id="delayFilter" type="range" min="500" max="9000" step="100" value="4500"><span id="delayFilterV" class="value"></span></div>
-    </div>
-
-    <div class="section">
-      <div class="section-title">SYSTEM</div>
-      <div class="row"><label>Ball Limit</label><input id="ballLimit" type="range" min="1" max="80" value="30"><span id="ballLimitV" class="value"></span></div>
-    </div>
-
-    <div class="section">
-      <div class="section-title">APPEARANCE</div>
-      <div class="row"><label>Stroke Width</label><input id="lineWidth" type="range" min="1" max="18" step=".5" value="2"><span id="lineWidthV" class="value"></span></div>
-      <div class="row"><label>Background</label><input id="bgColor" type="color" value="#042A57"><span id="bgColorV" class="value"></span></div>
-      <div class="row"><label>Line Color</label><input id="lineColor" type="color" value="#EAE9F1"><span id="lineColorV" class="value"></span></div>
-      <div class="row"><label>Ball Color</label><input id="ballColor" type="color" value="#A5AF12"><span id="ballColorV" class="value"></span></div>
-    </div>
-
-    <div class="section">
-      <div class="section-title">PHYSICS</div>
-      <div class="row"><label>Gravity</label><input id="gravity" type="range" min="0" max="1.5" step=".05" value=".5"><span id="gravityV" class="value"></span></div>
-      <div class="row"><label>Bounce</label><input id="bounce" type="range" min=".1" max=".98" step=".01" value=".7"><span id="bounceV" class="value"></span></div>
-      <p class="note">Reverb uses a lightweight feedback-delay network to reduce memory usage.</p>
+      <div class="section-header">
+        <span class="section-title">PHYSICS</span>
+      </div>
+      <div class="fx-content" style="display:flex;">
+        <div class="row"><label>Gravity</label><input id="gravity" type="range" min="0" max="1.5" step=".05" value=".5"><span id="gravityV" class="value"></span></div>
+        <div class="row"><label>Motion Speed</label><input id="motionSpeed" type="range" min=".25" max="4" step=".05" value="1"><span id="motionSpeedV" class="value"></span></div>
+        <div class="row"><label>Bounce</label><input id="bounce" type="range" min=".1" max=".98" step=".01" value=".7"><span id="bounceV" class="value"></span></div>
+      </div>
     </div>
   </div>
 
   <div id="ballPanel" class="panel small">
-    <div class="header"><div class="title"><strong>BALL</strong><span>New ball settings</span></div><button class="close">×</button></div>
+    <div class="header"><div class="title"><strong>BALL</strong><span>Choose tone / color before tapping</span></div><button class="close">×</button></div>
     <div class="section">
       <div class="row"><label>Size</label><input id="ballSize" type="range" min="0.5" max="30" step="0.1" value="10"><span id="ballSizeV" class="value"></span></div>
       <div class="row"><label>Bounce Limit</label><input id="ballLimitPer" type="range" min="1" max="50" value="10"><span id="ballLimitPerV" class="value"></span></div>
       <div class="row"><label>Weight</label><input id="weight" type="range" min=".2" max="3" step=".05" value="1"><span id="weightV" class="value"></span></div>
       <div class="row"><label>Sound Release</label><input id="release" type="range" min=".15" max="3" step=".05" value="1"><span id="releaseV" class="value"></span></div>
+      <div class="row"><label>Ball Tone</label>
+        <select id="ballTone">
+          <option value="pad" selected>PAD / STRINGS</option>
+          <option value="string">STRING / LONG</option>
+          <option value="poron">PORON / CUTE</option>
+          <option value="metal">METAL / RING</option>
+        </select>
+        <span id="ballToneV" class="value"></span>
+      </div>
+      <p class="note">選んだトーンの色と音で玉を出します。BALLモードでキャンバスをタップしてください。</p>
     </div>
   </div>
 
@@ -315,6 +396,17 @@
         </select>
       </div>
       <div id="dirRow" class="row" style="display:none"><label>Direction</label><select id="dir"><option value="1">Clockwise</option><option value="-1">Counterclockwise</option></select></div>
+    </div>
+  </div>
+
+  <div id="linePanel" class="panel small">
+    <div class="header"><div class="title"><strong>LINE</strong><span>Line drawing settings</span></div><button class="close">×</button></div>
+    <div class="section" id="sec-line-straight">
+      <div class="section-header">
+        <span class="section-title">STRAIGHT LINE MODE</span>
+        <button class="fx-toggle" data-target="sec-line-straight">OFF</button>
+      </div>
+      <p class="note">ON にすると、LINE は始点と終点を結ぶ1本の直線になります。</p>
     </div>
   </div>
 
@@ -356,14 +448,131 @@
     <button id="clearBalls">C BALLS</button>
   </div></div>
 
-  <div class="hint">• BALL: tap to create<br>• LINE / SLIDER: drag<br>• SPIN / HOLE / FONT: tap<br>• VIEW hides controls</div>
+  <div class="hint">• BALL: choose a tone in the panel, then tap<br>• LINE / SLIDER: drag<br>• SPIN / HOLE / FONT: tap<br>• VIEW hides controls</div>
 
 <script>
 const $ = id => document.getElementById(id);
 const canvas = $("canvas");
 const ctx = canvas.getContext("2d");
 
-const DEFAULT_BALL_COLOR = "#A5AF12";
+const BALL_TONES = {
+  pad:{
+    label:"PAD / STRINGS",
+    color:"#78dbff",
+    wave1:"triangle",
+    wave2:"sine",
+    ratio:0.5,
+    detune:6,
+    attack:.03,
+    release:2.8,
+    amp:1.0,
+    cutoffMul:5,
+    cutoffMax:4600,
+    q:1.0,
+    mix1:.86,
+    mix2:.18,
+    dry:.34,
+    delaySend:1.25,
+    delayTimeMul:1.15,
+    delayFilterMul:.82,
+    delayFeedback:.92,
+    revSend:1.35,
+    revPre:.90,
+    revDecay:1.00,
+    revBright:.85,
+    shimmer:1.20,
+    shimmerRatio:2.0,
+    grain:1.15
+  },
+  string:{
+    label:"STRING / LONG",
+    color:"#b89cff",
+    wave1:"triangle",
+    wave2:"sine",
+    ratio:0.5,
+    detune:3,
+    transpose:-12,
+    attack:.14,
+    release:10.5,
+    amp:.92,
+    cutoffMul:3.2,
+    cutoffMax:3200,
+    q:.82,
+    mix1:.92,
+    mix2:.10,
+    dry:.60,
+    delaySend:1.30,
+    delayTimeMul:1.50,
+    delayFilterMul:.92,
+    delayFeedback:.96,
+    revSend:1.72,
+    revPre:1.10,
+    revDecay:1.16,
+    revBright:.76,
+    shimmer:.40,
+    shimmerRatio:1.45,
+    grain:1.10
+  },
+  poron:{
+    label:"PORON / CUTE",
+    color:"#ffd56b",
+    wave1:"sine",
+    wave2:"triangle",
+    ratio:2.0,
+    detune:4,
+    attack:.003,
+    release:2.72,
+    amp:1.05,
+    cutoffMul:10,
+    cutoffMax:9000,
+    q:1.3,
+    mix1:.74,
+    mix2:.18,
+    dry:.56,
+    delaySend:.68,
+    delayTimeMul:.72,
+    delayFilterMul:1.15,
+    delayFeedback:.72,
+    revSend:.78,
+    revPre:.85,
+    revDecay:.86,
+    revBright:1.08,
+    shimmer:.60,
+    shimmerRatio:2.5,
+    grain:.7
+  },
+  metal:{
+    label:"METAL / RING",
+    color:"#d7dde7",
+    wave1:"sine",
+    wave2:"sine",
+    ratio:2.618,
+    detune:0,
+    attack:.001,
+    release:1.1,
+    amp:.96,
+    cutoffMul:14,
+    cutoffMax:12000,
+    q:10.5,
+    mix1:.92,
+    mix2:.30,
+    dry:.40,
+    delaySend:1.0,
+    delayTimeMul:1.10,
+    delayFilterMul:1.22,
+    delayFeedback:.82,
+    revSend:1.12,
+    revPre:1.00,
+    revDecay:1.05,
+    revBright:1.15,
+    shimmer:1.45,
+    shimmerRatio:3.2,
+    grain:1.0,
+    noiseLevel:.03
+  }
+};
+
+const DEFAULT_BALL_COLOR = BALL_TONES.pad.color;
 const DEFAULT_LINE_COLOR = "#EAE9F1";
 const DEFAULT_BG_COLOR = "#042A57";
 
@@ -378,19 +587,6 @@ const SCALES = {
   lydian:[0,2,4,6,7,9,11]
 };
 
-const PRESETS = [
-  ["sine","sine",4.1,.005,.2,.22,8.5],
-  ["triangle","sine",2.7,.008,.3,.2,7.2],
-  ["sine","sine",2,.01,.55,.18,8],
-  ["square","sine",.5,.012,.42,.1,4.2],
-  ["triangle","sine",3.5,.012,.75,.18,5.6],
-  ["triangle","sine",1.5,.03,1.1,.17,4.5],
-  ["sawtooth","sine",2,.06,1.45,.11,3.8],
-  ["sine","triangle",2,.1,2.1,.18,5],
-  ["triangle","sine",1.25,.15,2.55,.17,4.2],
-  ["sine","triangle",.5,.2,3,.19,3]
-];
-
 const SPIN_SIDES = { tri:3, square:4, pent:5, hex:6 };
 const SPIN_OFFSETS = {
   tri: Math.PI / 2,
@@ -401,38 +597,58 @@ const SPIN_OFFSETS = {
 
 let W,H,D,zoom=1,pinch=false,pinchStart=0,pinchZoom=1,mode="line",drawing=false,erasing=false,eraserOn=false,stroke=null,drag=0;
 let lines=[],sliders=[],spins=[],holes=[],texts=[],balls=[],history=[],note=0,notes=[];
-let audio=null,master=null,voices=0,lastSound=0,audioUnlocked=false;
+let audio=null,master=null,mainFilter=null,outputComp=null,voices=0,lastSound=0,audioUnlocked=false;
+let chorusLFO=null, chorusGain=null, tapeLFO=null, tapeGainNode=null;
 let recording=false,firstRec=true,recStart=null,loopDur=0,events=[],timers=[],sequenceStopped=false;
 let objSeq=0;
 let lastTextMaskLineWidth = 2;
 
-const MAX_VOICES = 24;
+const MAX_VOICES = 32;
 const CONTACT_IMPACT_MIN = .04;
 const MAX_SLIDERS = 18;
 const MAX_SPINS = 14;
 const MAX_HOLES = 12;
 const MAX_TEXTS = 24;
-const panels = [$("settings"),$("ballPanel"),$("motionPanel"),$("holePanel"),$("fontPanel")];
+const panels = [$("settings"),$("ballPanel"),$("motionPanel"),$("linePanel"),$("holePanel"),$("fontPanel")];
 
 const FX = {
   master:.72,
-  reverbMix:.35,
-  reverbPreDelay:.025,
-  reverbRoomSize:.10,
-  reverbDecay:.25,
-  reverbBrightness:4200,
-  delayMix:.20,
-  delayTime:.28,
-  delayFeedback:.20,
-  delayFilter:4500,
+  lpfEnabled:false,
+  lpfFreq:6500,
+  lpfQ:1.1,
+  revEnabled:false,
+  reverbMix:.62,
+  shimmerMix:0,
+  reverbPreDelay:.028,
+  reverbRoomSize:.16,
+  reverbDecay:.62,
+  reverbBrightness:7000,
+  delayEnabled:false,
+  delayMix:.42,
+  delayTime:.34,
+  delayFeedback:.55,
+  granularMix:.35,
+  delayFilter:6200,
+  modEnabled:false,
+  chorusMix:.42,
+  chorusRate:0.85,
+  tapeSat:.48,
+  tapeFlutter:.28,
   lineWidth:2,
   bgColor:DEFAULT_BG_COLOR,
   lineColor:DEFAULT_LINE_COLOR,
-  ballColor:DEFAULT_BALL_COLOR
+  ballTone:"pad",
+  ballColor:DEFAULT_BALL_COLOR,
+  motionSpeed:1,
+  lineStraight:false
 };
 
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const strokeWidth=(m=1)=>Math.max(1,FX.lineWidth*m);
+
+function getTone(key){
+  return BALL_TONES[key] || BALL_TONES.pad;
+}
 
 function resize(){
   D=Math.min(devicePixelRatio||1,2);
@@ -488,9 +704,39 @@ function ensureAudio(){
     if(!audio){
       const AC=window.AudioContext||window.webkitAudioContext;
       audio=new AC({latencyHint:"interactive"});
+
       master=audio.createGain();
       master.gain.value=FX.master;
-      master.connect(audio.destination);
+
+      mainFilter = audio.createBiquadFilter();
+      mainFilter.type = "lowpass";
+      mainFilter.frequency.value = FX.lpfEnabled ? FX.lpfFreq : 20000;
+      mainFilter.Q.value = FX.lpfQ;
+
+      outputComp = audio.createDynamicsCompressor();
+      outputComp.threshold.value = 0;
+      outputComp.knee.value = 0;
+      outputComp.ratio.value = 1;
+      outputComp.attack.value = 0.003;
+      outputComp.release.value = 0.08;
+
+      master.connect(mainFilter);
+      mainFilter.connect(outputComp);
+      outputComp.connect(audio.destination);
+
+      chorusLFO = audio.createOscillator();
+      chorusLFO.frequency.value = FX.chorusRate;
+      chorusGain = audio.createGain();
+      chorusGain.gain.value = 0;
+      chorusLFO.connect(chorusGain);
+      chorusLFO.start();
+
+      tapeLFO = audio.createOscillator();
+      tapeLFO.frequency.value = 4.5;
+      tapeGainNode = audio.createGain();
+      tapeGainNode.gain.value = 0;
+      tapeLFO.connect(tapeGainNode);
+      tapeLFO.start();
     }
 
     if(master&&audio){
@@ -526,7 +772,6 @@ function ensureAudio(){
 function buildScale(){
   const k=NAMES.indexOf($("key").value),s=SCALES[$("scale").value];
   notes=[];
-
   for(let o=0;o<4;o++){
     for(const n of s){
       notes.push(440*Math.pow(2,(12*(o+4)+k+n-69)/12));
@@ -547,7 +792,10 @@ function updateFX(){
   const prevLineWidth = FX.lineWidth;
 
   FX.master=+$("masterVolume").value;
+  FX.lpfFreq=+$("lpfFreq").value;
+  FX.lpfQ=+$("lpfQ").value;
   FX.reverbMix=+$("reverbMix").value;
+  FX.shimmerMix=+$("shimmerMix").value;
   FX.reverbPreDelay=+$("reverbPreDelay").value;
   FX.reverbRoomSize=+$("reverbRoomSize").value;
   FX.reverbDecay=+$("reverbDecay").value;
@@ -555,14 +803,26 @@ function updateFX(){
   FX.delayMix=+$("delayMix").value;
   FX.delayTime=+$("delayTime").value;
   FX.delayFeedback=+$("delayFeedback").value;
+  FX.granularMix=+$("granularMix").value;
   FX.delayFilter=+$("delayFilter").value;
+  FX.chorusMix=+$("chorusMix").value;
+  FX.chorusRate=+$("chorusRate").value;
+  FX.tapeSat=+$("tapeSat").value;
+  FX.tapeFlutter=+$("tapeFlutter").value;
   FX.lineWidth=+$("lineWidth").value;
   FX.bgColor=$("bgColor").value;
   FX.lineColor=$("lineColor").value;
-  FX.ballColor=$("ballColor").value;
+  FX.motionSpeed=+$("motionSpeed").value;
+  FX.ballTone=$("ballTone").value;
+
+  const tone = getTone(FX.ballTone);
+  FX.ballColor = tone.color;
 
   $("masterVolumeV").textContent=`${Math.round(FX.master*100)}%`;
+  $("lpfFreqV").textContent=`${Math.round(FX.lpfFreq)}Hz`;
+  $("lpfQV").textContent=FX.lpfQ.toFixed(1);
   $("reverbMixV").textContent=`${Math.round(FX.reverbMix*100)}%`;
+  $("shimmerMixV").textContent=`${Math.round(FX.shimmerMix*100)}%`;
   $("reverbPreDelayV").textContent=`${FX.reverbPreDelay.toFixed(3)}s`;
   $("reverbRoomSizeV").textContent=`${FX.reverbRoomSize.toFixed(3)}s`;
   $("reverbDecayV").textContent=`${Math.round(FX.reverbDecay*100)}%`;
@@ -570,17 +830,48 @@ function updateFX(){
   $("delayMixV").textContent=`${Math.round(FX.delayMix*100)}%`;
   $("delayTimeV").textContent=`${FX.delayTime.toFixed(2)}s`;
   $("delayFeedbackV").textContent=`${Math.round(FX.delayFeedback*100)}%`;
+  $("granularMixV").textContent=`${Math.round(FX.granularMix*100)}%`;
   $("delayFilterV").textContent=`${Math.round(FX.delayFilter/1000*10)/10}k`;
+  $("chorusMixV").textContent=`${Math.round(FX.chorusMix*100)}%`;
+  $("chorusRateV").textContent=`${FX.chorusRate.toFixed(1)}Hz`;
+  $("tapeSatV").textContent=`${Math.round(FX.tapeSat*100)}%`;
+  $("tapeFlutterV").textContent=`${Math.round(FX.tapeFlutter*100)}%`;
   $("lineWidthV").textContent=`${FX.lineWidth.toFixed(1)}px`;
   $("bgColorV").textContent=FX.bgColor.toUpperCase();
   $("lineColorV").textContent=FX.lineColor.toUpperCase();
-  $("ballColorV").textContent=FX.ballColor.toUpperCase();
+  $("motionSpeedV").textContent=`${FX.motionSpeed.toFixed(2)}x`;
+  $("ballToneV").textContent=tone.label;
+  $("ballToneV").style.color=tone.color;
 
   applyTheme();
 
   if(master&&audio){
     master.gain.cancelScheduledValues(audio.currentTime);
     master.gain.setTargetAtTime(FX.master,audio.currentTime,.015);
+  }
+  if(mainFilter&&audio){
+    mainFilter.frequency.setTargetAtTime(FX.lpfEnabled ? FX.lpfFreq : 20000, audio.currentTime, .015);
+    mainFilter.Q.setTargetAtTime(FX.lpfQ, audio.currentTime, .015);
+  }
+  if(outputComp&&audio){
+    if(FX.modEnabled){
+      const sat = FX.tapeSat;
+      outputComp.threshold.setTargetAtTime(-24 - sat*8, audio.currentTime, .015);
+      outputComp.ratio.setTargetAtTime(1 + sat*6, audio.currentTime, .015);
+      outputComp.knee.setTargetAtTime(8 + sat*16, audio.currentTime, .015);
+    }else{
+      outputComp.threshold.setTargetAtTime(0, audio.currentTime, .015);
+      outputComp.ratio.setTargetAtTime(1, audio.currentTime, .015);
+      outputComp.knee.setTargetAtTime(0, audio.currentTime, .015);
+    }
+  }
+  if(chorusLFO&&chorusGain&&audio){
+    chorusLFO.frequency.setTargetAtTime(0.15 + FX.chorusRate * 1.7, audio.currentTime, .015);
+    chorusGain.gain.setTargetAtTime(FX.modEnabled ? Math.pow(FX.chorusMix, 0.55) * 180 : 0, audio.currentTime, .015);
+  }
+  if(tapeLFO&&tapeGainNode&&audio){
+    tapeLFO.frequency.setTargetAtTime(2.0 + FX.tapeFlutter * 12.0, audio.currentTime, .015);
+    tapeGainNode.gain.setTargetAtTime(FX.modEnabled ? Math.pow(FX.tapeFlutter, 0.55) * 120 : 0, audio.currentTime, .015);
   }
 
   if(texts.length && prevLineWidth !== FX.lineWidth){
@@ -595,7 +886,7 @@ function pitchForHit(h){
   return notes[Math.abs(base + edge) % notes.length];
 }
 
-function playSound(f,v,r,w=1,rel=1){
+function playSound(f,v,r,w=1,rel=1,toneKey=FX.ballTone){
   try{
     if(!audio||!master){
       ensureAudio();
@@ -608,28 +899,33 @@ function playSound(f,v,r,w=1,rel=1){
     if(!Number.isFinite(f))return;
     if(voices>=MAX_VOICES)return;
 
+    const tone = getTone(toneKey);
+    const baseF = f * Math.pow(2, (tone.transpose ?? 0) / 12);
+
     lastSound=performance.now();
     voices++;
 
-    const p=PRESETS[clamp(Math.floor((r-4)/2.7),0,9)];
     const now=audio.currentTime;
-    const release=clamp(p[4]*rel*clamp(.75+w*.25,.8,1.5),.08,3);
+    const amp=clamp(v,.18,1);
+    const release=clamp(tone.release*rel*clamp(.85+w*.25,.75,1.8),.08,12);
 
-    const a=audio.createOscillator(),b=audio.createOscillator();
-    const ga=audio.createGain(),gb=audio.createGain();
-    const fi=audio.createBiquadFilter(),env=audio.createGain();
-
+    const a=audio.createOscillator();
+    const b=audio.createOscillator();
+    const ga=audio.createGain();
+    const gb=audio.createGain();
+    const fi=audio.createBiquadFilter();
+    const env=audio.createGain();
     const dry=audio.createGain();
 
-    const delay=audio.createDelay(1.5);
+    const delay=audio.createDelay(2.0);
     const delayFilter=audio.createBiquadFilter();
     const delayOut=audio.createGain();
     const delayFeedback=audio.createGain();
 
-    const revPre=audio.createDelay(.25);
-    const revA=audio.createDelay(.35);
-    const revB=audio.createDelay(.35);
-    const revC=audio.createDelay(.35);
+    const revPre=audio.createDelay(.35);
+    const revA=audio.createDelay(.45);
+    const revB=audio.createDelay(.45);
+    const revC=audio.createDelay(.45);
     const revFilter=audio.createBiquadFilter();
     const revGainA=audio.createGain();
     const revGainB=audio.createGain();
@@ -637,43 +933,127 @@ function playSound(f,v,r,w=1,rel=1){
     const revFeedback=audio.createGain();
     const revOut=audio.createGain();
 
-    a.type=p[0];
-    b.type=p[1];
-    a.frequency.setValueAtTime(f,now);
-    b.frequency.setValueAtTime(f*p[2],now);
+    const shimOsc=audio.createOscillator();
+    const shimGain=audio.createGain();
 
-    ga.gain.value=.86;
-    gb.gain.value=.16;
+    let fm=null;
+    let fmGain=null;
+    let noise=null;
+    let noiseFilter=null;
+    let noiseEnv=null;
 
-    fi.type="lowpass";
-    fi.frequency.setValueAtTime(clamp(f*p[6],650,7600),now);
-    fi.Q.value=.65;
+    if(toneKey==="metal"){
+      a.type="sine";
+      b.type="sine";
+      a.frequency.setValueAtTime(baseF,now);
+      b.frequency.setValueAtTime(baseF*tone.ratio,now);
+      a.detune.setValueAtTime(-4,now);
+      b.detune.setValueAtTime(9,now);
+
+      ga.gain.value=.92;
+      gb.gain.value=.30;
+
+      fi.type="bandpass";
+      fi.frequency.setValueAtTime(clamp(baseF*3.2,700,12000),now);
+      fi.Q.value=12;
+
+      fm=audio.createOscillator();
+      fmGain=audio.createGain();
+      fm.type="sine";
+      fm.frequency.setValueAtTime(baseF*3.7,now);
+      fmGain.gain.setValueAtTime(baseF*.78,now);
+      fm.connect(fmGain);
+      fmGain.connect(a.frequency);
+      fmGain.connect(b.frequency);
+
+      const noiseBuffer = audio.createBuffer(1,Math.max(1,Math.floor(audio.sampleRate*0.04)),audio.sampleRate);
+      const noiseData = noiseBuffer.getChannelData(0);
+      for(let i=0;i<noiseData.length;i++){
+        noiseData[i]=(Math.random()*2-1)*(1-i/noiseData.length);
+      }
+
+      noise=audio.createBufferSource();
+      noise.buffer=noiseBuffer;
+
+      noiseFilter=audio.createBiquadFilter();
+      noiseFilter.type="highpass";
+      noiseFilter.frequency.setValueAtTime(5200,now);
+
+      noiseEnv=audio.createGain();
+      noiseEnv.gain.setValueAtTime(.0001,now);
+      noiseEnv.gain.exponentialRampToValueAtTime(tone.noiseLevel ?? .03,now+.001);
+      noiseEnv.gain.exponentialRampToValueAtTime(.0001,now+.045);
+
+      noise.connect(noiseFilter);
+      noiseFilter.connect(noiseEnv);
+      noiseEnv.connect(master);
+    }else{
+      a.type=tone.wave1;
+      b.type=tone.wave2;
+      a.frequency.setValueAtTime(baseF,now);
+      b.frequency.setValueAtTime(baseF*tone.ratio,now);
+      a.detune.setValueAtTime(-tone.detune,now);
+      b.detune.setValueAtTime(tone.detune,now);
+
+      ga.gain.value=tone.mix1;
+      gb.gain.value=tone.mix2;
+
+      fi.type="lowpass";
+      fi.frequency.setValueAtTime(clamp(baseF*tone.cutoffMul,600,tone.cutoffMax),now);
+      fi.Q.value=tone.q;
+    }
 
     env.gain.setValueAtTime(.0001,now);
-    env.gain.exponentialRampToValueAtTime(clamp(v,.18,1)*p[5],now+p[3]);
+    env.gain.exponentialRampToValueAtTime(clamp(amp,.18,1)*tone.amp,now+tone.attack);
     env.gain.exponentialRampToValueAtTime(.0001,now+release);
 
-    dry.gain.value=1-clamp(FX.delayMix*.18+FX.reverbMix*.10,0,.35);
+    dry.gain.value=clamp(tone.dry - FX.delayMix*.08 - FX.reverbMix*.10 - FX.chorusMix*.04, .06, .88);
 
-    delay.delayTime.setValueAtTime(FX.delayTime,now);
+    if(FX.modEnabled && chorusGain){
+      try{
+        chorusGain.connect(a.detune);
+        chorusGain.connect(b.detune);
+        chorusGain.connect(fi.frequency);
+      }catch(e){}
+    }
+
+    if(FX.modEnabled && tapeGainNode){
+      try{
+        tapeGainNode.connect(a.frequency);
+        tapeGainNode.connect(b.frequency);
+        tapeGainNode.connect(fi.frequency);
+        if(fmGain) tapeGainNode.connect(fmGain.gain);
+      }catch(e){}
+    }
+
+    delay.delayTime.setValueAtTime(FX.delayTime*tone.delayTimeMul,now);
     delayFilter.type="lowpass";
-    delayFilter.frequency.setValueAtTime(FX.delayFilter,now);
-    delayOut.gain.value=FX.delayMix*.55;
-    delayFeedback.gain.value=FX.delayFeedback;
+    delayFilter.frequency.setValueAtTime(clamp(FX.delayFilter*tone.delayFilterMul,500,12000),now);
+    delayOut.gain.value=FX.delayEnabled ? FX.delayMix*tone.delaySend*1.05 : 0;
+    delayFeedback.gain.value=FX.delayEnabled ? clamp(FX.delayFeedback*tone.delayFeedback,0,.94) : 0;
 
-    revPre.delayTime.setValueAtTime(FX.reverbPreDelay,now);
-    revA.delayTime.setValueAtTime(FX.reverbRoomSize*.73,now);
-    revB.delayTime.setValueAtTime(FX.reverbRoomSize*1.17,now);
-    revC.delayTime.setValueAtTime(FX.reverbRoomSize*1.61,now);
+    revPre.delayTime.setValueAtTime(FX.reverbPreDelay*tone.revPre,now);
+    revA.delayTime.setValueAtTime(FX.reverbRoomSize*.73*tone.revPre,now);
+    revB.delayTime.setValueAtTime(FX.reverbRoomSize*1.17*tone.revPre,now);
+    revC.delayTime.setValueAtTime(FX.reverbRoomSize*1.61*tone.revPre,now);
 
     revFilter.type="lowpass";
-    revFilter.frequency.setValueAtTime(FX.reverbBrightness,now);
+    revFilter.frequency.setValueAtTime(clamp(FX.reverbBrightness*tone.revBright,800,12000),now);
 
-    revGainA.gain.value=FX.reverbMix*.18;
-    revGainB.gain.value=FX.reverbMix*.14;
-    revGainC.gain.value=FX.reverbMix*.10;
-    revFeedback.gain.value=FX.reverbDecay;
-    revOut.gain.value=FX.reverbMix;
+    const activeRevMix = FX.revEnabled ? FX.reverbMix*tone.revSend*1.10 : 0;
+    revGainA.gain.value=activeRevMix*.26;
+    revGainB.gain.value=activeRevMix*.20;
+    revGainC.gain.value=activeRevMix*.16;
+    revFeedback.gain.value=FX.revEnabled ? clamp(FX.reverbDecay*tone.revDecay,0,.94) : 0;
+    revOut.gain.value=activeRevMix*1.15;
+
+    shimOsc.type="sine";
+    shimOsc.frequency.setValueAtTime(baseF*tone.shimmerRatio,now);
+    shimGain.gain.setValueAtTime(0,now);
+    if(FX.revEnabled){
+      shimGain.gain.linearRampToValueAtTime(FX.shimmerMix*tone.shimmer*0.75,now+.06);
+      shimGain.gain.exponentialRampToValueAtTime(.0001,now+release*1.35);
+    }
 
     a.connect(ga);
     b.connect(gb);
@@ -691,51 +1071,77 @@ function playSound(f,v,r,w=1,rel=1){
     delayFilter.connect(delayFeedback);
     delayFeedback.connect(delay);
 
-    env.connect(revPre);
-    revPre.connect(revA);
-    revPre.connect(revB);
-    revPre.connect(revC);
+    if(FX.delayEnabled && FX.granularMix > 0.04) {
+      for(let i=1; i<=4; i++){
+        const grainDelay = audio.createDelay(1.2);
+        const grainGain = audio.createGain();
+        grainDelay.delayTime.value = FX.delayTime*tone.delayTimeMul*(0.18*i);
+        grainGain.gain.value = FX.granularMix*tone.grain*(0.36/i);
+        env.connect(grainDelay);
+        grainDelay.connect(grainGain);
+        grainGain.connect(master);
+      }
+    }
 
-    revA.connect(revFilter);
-    revB.connect(revFilter);
-    revC.connect(revFilter);
+    if(FX.revEnabled) {
+      env.connect(revPre);
+      shimOsc.connect(shimGain);
+      shimGain.connect(revPre);
 
-    revFilter.connect(revGainA);
-    revFilter.connect(revGainB);
-    revFilter.connect(revGainC);
+      revPre.connect(revA);
+      revPre.connect(revB);
+      revPre.connect(revC);
 
-    revGainA.connect(revOut);
-    revGainB.connect(revOut);
-    revGainC.connect(revOut);
+      revA.connect(revFilter);
+      revB.connect(revFilter);
+      revC.connect(revFilter);
 
-    revOut.connect(master);
+      revFilter.connect(revGainA);
+      revFilter.connect(revGainB);
+      revFilter.connect(revGainC);
 
-    revFilter.connect(revFeedback);
-    revFeedback.connect(revA);
+      revGainA.connect(revOut);
+      revGainB.connect(revOut);
+      revGainC.connect(revOut);
+
+      revOut.connect(master);
+
+      revFilter.connect(revFeedback);
+      revFeedback.connect(revA);
+    }
 
     a.start(now);
     b.start(now);
-    a.stop(now+release+.12);
-    b.stop(now+release+.12);
+    if(fm) fm.start(now);
+    if(noise) noise.start(now);
+    if(FX.revEnabled) shimOsc.start(now);
+
+    a.stop(now+release+.15);
+    b.stop(now+release+.15);
+    if(fm) fm.stop(now+release+.15);
+    if(noise) noise.stop(now+.06);
+    if(FX.revEnabled) shimOsc.stop(now+release*1.4);
 
     const cleanup=Math.max(
-      release+.35,
-      FX.delayTime*5+.5,
-      FX.reverbRoomSize*6+.8
+      release+.45,
+      FX.delayTime*5+.6,
+      FX.reverbRoomSize*8+.9
     );
 
     setTimeout(()=>{
       try{
         a.disconnect();b.disconnect();ga.disconnect();gb.disconnect();
         fi.disconnect();env.disconnect();dry.disconnect();
-
         delay.disconnect();delayFilter.disconnect();delayOut.disconnect();delayFeedback.disconnect();
-
         revPre.disconnect();revA.disconnect();revB.disconnect();revC.disconnect();
-        revFilter.disconnect();revGainA.disconnect();revGainB.disconnect();
-        revGainC.disconnect();revFeedback.disconnect();revOut.disconnect();
+        revFilter.disconnect();revGainA.disconnect();revGainB.disconnect();revGainC.disconnect();
+        revFeedback.disconnect();revOut.disconnect();shimOsc.disconnect();shimGain.disconnect();
+        if(fm){fm.disconnect();}
+        if(fmGain){fmGain.disconnect();}
+        if(noise){noise.disconnect();}
+        if(noiseFilter){noiseFilter.disconnect();}
+        if(noiseEnv){noiseEnv.disconnect();}
       }catch(e){}
-
       voices=Math.max(0,voices-1);
     },cleanup*1000);
   }catch(e){
@@ -748,7 +1154,7 @@ function sliderState(s,t){
   if(!L)return;
 
   const tx=dx/L,ty=dy/L,c=L*2;
-  let m=((t-s.at)/1000*s.sp)%c;
+  let m=((t-s.at)/1000*s.sp*FX.motionSpeed)%c;
   if(m<0)m+=c;
 
   const fw=m<=L,d=fw?m:c-m,x=s.a.x+tx*d,y=s.a.y+ty*d,nx=-ty,ny=tx,h=s.len/2;
@@ -756,15 +1162,15 @@ function sliderState(s,t){
   return {
     a:{x:x-nx*h,y:y-ny*h},
     b:{x:x+nx*h,y:y+ny*h},
-    vx:tx*s.sp*(fw?1:-1)/60,
-    vy:ty*s.sp*(fw?1:-1)/60,
-    sp:s.sp
+    vx:tx*s.sp*FX.motionSpeed*(fw?1:-1)/60,
+    vy:ty*s.sp*FX.motionSpeed*(fw?1:-1)/60,
+    sp:s.sp*FX.motionSpeed
   };
 }
 
 function spinState(s,t){
   const shape=s.shape||"bar";
-  const w=s.sp*Math.PI/180*s.dir;
+  const w=s.sp*Math.PI/180*s.dir*FX.motionSpeed;
   const an=s.angle+(t-s.at)/1000*w;
   const R=s.len/2;
 
@@ -780,11 +1186,13 @@ function spinState(s,t){
       edges:[{
         a,b,
         edgeNote:0,
+        edgeIndex:0,
         vx:-Math.sin(an)*R*w/60,
         vy:Math.cos(an)*R*w/60,
         sp:Math.abs(w)*R
       }],
-      sp:Math.abs(w)*R
+      sp:Math.abs(w)*R,
+      src:s
     };
   }
 
@@ -797,18 +1205,24 @@ function spinState(s,t){
     pts.push({x:s.x+Math.cos(th)*R,y:s.y+Math.sin(th)*R});
   }
 
+  const missing=s.missingEdges||{};
   const edges=[];
-  for(let i=0;i<pts.length;i++){
-    const a=pts[i],b=pts[(i+1)%pts.length];
+
+  for(let i=0;i<sides;i++){
+    if(missing[i]) continue;
+    const a=pts[i],b=pts[(i+1)%sides];
     const mx=(a.x+b.x)/2,my=(a.y+b.y)/2;
     edges.push({
       a,b,
       edgeNote:i,
+      edgeIndex:i,
       vx:-w*(my-s.y)/60,
       vy:w*(mx-s.x)/60,
       sp:Math.abs(w)*R
     });
   }
+
+  if(!edges.length) return null;
 
   return {
     kind:shape,
@@ -816,7 +1230,8 @@ function spinState(s,t){
     y:s.y,
     pts,
     edges,
-    sp:Math.abs(w)*R
+    sp:Math.abs(w)*R,
+    src:s
   };
 }
 
@@ -1005,7 +1420,7 @@ function collision(ball,x0,y0,x1,y1,now){
   const take=h=>{if(h&&(!best||h.t<best.t))best=h;};
 
   const lineHit=Math.max(1.6,FX.lineWidth*.55);
-  const motionHit=Math.max(6.5,FX.lineWidth*1.35);
+  const motionHit=Math.max(6.5,FX.lineWidth*.85*1.35);
 
   for(const l of lines){
     for(let i=0;i<l.p.length-1;i++){
@@ -1035,11 +1450,12 @@ function collision(ball,x0,y0,x1,y1,now){
 }
 
 class Ball{
-  constructor(x,y,vx=null,vy=null,r=10,c=DEFAULT_BALL_COLOR,w=1,lim=10,rel=1){
+  constructor(x,y,vx=null,vy=null,r=10,c=DEFAULT_BALL_COLOR,w=1,lim=10,rel=1,tone="pad"){
     this.x=x;this.y=y;
     this.vx=vx??(Math.random()-.5)*1.4;
     this.vy=vy??0;
     this.r=r;this.c=c;this.w=w;this.lim=lim;this.rel=rel;
+    this.tone=tone;
     this.n=0;this.al=1;this.fade=false;this.last=0;
     this.hitKey=null;
   }
@@ -1051,15 +1467,16 @@ class Ball{
       return;
     }
 
-    this.vy+=+$("gravity").value*this.w;
+    const motion = FX.motionSpeed;
+    this.vy+=+$("gravity").value*this.w*motion;
 
     for(const h of holes){
       const dx=h.x-this.x,dy=h.y-this.y,d=Math.hypot(dx,dy)||.001;
 
       if(d<h.r*2.4){
         const f=(1-d/(h.r*2.4))*.14;
-        this.vx+=dx/d*f;
-        this.vy+=dy/d*f;
+        this.vx+=dx/d*f*motion;
+        this.vy+=dy/d*f*motion;
       }
 
       if(d<h.r+this.r*.45){
@@ -1073,18 +1490,18 @@ class Ball{
 
     while(rem>.0001&&k++<6){
       const x0=this.x,y0=this.y;
-      const h=collision(this,x0,y0,x0+this.vx*rem,y0+this.vy*rem,now);
+      const h=collision(this,x0,y0,x0+this.vx*rem*motion,y0+this.vy*rem*motion,now);
 
       if(!h){
-        this.x+=this.vx*rem;
-        this.y+=this.vy*rem;
+        this.x+=this.vx*rem*motion;
+        this.y+=this.vy*rem*motion;
         break;
       }
 
       touched=true;
 
-      this.x=x0+this.vx*rem*Math.max(0,h.t-.001);
-      this.y=y0+this.vy*rem*Math.max(0,h.t-.001);
+      this.x=x0+this.vx*rem*motion*Math.max(0,h.t-.001);
+      this.y=y0+this.vy*rem*motion*Math.max(0,h.t-.001);
 
       let nx,ny;
 
@@ -1134,7 +1551,8 @@ class Ball{
           playSound(
             pitchForHit(h),
             clamp((impact+boost*2)/5,.25,1),
-            this.r,this.w,this.rel
+            this.r,this.w,this.rel,
+            this.tone
           );
         }
 
@@ -1179,9 +1597,7 @@ function drawLine(p,c,w,d=[]){
   if(p.length<2)return;
   ctx.beginPath();
   ctx.moveTo(p[0].x,p[0].y);
-
   for(let i=1;i<p.length;i++)ctx.lineTo(p[i].x,p[i].y);
-
   ctx.strokeStyle=c;
   ctx.lineWidth=w;
   ctx.setLineDash(d);
@@ -1191,11 +1607,22 @@ function drawLine(p,c,w,d=[]){
 
 function drawSpinShape(z,c){
   if(!z||!z.pts||z.pts.length<2)return;
-
   if(z.kind==="bar"){
     drawLine(z.pts,c,strokeWidth(2.8));
   }else{
-    drawLine([...z.pts,z.pts[0]],c,strokeWidth(2.4));
+    const missing = z.src?.missingEdges || {};
+    const hasMissing = Object.keys(missing).length > 0;
+
+    if(!hasMissing){
+      drawLine([...z.pts,z.pts[0]],c,strokeWidth(2.4));
+    }else{
+      const sides = z.pts.length;
+      for(let i=0;i<sides;i++){
+        if(!missing[i]){
+          drawLine([z.pts[i],z.pts[(i+1)%sides]],c,strokeWidth(2.4));
+        }
+      }
+    }
   }
 }
 
@@ -1231,13 +1658,17 @@ function drawHole(h){
 }
 
 function spawn(x,y,vx=null,vy=null,record=true,hist=true,o={}){
+  const toneKey = o.tone ?? FX.ballTone;
+  const tone = getTone(toneKey);
+
   const b=new Ball(
     x,y,vx,vy,
     o.r??+$("ballSize").value,
-    o.c??FX.ballColor,
+    o.c??tone.color,
     o.w??+$("weight").value,
     o.lim??+$("ballLimitPer").value,
-    o.rel??+$("release").value
+    o.rel??+$("release").value,
+    toneKey
   );
 
   balls.push(b);
@@ -1248,7 +1679,6 @@ function spawn(x,y,vx=null,vy=null,record=true,hist=true,o={}){
 
   if(recording&&record){
     const n=Date.now();
-
     if(recStart===null)recStart=n;
 
     let rel=n-recStart;
@@ -1257,7 +1687,8 @@ function spawn(x,y,vx=null,vy=null,record=true,hist=true,o={}){
     events.push({
       rel,x,y,
       vx:b.vx,vy:b.vy,
-      r:b.r,c:b.c,w:b.w,lim:b.lim,s:b.rel
+      r:b.r,c:b.c,w:b.w,lim:b.lim,s:b.rel,
+      tone:b.tone
     });
   }
 }
@@ -1315,33 +1746,50 @@ function setMode(m){
     panel($("motionPanel"));
   }
 
+  if(m==="line")panel($("linePanel"));
   if(m==="hole")panel($("holePanel"));
   if(m==="font")panel($("fontPanel"));
 }
 
-function removeAt(p){
+function removeAt(p, now=Date.now()){
   let best=null;
   const lineErase=Math.max(22,FX.lineWidth*4);
 
-  const test=(arr,fn)=>{
-    arr.forEach((o,i)=>{
-      const q=fn(o);
-      for(let j=0;j<q.length-1;j++){
-        const d=seg(p.x,p.y,q[j],q[j+1]).d;
-        if(d<lineErase&&(!best||d<best.d)){
-          best={arr,i,d};
-        }
+  lines.forEach((o,i)=>{
+    for(let j=0;j<o.p.length-1;j++){
+      const d=seg(p.x,p.y,o.p[j],o.p[j+1]).d;
+      if(d<lineErase&&(!best||d<best.d)){
+        best={kind:"remove",arr:lines,i,d};
       }
-    });
-  };
+    }
+  });
 
-  test(lines,o=>o.p);
-  test(sliders,o=>[o.a,o.e]);
+  sliders.forEach((o,i)=>{
+    const d=seg(p.x,p.y,o.a,o.e).d;
+    if(d<lineErase&&(!best||d<best.d)){
+      best={kind:"remove",arr:sliders,i,d};
+    }
+  });
 
   spins.forEach((o,i)=>{
-    const d=Math.hypot(p.x-o.x,p.y-o.y);
-    const rr=o.r??(o.len?o.len/2:45);
-    if(d<rr+12&&(!best||d<best.d))best={arr:spins,i,d};
+    const z=spinState(o,now);
+    if(!z) return;
+
+    if(z.kind==="bar"){
+      const d=Math.hypot(p.x-o.x,p.y-o.y);
+      const rr=o.r??(o.len?o.len/2:45);
+      if(d<rr+12&&(!best||d<best.d)){
+        best={kind:"remove",arr:spins,i,d};
+      }
+      return;
+    }
+
+    z.edges.forEach(e=>{
+      const d=seg(p.x,p.y,e.a,e.b).d;
+      if(d<lineErase&&(!best||d<best.d)){
+        best={kind:"spin-edge",arr:spins,i,d,edgeIndex:e.edgeIndex,spin:o};
+      }
+    });
   });
 
   texts.forEach((o,i)=>{
@@ -1356,21 +1804,40 @@ function removeAt(p){
         p.y<=box.y0+box.h+pad &&
         (!best||d<best.d)
       ){
-        best={arr:texts,i,d};
+        best={kind:"remove",arr:texts,i,d};
       }
     }else if(d<60&&(!best||d<best.d)){
-      best={arr:texts,i,d};
+      best={kind:"remove",arr:texts,i,d};
     }
   });
 
   holes.forEach((o,i)=>{
     const d=Math.hypot(p.x-o.x,p.y-o.y);
-    if(d<o.r+10&&(!best||d<best.d))best={arr:holes,i,d};
+    if(d<o.r+10&&(!best||d<best.d))best={kind:"remove",arr:holes,i,d};
   });
 
-  if(best){
-    const r=best.arr.splice(best.i,1)[0];
-    history=history.filter(x=>x.r!==r);
+  if(!best) return;
+
+  if(best.kind==="spin-edge"){
+    const s=best.arr[best.i];
+    if(!s) return;
+
+    s.missingEdges ||= {};
+    s.missingEdges[best.edgeIndex]=true;
+
+    const sides=SPIN_SIDES[s.shape]||0;
+    let missingCount=0;
+    for(let k=0;k<sides;k++){
+      if(s.missingEdges[k]) missingCount++;
+    }
+
+    if(missingCount>=sides){
+      const removed=best.arr.splice(best.i,1)[0];
+      history=history.filter(x=>x.r!==removed);
+    }
+  }else{
+    const removed=best.arr.splice(best.i,1)[0];
+    history=history.filter(x=>x.r!==removed);
   }
 }
 
@@ -1397,7 +1864,7 @@ function down(e){
 
   if(eraserOn){
     erasing=true;
-    removeAt(p);
+    removeAt(p, Date.now());
     return;
   }
 
@@ -1484,7 +1951,7 @@ function move(e){
 
   if(erasing){
     if(e.cancelable)e.preventDefault();
-    removeAt(p);
+    removeAt(p, Date.now());
     return;
   }
 
@@ -1492,11 +1959,16 @@ function move(e){
   if(e.cancelable)e.preventDefault();
 
   if(stroke.k==="line"){
-    const q=stroke.p.at(-1);
-    const d=Math.hypot(p.x-q.x,p.y-q.y);
-    if(d>4){
-      stroke.p.push(p);
-      drag+=d;
+    if(FX.lineStraight){
+      stroke.e = p;
+      drag = Math.hypot(p.x-stroke.a.x,p.y-stroke.a.y);
+    }else{
+      const q=stroke.p.at(-1);
+      const d=Math.hypot(p.x-q.x,p.y-q.y);
+      if(d>4){
+        stroke.p.push(p);
+        drag+=d;
+      }
     }
   }else{
     stroke.e=p;
@@ -1519,10 +1991,19 @@ function up(){
 
   drawing=false;
 
-  if(stroke.k==="line"&&stroke.p.length>1){
-    const o={type:"line",id:objSeq++,p:stroke.p,c:FX.lineColor,note:note++};
-    lines.push(o);
-    history.push({t:"line",r:o});
+  if(stroke.k==="line"){
+    const shouldSave = FX.lineStraight ? drag >= 4 : stroke.p.length > 1;
+    if(shouldSave){
+      const o={
+        type:"line",
+        id:objSeq++,
+        p:FX.lineStraight ? [stroke.a, stroke.e] : stroke.p,
+        c:FX.lineColor,
+        note:note++
+      };
+      lines.push(o);
+      history.push({t:"line",r:o});
+    }
   }else if(stroke.k==="slider"&&drag>=10){
     const o={
       type:"slider",
@@ -1562,7 +2043,7 @@ function playLoop(){
       timers.push(setTimeout(()=>{
         if(sequenceStopped)return;
         spawn(e.x,e.y,e.vx,e.vy,false,false,{
-          r:e.r,c:e.c,w:e.w,lim:e.lim,rel:e.s
+          r:e.r,c:e.c,w:e.w,lim:e.lim,rel:e.s,tone:e.tone
         });
       },e.rel));
     }
@@ -1599,6 +2080,24 @@ function toggleView(){
     $("view").textContent="VIEW";
   }
 }
+
+document.querySelectorAll(".fx-toggle").forEach(btn => {
+  btn.onclick = (e) => {
+    e.stopPropagation();
+    const targetId = btn.getAttribute("data-target");
+    const sec = $(targetId);
+    const isActive = sec.classList.toggle("enabled");
+    btn.classList.toggle("active", isActive);
+    btn.textContent = isActive ? "ON" : "OFF";
+
+    if(targetId === "sec-lpf") FX.lpfEnabled = isActive;
+    if(targetId === "sec-rev") FX.revEnabled = isActive;
+    if(targetId === "sec-delay") FX.delayEnabled = isActive;
+    if(targetId === "sec-mod") FX.modEnabled = isActive;
+    if(targetId === "sec-line-straight") FX.lineStraight = isActive;
+    updateFX();
+  };
+});
 
 ["pointerdown","touchstart","mousedown","keydown"].forEach(ev=>{
   document.addEventListener(ev,()=>{
@@ -1639,6 +2138,7 @@ document.querySelectorAll(".close").forEach(b=>{
 $("key").onchange=buildScale;
 $("scale").onchange=buildScale;
 $("fontWeight").onchange=updateFontUI;
+$("ballTone").onchange=updateFX;
 
 $("rec").onclick=()=>{
   ensureAudio();
@@ -1739,7 +2239,10 @@ $("clearBalls").onclick=()=>{
 
 [
   "masterVolume",
+  "lpfFreq",
+  "lpfQ",
   "reverbMix",
+  "shimmerMix",
   "reverbPreDelay",
   "reverbRoomSize",
   "reverbDecay",
@@ -1747,14 +2250,21 @@ $("clearBalls").onclick=()=>{
   "delayMix",
   "delayTime",
   "delayFeedback",
+  "granularMix",
   "delayFilter",
+  "chorusMix",
+  "chorusRate",
+  "tapeSat",
+  "tapeFlutter",
   "lineWidth",
   "bgColor",
   "lineColor",
-  "ballColor"
+  "motionSpeed"
 ].forEach(id=>{
-  $(id).addEventListener("input",updateFX);
+  $(id).addEventListener("input", updateFX);
 });
+
+$("ballTone").addEventListener("change", updateFX);
 
 updateFX();
 
@@ -1767,6 +2277,7 @@ bind("weight","weightV","x");
 bind("release","releaseV","s");
 bind("ballLimit","ballLimitV");
 bind("gravity","gravityV");
+bind("motionSpeed","motionSpeedV","x");
 bind("bounce","bounceV");
 bind("fontSize","fontSizeV","px");
 updateFontUI();
@@ -1793,17 +2304,25 @@ function render(){
     if(z)drawLine([z.a,z.b],FX.lineColor,strokeWidth(2.8));
   });
 
-  spins.forEach(s=>{
+  for(let i=spins.length-1;i>=0;i--){
+    const s=spins[i];
     const z=spinState(s,now);
+    if(!z){
+      spins.splice(i,1);
+      continue;
+    }
     drawSpinShape(z,FX.lineColor);
-  });
+  }
 
   texts.forEach(drawTextObject);
 
   if(stroke){
     const previewW = stroke.k==="line" ? strokeWidth(1) : strokeWidth(1.15);
+    const previewPts = stroke.k==="line"
+      ? (FX.lineStraight ? [stroke.a, stroke.e] : stroke.p)
+      : [stroke.a,stroke.e];
     drawLine(
-      stroke.k==="line" ? stroke.p : [stroke.a,stroke.e],
+      previewPts,
       FX.lineColor,
       previewW,
       stroke.k==="line" ? [] : [8,8]
