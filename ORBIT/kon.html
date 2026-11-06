@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gamepad to Web MIDI Transmitter</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #1a1a1a;
+      color: #ffffff;
+      padding: 20px;
+      margin: 0;
+    }
+    h1 { font-size: 1.4rem; text-align: center; }
+    .card {
+      background: #2a2a2a;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    }
+    label { display: block; margin-bottom: 8px; font-weight: bold; }
+    select, button {
+      width: 100%;
+      padding: 12px;
+      border-radius: 8px;
+      border: none;
+      background: #3a3a3a;
+      color: #fff;
+      font-size: 1rem;
+      margin-bottom: 8px;
+    }
+    button {
+      background: #007aff;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    button:active { background: #0056b3; }
+    .status {
+      font-size: 0.9rem;
+      color: #aaa;
+      margin-top: 5px;
+    }
+    .active { color: #34c759; }
+    .log-box {
+      height: 150px;
+      overflow-y: auto;
+      background: #000;
+      color: #00ff66;
+      font-family: monospace;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Gamepad → Web MIDI</h1>
+
+  <div class="card">
+    <label for="midi-select">MIDI出力ポート選択</label>
+    <select id="midi-select">
+      <option value="">デバイスを検索中...</option>
+    </select>
+    <div id="midi-status" class="status">MIDIアクセス未初期化</div>
+  </div>
+
+  <div class="card">
+    <label>ゲームコントローラー状態</label>
+    <div id="gamepad-status" class="status">未接続（ボタンを押すと接続されます）</div>
+  </div>
+
+  <div class="card">
+    <label>操作テスト（画面タップ）</label>
+    <button id="test-btn">テスト音を送信 (Note C4)</button>
+  </div>
+
+  <div class="card">
+    <label>送信ログ</label>
+    <div id="log" class="log-box"></div>
+  </div>
+
+  <script>
+    let midiAccess = null;
+    let selectedOutput = null;
+    let previousButtons = [];
+
+    const midiSelect = document.getElementById('midi-select');
+    const midiStatus = document.getElementById('midi-status');
+    const gamepadStatus = document.getElementById('gamepad-status');
+    const logBox = document.getElementById('log');
+
+    function log(message) {
+      const entry = document.createElement('div');
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      logBox.appendChild(entry);
+      logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    // Web MIDI 初期化
+    if (navigator.requestMIDIAccess) {
+      navigator.requestMIDIAccess().then(onMIDISuccess, onMIDIFailure);
+    } else {
+      midiStatus.textContent = "このブラウザはWeb MIDI APIをサポートしていません。";
+    }
+
+    function onMIDISuccess(access) {
+      midiAccess = access;
+      midiStatus.textContent = "Web MIDI 準備完了";
+      midiStatus.classList.add('active');
+      updateMIDIOutputs();
+
+      midiAccess.onstatechange = updateMIDIOutputs;
+    }
+
+    function onMIDIFailure() {
+      midiStatus.textContent = "MIDIデバイスへのアクセスに失敗しました。";
+    }
+
+    function updateMIDIOutputs() {
+      midiSelect.innerHTML = '';
+      const outputs = Array.from(midiAccess.outputs.values());
+
+      if (outputs.length === 0) {
+        midiSelect.innerHTML = '<option value="">利用可能なMIDI出力がありません</option>';
+        selectedOutput = null;
+        return;
+      }
+
+      outputs.forEach(output => {
+        const option = document.createElement('option');
+        option.value = output.id;
+        option.textContent = output.name || `MIDI Output (${output.id})`;
+        midiSelect.appendChild(option);
+      });
+
+      selectedOutput = outputs[0];
+      log(`選択中のMIDIポート: ${selectedOutput.name}`);
+    }
+
+    midiSelect.addEventListener('change', (e) => {
+      selectedOutput = midiAccess.outputs.get(e.target.value);
+      log(`MIDIポート切替: ${selectedOutput.name}`);
+    });
+
+    // MIDIメッセージ送信関数
+    function sendMIDI(data) {
+      if (selectedOutput) {
+        selectedOutput.send(data);
+      } else {
+        log("エラー: MIDI出力先が選択されていません");
+      }
+    }
+
+    // テストボタン (Note On / Note Off)
+    const testBtn = document.getElementById('test-btn');
+    testBtn.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      sendMIDI([0x90, 60, 100]); // Note On: Ch.1, C4, Velocity 100
+      log("Note On: C4 (タップ)");
+    });
+    testBtn.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      sendMIDI([0x80, 60, 0]); // Note Off: Ch.1, C4
+      log("Note Off: C4 (リリース)");
+    });
+
+    // Gamepad ループ処理
+    window.addEventListener("gamepadconnected", (e) => {
+      gamepadStatus.textContent = `接続中: ${e.gamepad.id}`;
+      gamepadStatus.classList.add('active');
+      log(`コントローラー接続: ${e.gamepad.id}`);
+      requestAnimationFrame(gamepadLoop);
+    });
+
+    window.addEventListener("gamepaddisconnected", (e) => {
+      gamepadStatus.textContent = "未接続";
+      gamepadStatus.classList.remove('active');
+      log(`コントローラー切断: ${e.gamepad.id}`);
+    });
+
+    function gamepadLoop() {
+      const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+      const gp = gamepads[0]; // 最初のコントローラーを取得
+
+      if (gp) {
+        // ボタン入力を監視してMIDI信号を送信
+        gp.buttons.forEach((button, index) => {
+          const isPressed = button.pressed;
+          const wasPressed = previousButtons[index];
+
+          // 対応するノート番号（例: ボタン0 -> 60(C4), ボタン1 -> 62(D4)...）
+          const baseNote = 60;
+          const midiNote = baseNote + index;
+
+          if (isPressed && !wasPressed) {
+            // ボタンが押された瞬間 (Note On)
+            const velocity = Math.round((button.value || 1.0) * 127);
+            sendMIDI([0x90, midiNote, velocity]);
+            log(`Pad Button ${index} 押下 -> Note On (${midiNote}), Vel: ${velocity}`);
+          } else if (!isPressed && wasPressed) {
+            // ボタンが離された瞬間 (Note Off)
+            sendMIDI([0x80, midiNote, 0]);
+            log(`Pad Button ${index} 離脱 -> Note Off (${midiNote})`);
+          }
+
+          previousButtons[index] = isPressed;
+        });
+
+        requestAnimationFrame(gamepadLoop);
+      }
+    }
+  </script>
+</body>
+</html>
