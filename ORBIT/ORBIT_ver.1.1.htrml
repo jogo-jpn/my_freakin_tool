@@ -1,0 +1,4781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
+  <title>ORBIT - Ambient Edition Pro</title>
+  <style>
+    :root{
+      --bg:#042A57;
+      --bg2:#081c38;
+      --panel:rgba(12,17,27,.94);
+      --bd:rgba(255,255,255,.14);
+      --tx:#eaf1f8;
+      --sub:#91a3b7;
+      --ac:#8be9ff;
+      --danger:#ff5d7a
+    }
+    *{box-sizing:border-box;margin:0;padding:0;user-select:none;-webkit-user-select:none}
+    html,body{
+      width:100%;
+      height:100%;
+      overflow:hidden;
+      color:var(--tx);
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+      background:radial-gradient(circle at 20% 10%,rgba(139,233,255,.1),transparent 24%),linear-gradient(180deg,var(--bg2),var(--bg))
+    }
+
+    #stage{
+      position:fixed;
+      inset:0;
+      overflow:hidden;
+      touch-action:none;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    canvas{
+      display:block;
+      width:auto;
+      height:auto;
+      transform-origin:0 0;
+      will-change:transform;
+      touch-action:none;
+      box-shadow:0 0 0 0.5px rgba(255,255,255,.28);
+    }
+
+    button,select,input{font:inherit}
+    button,select{
+      color:var(--tx);
+      border:1px solid var(--bd);
+      border-radius:9px;
+      background:rgba(255,255,255,.06);
+      padding:8px 10px;
+      cursor:pointer
+    }
+    input[type=range]{accent-color:var(--ac)}
+    input[type=color]{
+      width:54px;
+      height:32px;
+      padding:2px;
+      border:1px solid var(--bd);
+      border-radius:8px;
+      background:transparent;
+      cursor:pointer
+    }
+    input[type=color]::-webkit-color-swatch-wrapper{padding:0}
+    input[type=color]::-webkit-color-swatch{border:none;border-radius:6px}
+    input[type=text]{
+      color:var(--tx);
+      border:1px solid var(--bd);
+      border-radius:9px;
+      background:rgba(255,255,255,.06);
+      padding:8px 10px;
+      min-width:0;
+      width:100%;
+      user-select:text;
+      -webkit-user-select:text
+    }
+
+    /* 上部ツール全体 */
+.top{
+  position:fixed;
+  top:calc(8px + env(safe-area-inset-top));
+  left:calc(8px + env(safe-area-inset-left));
+  right:calc(8px + env(safe-area-inset-right) + 60px);
+  z-index:30;
+
+  display:flex;
+  align-items:flex-start;
+  gap:8px;
+
+  overflow-x:auto;
+  padding-right:4px;
+  scrollbar-width:none;
+}
+
+.top::-webkit-scrollbar{
+  display:none;
+}
+
+/* 共通：ボタン群の枠 */
+.tools{
+  display:flex;
+  gap:3px;
+  padding:3px;
+  border:1px solid var(--bd);
+  border-radius:9px;
+  background:rgba(8,12,20,.82);
+  white-space:nowrap;
+  flex:0 0 auto;
+}
+
+/* BALL / LINEなどの作成グループ */
+.tool-group-draw{
+  border-color:rgba(139,233,255,.45);
+  background:rgba(8,12,20,.88);
+}
+
+/* ERASER / MOVE / SET / VIEWの操作グループ */
+.tool-group-control{
+  border-color:rgba(255,255,255,.30);
+  background:rgba(30,35,47,.94);
+}
+
+/* 操作グループのボタン色 */
+.control-tool{
+  color:#d5e1ed;
+  background:rgba(255,255,255,.08);
+}
+
+/* ERASERがONの時 */
+#eraser.active{
+  color:#fff;
+  background:rgba(255,93,122,.72);
+  border-color:#ff9aac;
+}
+
+/* MOVEが選択中の時 */
+#move.active{
+  color:#061018;
+  background:#a8ffcf;
+  border-color:#a8ffcf;
+}
+
+    .tool{
+      min-height:25px;
+      padding:4px 6px;
+      border-radius:6px;
+      font-size:9px;
+      line-height:1;
+      white-space:nowrap
+    }
+
+    .tool.active{
+      color:#061018;
+      background:var(--ac);
+      border-color:var(--ac)
+    }
+
+    .tool.hole.active{
+      color:#fff;
+      background:#454950;
+      border-color:#9da3ae
+    }
+
+    .tool.fill.active{
+      color:#061018;
+      background:#78dbff;
+      border-color:#78dbff
+    }
+
+    .top-actions{
+      position:fixed;
+      top:calc(8px + env(safe-area-inset-top));
+      right:calc(8px + env(safe-area-inset-right));
+      z-index:31;
+      display:flex;
+      gap:5px
+    }
+    .top-actions button{
+      width:56px;
+      height:40px;
+      padding:0;
+      font-size:10px
+    }
+
+    #edit.active{
+      color:#061018;
+      background:var(--ac);
+      border-color:var(--ac)
+    }
+
+    #overlay{
+      position:fixed;
+      inset:0;
+      z-index:24;
+      opacity:0;
+      pointer-events:none;
+      background:rgba(0,0,0,.32);
+      transition:.18s
+    }
+    #overlay.open{opacity:1;pointer-events:auto}
+
+    .panel{
+      position:fixed;
+      left:50%;
+      bottom:calc(74px + env(safe-area-inset-bottom));
+      z-index:25;
+      width:min(92vw,560px);
+      max-height:min(67vh,650px);
+      overflow:auto;
+      padding:14px;
+      border:1px solid var(--bd);
+      border-radius:18px;
+      background:var(--panel);
+      backdrop-filter:blur(14px);
+      transform:translateX(-50%) translateY(16px);
+      opacity:0;
+      pointer-events:none;
+      transition:.18s;
+      touch-action:pan-y
+    }
+    .panel.open{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0)}
+    .small{width:min(88vw,430px)}
+    .header,.row{display:flex;align-items:center;gap:10px}
+    .header{justify-content:space-between;margin-bottom:12px}
+    .title{display:flex;flex-direction:column;gap:3px}
+    .title strong{font-size:14px;letter-spacing:.12em}
+    .title span,.note{color:var(--sub);font-size:11px;line-height:1.6}
+    .section{
+      margin-bottom:10px;
+      padding:12px;
+      border:1px solid var(--bd);
+      border-radius:14px;
+      background:rgba(255,255,255,.04)
+    }
+    .section-header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom:8px;
+    }
+    .section-title{
+      color:var(--ac);
+      font-size:11px;
+      letter-spacing:.12em;
+      font-weight:700
+    }
+    .fx-toggle{
+      padding:2px 8px;
+      font-size:10px;
+      border-radius:6px;
+      border:1px solid var(--bd);
+      background:rgba(255,255,255,.04);
+      color:var(--sub);
+      cursor:pointer
+    }
+    .fx-toggle.active{
+      background:var(--ac);
+      border-color:var(--ac);
+      color:#061018;
+      font-weight:700
+    }
+    .fx-content{
+      display:none;
+      flex-direction:column;
+      gap:8px;
+      margin-top:4px
+    }
+    .section.enabled .fx-content{display:flex}
+    .row{margin-top:8px}
+    .row label{min-width:112px;color:var(--sub);font-size:12px}
+    .row select,.row input{flex:1;min-width:0}
+    .row input[type=color]{flex:0 0 54px;min-width:54px}
+    .value{min-width:58px;text-align:right;font-size:11px;font-variant-numeric:tabular-nums}
+
+    .bottom-wrap{
+      position:fixed;
+      left:0;
+      right:0;
+      bottom:0;
+      z-index:22;
+      padding:6px max(6px,env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom)) max(6px,env(safe-area-inset-left));
+      pointer-events:none
+    }
+/* ボタンが押せるように復活 */
+.bottom,
+.bottom-box,
+.bottom-wrap * {
+  pointer-events: auto;
+}
+
+.bottom{
+  border:none;
+  background:transparent;
+  padding:0;       /* 外枠の余白が邪魔なら0推奨 */
+}
+
+.bottom-row{
+  width:100%;
+  display:grid;
+  gap:5px;
+}
+
+.bottom-row-top{
+  grid-template-columns:repeat(4,minmax(0,1fr));
+}
+
+.bottom-row-bottom{
+  grid-template-columns:repeat(3,minmax(0,1fr));
+}
+
+
+.bottom button{
+  width:100%;
+  min-width:0;
+  min-height:32px;
+  padding:5px 2px;
+  overflow:hidden;
+  border-radius:7px;
+  font-size:clamp(8px,2.2vw,11px);
+  line-height:1;
+  white-space:nowrap;
+  text-overflow:ellipsis;
+}
+
+    .bottom-group{
+      flex:1 1 0;
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:5px;
+      min-width:0
+    }
+
+    .bottom button{
+      min-width:0;
+      min-height:32px;
+      padding:5px 2px;
+      overflow:hidden;
+      border-radius:7px;
+      font-size:clamp(8px,2.2vw,11px);
+      line-height:1;
+      white-space:nowrap;
+      text-overflow:ellipsis
+    }
+
+    #rec.recording{color:#ff9aac;background:rgba(255,93,122,.16);border-color:rgba(255,93,122,.7)}
+    #seqStop.active{color:#ffd27a;background:rgba(255,210,122,.12)}
+
+    #recTime{
+      position:fixed;
+      right:8px;
+      bottom:calc(58px + env(safe-area-inset-bottom));
+      z-index:23;
+      display:none;
+      min-width:56px;
+      padding:5px 7px;
+      border-radius:8px;
+      background:rgba(10,14,22,.9);
+      color:#ff9aac;
+      font-size:11px;
+      font-weight:700;
+      text-align:center
+    }
+
+    .hint{
+      position:fixed;
+      left:16px;
+      bottom:calc(66px + env(safe-area-inset-bottom));
+      z-index:2;
+      color:rgba(234,241,248,.48);
+      font-size:11px;
+      line-height:1.6;
+      pointer-events:none
+    }
+
+    body.view-mode .top .tool:not(#view){
+      display:none!important
+    }
+    body.view-mode #view{
+      color:#061018;
+      background:var(--ac);
+      border-color:var(--ac)
+    }
+
+    body.edit-off .top,
+    body.edit-off .bottom-wrap,
+    body.edit-off .hint,
+    body.edit-off #recTime,
+    body.edit-off .panel,
+    body.edit-off #overlay{
+      display:none!important
+    }
+
+  @media(max-width:420px){
+  .top{
+    right:calc(8px + env(safe-area-inset-right) + 56px);
+    gap:5px;
+  }
+
+  .tools{
+    gap:2px;
+    padding:3px;
+  }
+
+  .tool{
+    min-height:23px;
+    padding:4px 5px;
+    font-size:8px;
+  }
+
+  .tool-group-control::before{
+    margin-right:1px;
+  }
+
+  .bottom{
+  gap:4px;
+  padding:4px;
+}
+
+.bottom-row{
+  gap:3px;
+}
+
+.bottom button{
+  min-height:29px;
+  padding:4px 1px;
+  font-size:7px;
+}
+
+
+  .bottom-group{
+    gap:3px
+  }
+
+  .bottom button{
+    min-height:29px;
+    padding:4px 1px;
+    font-size:7px
+  }
+
+  .row label{
+    min-width:88px
+  }
+
+  .top-actions button{
+    width:54px;
+    height:38px;
+    font-size:9px
+  }
+}
+
+.bottom-box{
+  border:1px solid var(--bd);
+  border-radius:12px;
+  padding:6px;
+  background:rgba(10,14,22,.7);
+}
+
+  </style>
+</head>
+<body>
+  <div id="stage"><canvas id="canvas"></canvas></div>
+
+<div class="top">
+  <!-- 作成ツール：左グループ -->
+  <div class="tools tool-group-draw">
+    <button id="ball" class="tool">BALL</button>
+    <button id="line" class="tool active">LINE</button>
+    <button id="slider" class="tool">SLIDER</button>
+    <button id="spin" class="tool">SPIN</button>
+    <button id="hole" class="tool hole">HOLE</button>
+    <button id="fill" class="tool fill">FILL</button>
+    <button id="font" class="tool">FONT</button>
+    <button id="plunger" class="tool">PLUNGER</button>
+  </div>
+
+  <!-- 操作ツール：右グループ -->
+  <div class="tools tool-group-control">
+    <button id="eraser" class="tool control-tool">ERASER</button>
+    <button id="move" class="tool control-tool">MOVE</button>
+    <button id="menu" class="tool control-tool">SET</button>
+    <button id="view" class="tool control-tool">VIEW</button>
+  </div>
+</div>
+
+
+  <div class="top-actions">
+    <button id="edit" class="active">EDIT ON</button>
+  </div>
+
+  <div id="overlay"></div>
+
+  <div id="settings" class="panel">
+  <div class="header">
+    <div class="title">
+      <strong>ORBIT</strong>
+      <span>Ambient physics instrument</span>
+    </div>
+    <button class="close" type="button">×</button>
+  </div>
+
+  <!-- PROJECT -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-title">PROJECT</span>
+    </div>
+
+    <div class="fx-content" style="display:flex;">
+      <div class="row" style="gap:8px;flex-wrap:wrap;">
+        <button id="saveProject" type="button">SAVE</button>
+        <button id="loadProject" type="button">LOAD</button>
+        <input
+          id="projectFile"
+          type="file"
+          accept=".json,application/json"
+          hidden
+        >
+      </div>
+
+      <p class="note">
+        SAVEでJSONを書き出し、LOADで復元します。
+      </p>
+    </div>
+  </div>
+
+  <!-- MUSIC & MASTER -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-title">MUSIC & MASTER</span>
+    </div>
+
+    <div class="fx-content" style="display:flex;">
+
+      <div class="row">
+        <label>Key</label>
+
+        <select id="key">
+          <option>C</option>
+          <option>C#</option>
+          <option>D</option>
+          <option>D#</option>
+          <option>E</option>
+          <option>F</option>
+          <option>F#</option>
+          <option>G</option>
+          <option>G#</option>
+          <option selected>A</option>
+          <option>A#</option>
+          <option>B</option>
+        </select>
+      </div>
+
+      <div class="row">
+        <label>Scale</label>
+
+        <select id="scale">
+          <optgroup label="BASIC">
+            <option value="minorPentatonic" selected>Minor Pentatonic</option>
+            <option value="majorPentatonic">Major Pentatonic</option>
+            <option value="blues">Blues</option>
+            <option value="major">Major / Ionian</option>
+            <option value="minor">Minor / Aeolian</option>
+          </optgroup>
+
+          <optgroup label="MODES">
+            <option value="dorian">Dorian</option>
+            <option value="phrygian">Phrygian</option>
+            <option value="lydian">Lydian</option>
+            <option value="mixolydian">Mixolydian</option>
+            <option value="locrian">Locrian</option>
+            <option value="lydianDominant">Lydian Dominant</option>
+          </optgroup>
+
+          <optgroup label="HARMONIC / MELODIC">
+            <option value="harmonicMinor">Harmonic Minor</option>
+            <option value="melodicMinor">Melodic Minor</option>
+            <option value="doubleHarmonic">Double Harmonic</option>
+            <option value="persian">Persian</option>
+            <option value="spanish">Spanish</option>
+            <option value="neapolitanMinor">Neapolitan Minor</option>
+            <option value="neapolitanMajor">Neapolitan Major</option>
+            <option value="hungarianMinor">Hungarian Minor</option>
+            <option value="enigmatic">Enigmatic</option>
+          </optgroup>
+
+          <optgroup label="SYMMETRIC / SPECIAL">
+            <option value="wholeTone">Whole Tone</option>
+            <option value="chromatic">Chromatic</option>
+            <option value="diminishedWH">Diminished WH</option>
+            <option value="diminishedHW">Diminished HW</option>
+            <option value="augmented">Augmented</option>
+            <option value="majorHexatonic">Major Hexatonic</option>
+            <option value="minorHexatonic">Minor Hexatonic</option>
+          </optgroup>
+
+          <optgroup label="WORLD / ETHNIC">
+            <option value="egyptian">Egyptian</option>
+            <option value="hirajoshi">Hirajoshi</option>
+            <option value="insen">In Sen</option>
+            <option value="iwato">Iwato</option>
+            <option value="kumoijoshi">Kumoi Joshi</option>
+            <option value="pelog">Pelog</option>
+          </optgroup>
+        </select>
+      </div>
+
+      <div class="row">
+        <label>Master Volume</label>
+        <input
+          id="masterVolume"
+          type="range"
+          min="0"
+          max="1"
+          step=".01"
+          value=".72"
+        >
+        <span id="masterVolumeV" class="value"></span>
+      </div>
+
+    </div>
+  </div>
+
+
+<div class="section" id="sec-lpf">
+  <div class="section-header">
+    <span class="section-title">LOW-PASS FILTER</span>
+    <button class="fx-toggle" data-target="sec-lpf">OFF</button>
+  </div>
+      <div class="fx-content">
+        <div class="row"><label>Cutoff Freq</label><input id="lpfFreq" type="range" min="200" max="12000" step="100" value="6500"><span id="lpfFreqV" class="value"></span></div>
+        <div class="row"><label>Resonance (Q)</label><input id="lpfQ" type="range" min="0" max="12" step=".1" value="1.1"><span id="lpfQV" class="value"></span></div>
+      </div>
+    </div>
+
+    <div class="section" id="sec-rev">
+      <div class="section-header">
+        <span class="section-title">SHIMMER REVERB</span>
+        <button class="fx-toggle" data-target="sec-rev">OFF</button>
+      </div>
+      <div class="fx-content">
+        <div class="row"><label>Reverb Mix</label><input id="reverbMix" type="range" min="0" max="1" step=".01" value=".62"><span id="reverbMixV" class="value"></span></div>
+        <div class="row"><label>Shimmer (+1 Oct)</label><input id="shimmerMix" type="range" min="0" max="1" step=".01" value="0"><span id="shimmerMixV" class="value"></span></div>
+        <div class="row"><label>Pre Delay</label><input id="reverbPreDelay" type="range" min="0" max=".20" step=".005" value=".028"><span id="reverbPreDelayV" class="value"></span></div>
+        <div class="row"><label>Room Size</label><input id="reverbRoomSize" type="range" min=".02" max=".25" step=".005" value=".16"><span id="reverbRoomSizeV" class="value"></span></div>
+        <div class="row"><label>Decay</label><input id="reverbDecay" type="range" min="0" max=".85" step=".01" value=".62"><span id="reverbDecayV" class="value"></span></div>
+        <div class="row"><label>Brightness</label><input id="reverbBrightness" type="range" min="800" max="10000" step="100" value="7000"><span id="reverbBrightnessV" class="value"></span></div>
+      </div>
+    </div>
+
+    <div class="section" id="sec-delay">
+      <div class="section-header">
+        <span class="section-title">TAPE & GRANULAR DELAY</span>
+        <button class="fx-toggle" data-target="sec-delay">OFF</button>
+      </div>
+      <div class="fx-content">
+        <div class="row"><label>Delay Mix</label><input id="delayMix" type="range" min="0" max="1" step=".01" value=".42"><span id="delayMixV" class="value"></span></div>
+        <div class="row"><label>Delay Time</label><input id="delayTime" type="range" min=".05" max="1.20" step=".01" value=".34"><span id="delayTimeV" class="value"></span></div>
+        <div class="row"><label>Feedback</label><input id="delayFeedback" type="range" min="0" max=".80" step=".01" value=".55"><span id="delayFeedbackV" class="value"></span></div>
+        <div class="row"><label>Granular Grains</label><input id="granularMix" type="range" min="0" max="1" step=".01" value=".35"><span id="granularMixV" class="value"></span></div>
+        <div class="row"><label>Delay Filter</label><input id="delayFilter" type="range" min="500" max="9000" step="100" value="6200"><span id="delayFilterV" class="value"></span></div>
+      </div>
+    </div>
+
+    <div class="section" id="sec-mod">
+      <div class="section-header">
+        <span class="section-title">MODULATION & TAPE WARMTH</span>
+        <button class="fx-toggle" data-target="sec-mod">OFF</button>
+      </div>
+      <div class="fx-content">
+        <div class="row"><label>Chorus Mix</label><input id="chorusMix" type="range" min="0" max="0.6" step=".01" value=".22"><span id="chorusMixV" class="value"></span></div>
+        <div class="row"><label>Mod Rate</label><input id="chorusRate" type="range" min=".1" max="2.5" step=".1" value=".6"><span id="chorusRateV" class="value"></span></div>
+        <div class="row"><label>Tape Warmth</label><input id="tapeSat" type="range" min="0" max="0.65" step=".01" value=".35"><span id="tapeSatV" class="value"></span></div>
+        <div class="row"><label>Tape Flutter</label><input id="tapeFlutter" type="range" min="0" max="0.35" step=".01" value=".16"><span id="tapeFlutterV" class="value"></span></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <span class="section-title">SYSTEM & APPEARANCE</span>
+      </div>
+      <div class="fx-content" style="display:flex;">
+        <div class="row"><label>Ball Limit</label><input id="ballLimit" type="range" min="1" max="80" value="30"><span id="ballLimitV" class="value"></span></div>
+        <div class="row"><label>Stroke Width</label><input id="lineWidth" type="range" min="0.1" max="18" step=".1" value=".5"><span id="lineWidthV" class="value"></span></div>
+        <div class="row"><label>Background</label><input id="bgColor" type="color" value="#042A57"><span id="bgColorV" class="value"></span></div>
+        <div class="row"><label>Line Color</label><input id="lineColor" type="color" value="#EAE9F1"><span id="lineColorV" class="value"></span></div>
+        <div class="row"><label>Draw Width</label><input id="drawWidth" type="number" min="320" max="4096" step="10" value="960"><span id="drawWidthV" class="value"></span></div>
+        <div class="row"><label>Draw Height</label><input id="drawHeight" type="number" min="240" max="4096" step="10" value="540"><span id="drawHeightV" class="value"></span></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <span class="section-title">PHYSICS</span>
+      </div>
+      <div class="fx-content" style="display:flex;">
+        <div class="row"><label>Gravity</label><input id="gravity" type="range" min="0" max="1.5" step=".05" value=".5"><span id="gravityV" class="value"></span></div>
+        <div class="row"><label>Motion Speed</label><input id="motionSpeed" type="range" min=".25" max="4" step=".05" value="1"><span id="motionSpeedV" class="value"></span></div>
+        <div class="row"><label>Bounce</label><input id="bounce" type="range" min=".1" max=".98" step=".01" value=".7"><span id="bounceV" class="value"></span></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="ballPanel" class="panel small">
+    <div class="header"><div class="title"><strong>BALL</strong><span>Choose tone / color before tapping</span></div><button class="close">×</button></div>
+    <div class="section">
+      <div class="row"><label>Size</label><input id="ballSize" type="range" min="0.5" max="30" step="0.1" value="2"><span id="ballSizeV" class="value"></span></div>
+      <div class="row"><label>Bounce Limit</label><input id="ballLimitPer" type="range" min="1" max="50" value="10"><span id="ballLimitPerV" class="value"></span></div>
+      <div class="row"><label>Weight</label><input id="weight" type="range" min=".2" max="3" step=".05" value="1"><span id="weightV" class="value"></span></div>
+      <div class="row"><label>Sound Release</label><input id="release" type="range" min=".15" max="3" step=".05" value="1"><span id="releaseV" class="value"></span>
+</div>
+<div class="row">
+  <label>Ball Volume</label>
+  <input id="ballVolume" type="range" min="0" max="200" step="1" value="100">
+  <span id="ballVolumeV" class="value">100%</span>
+</div>
+
+      <div class="row"><label>Ball Tone</label>
+        <select id="ballTone">
+          <option value="pad" selected>PAD / STRINGS</option>
+          <option value="string">STRING / LONG</option>
+          <option value="poron">PORON / CUTE</option>
+          <option value="metal">METAL / RING</option>
+        </select>
+        <span id="ballToneV" class="value"></span>
+      </div>
+      <p class="note">選んだトーンの色と音で玉を出します。BALLモードでキャンバスをタップしてください。</p>
+    </div>
+  </div>
+
+  <div id="motionPanel" class="panel small">
+    <div class="header">
+      <div class="title">
+        <strong id="motionTitle">SLIDER</strong>
+        <span>Moving bar / shape settings</span>
+      </div>
+      <button class="close">×</button>
+    </div>
+
+    <div class="section">
+      <div class="row">
+        <label>Speed</label>
+        <input id="speed" type="range" min="20" max="360" step="5" value="120">
+        <span id="speedV" class="value"></span>
+      </div>
+      <div class="row">
+        <label>Bar Length</label>
+        <input id="length" type="range" min="20" max="180" step="2" value="64">
+        <span id="lengthV" class="value"></span>
+      </div>
+      <div id="shapeRow" class="row" style="display:none">
+        <label>Shape</label>
+        <select id="spinShape">
+          <option value="bar" selected>BAR</option>
+          <option value="tri">TRI</option>
+          <option value="square">SQR</option>
+          <option value="pent">PENT</option>
+          <option value="hex">HEX</option>
+        </select>
+      </div>
+      <div id="dirRow" class="row" style="display:none">
+        <label>Direction</label>
+        <select id="dir">
+          <option value="1">Clockwise</option>
+          <option value="-1">Counterclockwise</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div id="plungerPanel" class="panel small">
+    <div class="header">
+      <div class="title">
+        <strong>PLUNGER</strong>
+        <span>Plunger settings</span>
+      </div>
+      <button class="close">×</button>
+    </div>
+
+    <div class="section">
+      <div class="row">
+        <label>Plunger Bar Length</label>
+        <input id="plungerSize" type="range" min="40" max="240" step="2" value="96">
+        <span id="plungerSizeV" class="value"></span>
+      </div>
+      <div class="row">
+        <label>Plunger Return Speed</label>
+        <input id="plungerReturnMs" type="range" min="60" max="500" step="10" value="180">
+        <span id="plungerReturnMsV" class="value"></span>
+      </div>
+    </div>
+  </div>
+
+  <div id="linePanel" class="panel small">
+    <div class="header"><div class="title"><strong>LINE</strong><span>Line drawing settings</span></div><button class="close">×</button></div>
+    <div class="section" id="sec-line-straight">
+      <div class="section-header">
+        <span class="section-title">STRAIGHT LINE MODE</span>
+        <button class="fx-toggle" data-target="sec-line-straight">OFF</button>
+      </div>
+      <p class="note">ON にすると、LINE は始点と終点を結ぶ1本の直線になります。</p>
+    </div>
+  </div>
+
+  <div id="holePanel" class="panel small">
+    <div class="header"><div class="title"><strong>BLACK HOLE</strong><span>Absorption settings</span></div><button class="close">×</button></div>
+    <div class="section"><div class="row"><label>Hole Size</label><input id="holeSize" type="range" min="14" max="100" step="2" value="32"><span id="holeSizeV" class="value"></span></div></div>
+  </div>
+
+  <div id="fillPanel" class="panel small">
+    <div class="header"><div class="title"><strong>FILL</strong><span>Flood fill settings</span></div><button class="close">×</button></div>
+    <div class="section">
+      <div class="row"><label>Fill Opacity</label><input id="fillAlpha" type="range" min="0.05" max="1" step="0.05" value="0.35"><span id="fillAlphaV" class="value"></span></div>
+      <p class="note">FILL mode: tap inside closed lines to fill them with color.</p>
+    </div>
+  </div>
+
+  <div id="fontPanel" class="panel small">
+    <div class="header"><div class="title"><strong>FONT</strong><span>Text object settings</span></div><button class="close">×</button></div>
+    <div class="section">
+      <div class="row"><label>Text</label><input id="fontText" type="text" value="HELLO" maxlength="40"></div>
+      <div class="row"><label>Font Size</label><input id="fontSize" type="range" min="12" max="120" step="1" value="42"><span id="fontSizeV" class="value"></span></div>
+      <div class="row"><label>Weight</label><select id="fontWeight"><option value="400" selected>NORMAL</option><option value="700">BOLD</option><option value="900">BLACK</option></select><span id="fontWeightV" class="value"></span></div>
+      <div class="row"><label>Family</label>
+        <select id="fontFamily">
+          <option value="system-ui, sans-serif" selected>SYSTEM</option>
+          <option value="sans-serif">SANS</option>
+          <option value="serif">SERIF</option>
+          <option value="monospace">MONO</option>
+          <option value="Arial">ARIAL</option>
+          <option value="Georgia">GEORGIA</option>
+          <option value="'Times New Roman', serif">TIMES</option>
+          <option value="'Courier New', monospace">COURIER</option>
+        </select>
+      </div>
+      <p class="note">FONT mode: tap the canvas to place the entered text.</p>
+    </div>
+  </div>
+
+  <div id="recTime">WAITING</div>
+
+  <div class="bottom-wrap">
+<div class="bottom bottom-layout">
+  <div class="bottom-box">
+    <div class="bottom-row bottom-row-top">
+      <button id="rec">REC</button>
+      <button id="seqStop">STOP</button>
+      <button id="recUndo">R UNDO</button>
+      <button id="clearRec">C REC</button>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="bottom-box">
+    <div class="bottom-row bottom-row-bottom">
+      <button id="undo">UNDO</button>
+      <button id="clearObj">OBJ CLR</button>
+      <button id="clearBalls">BALL CLR</button>
+    </div>
+  </div>
+</div>
+
+
+  
+  <script>
+  const $ = id => document.getElementById(id);
+  const canvas = $("canvas");
+  const ctx = canvas.getContext("2d");
+
+  const BALL_TONES = {
+    pad:{
+      label:"PAD / STRINGS",
+      color:"#78dbff",
+      wave1:"triangle",
+      wave2:"sine",
+      ratio:0.5,
+      detune:6,
+      attack:.03,
+      release:2.8,
+      amp:1.0,
+      cutoffMul:5,
+      cutoffMax:4600,
+      q:1.0,
+      mix1:.86,
+      mix2:.18,
+      dry:.34,
+      delaySend:1.25,
+      delayTimeMul:1.15,
+      delayFilterMul:.82,
+      delayFeedback:.92,
+      revSend:1.35,
+      revPre:.90,
+      revDecay:1.00,
+      revBright:.85,
+      shimmer:1.20,
+      shimmerRatio:2.0,
+      grain:1.15
+    },
+    string:{
+      label:"STRING / LONG",
+      color:"#b89cff",
+      wave1:"triangle",
+      wave2:"sine",
+      ratio:0.5,
+      detune:3,
+      transpose:-12,
+      attack:.14,
+      release:10.5,
+      amp:.3,
+      cutoffMul:3.2,
+      cutoffMax:3200,
+      q:.82,
+      mix1:.92,
+      mix2:.10,
+      dry:.60,
+      delaySend:1.30,
+      delayTimeMul:1.50,
+      delayFilterMul:.92,
+      delayFeedback:.96,
+      revSend:1.72,
+      revPre:1.10,
+      revDecay:1.16,
+      revBright:.76,
+      shimmer:.40,
+      shimmerRatio:1.45,
+      grain:1.10
+    },
+    poron:{
+      label:"PORON / CUTE",
+      color:"#ffd56b",
+      wave1:"sine",
+      wave2:"triangle",
+      ratio:2.0,
+      detune:4,
+      attack:.003,
+      release:2.72,
+      amp:1.05,
+      cutoffMul:10,
+      cutoffMax:9000,
+      q:1.3,
+      mix1:.74,
+      mix2:.18,
+      dry:.56,
+      delaySend:.68,
+      delayTimeMul:.72,
+      delayFilterMul:1.15,
+      delayFeedback:.72,
+      revSend:.78,
+      revPre:.85,
+      revDecay:.86,
+      revBright:1.08,
+      shimmer:.60,
+      shimmerRatio:2.5,
+      grain:.7
+    },
+    metal:{
+      label:"METAL / RING",
+      color:"#d7dde7",
+      wave1:"sine",
+      wave2:"sine",
+      ratio:2.618,
+      detune:0,
+      attack:.001,
+      release:1.1,
+      amp:2,
+      cutoffMul:14,
+      cutoffMax:12000,
+      q:10.5,
+      mix1:.92,
+      mix2:.30,
+      dry:.40,
+      delaySend:1.0,
+      delayTimeMul:1.10,
+      delayFilterMul:1.22,
+      delayFeedback:.82,
+      revSend:1.12,
+      revPre:1.00,
+      revDecay:1.05,
+      revBright:1.15,
+      shimmer:1.45,
+      shimmerRatio:3.2,
+      grain:1.0,
+      noiseLevel:.03
+    }
+  };
+
+  const DEFAULT_BALL_COLOR = BALL_TONES.pad.color;
+  const DEFAULT_LINE_COLOR = "#EAE9F1";
+  const DEFAULT_BG_COLOR = "#042A57";
+
+  const NAMES = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+
+  const SCALES = {
+  minorPentatonic:[0,3,5,7,10],
+  majorPentatonic:[0,2,4,7,9],
+  blues:[0,3,5,6,7,10],
+  major:[0,2,4,5,7,9,11],
+  minor:[0,2,3,5,7,8,10],
+
+  dorian:[0,2,3,5,7,9,10],
+  phrygian:[0,1,3,5,7,8,10],
+  lydian:[0,2,4,6,7,9,11],
+  mixolydian:[0,2,4,5,7,9,10],
+  locrian:[0,1,3,5,6,8,10],
+  lydianDominant:[0,2,4,6,7,9,10],
+
+  harmonicMinor:[0,2,3,5,7,8,11],
+  melodicMinor:[0,2,3,5,7,9,11],
+  doubleHarmonic:[0,1,4,5,7,8,11],
+  persian:[0,1,4,5,6,8,11],
+  spanish:[0,1,3,4,5,6,8,10],
+  neapolitanMinor:[0,1,3,5,7,8,11],
+  neapolitanMajor:[0,1,3,5,7,9,11],
+  hungarianMinor:[0,2,3,6,7,8,11],
+  enigmatic:[0,1,4,6,8,10,11],
+
+  wholeTone:[0,2,4,6,8,10],
+  chromatic:[0,1,2,3,4,5,6,7,8,9,10,11],
+  diminishedWH:[0,2,3,5,6,8,9,11],
+  diminishedHW:[0,1,3,4,6,7,9,10],
+  augmented:[0,3,4,7,8,11],
+  majorHexatonic:[0,2,4,5,7,9],
+  minorHexatonic:[0,2,3,5,7,10],
+
+  egyptian:[0,2,5,7,10],
+  hirajoshi:[0,2,3,7,8],
+  insen:[0,1,5,7,10],
+  iwato:[0,1,5,6,10],
+  kumoijoshi:[0,2,3,7,9],
+  pelog:[0,1,3,7,8]
+};
+
+  const SPIN_SIDES = { tri:3, square:4, pent:5, hex:6 };
+  const SPIN_OFFSETS = {
+    tri: Math.PI / 2,
+    square: -Math.PI / 4,
+    pent: -Math.PI / 2,
+    hex: -Math.PI / 2
+  };
+
+  let W,H,D,zoom=1,panX=0,panY=0,pinch=false,pinchStartDist=0,pinchStartZoom=1,pinchAnchorX=0,pinchAnchorY=0,mode="line",drawing=false,erasing=false,eraserOn=false,stroke=null,drag=0;
+  let lines=[],sliders=[],spins=[],holes=[],fills=[],texts=[],balls=[],plungers=[],flippers=[],history=[],note=0,notes=[];
+  let fontDraft=null,fontGesture=null,plungerDraft=null,moveTarget=null;
+  let editMode = true;
+  let playPlunger = null;
+  document.body.classList.toggle("edit-off", !editMode);
+
+ let audio = null;
+let master = null;
+let mainFilter = null;
+let outputComp = null;
+
+let voices = 0;
+let lastSound = 0;
+let audioUnlocked = false;
+let audioReadyPromise = null;
+
+  let chorusLFO=null, chorusGain=null, tapeLFO=null, tapeGainNode=null;
+let tapeFilter = null;
+let tapeShaper = null;
+
+function makeSoftClipCurve(amount = 1.15){
+  const n = 2048;
+  const curve = new Float32Array(n);
+  for(let i = 0; i < n; i++){
+    const x = i * 2 / (n - 1) - 1;
+    curve[i] = Math.tanh(amount * x) / Math.tanh(amount);
+  }
+  return curve;
+}
+let recording=false,firstRec=true,recStart=null,loopDur=0,events=[],timers=[],sequenceStopped=false;
+
+  let objSeq=0;
+  let lastTextMaskLineWidth = 1;
+
+  const MAX_VOICES = 48;
+  const voiceStops = [];
+
+  function registerVoiceStop(stopFn){
+    voiceStops.push(stopFn);
+    while(voiceStops.length > MAX_VOICES){
+      const old = voiceStops.shift();
+      try{ old?.(); }catch(e){}
+    }
+  }
+
+  function unregisterVoiceStop(stopFn){
+    const i = voiceStops.indexOf(stopFn);
+    if(i >= 0) voiceStops.splice(i,1);
+  }
+
+  const CONTACT_IMPACT_MIN = .04;
+  const MAX_LINES = 60;
+  const MAX_SLIDERS = 12;
+  const MAX_SPINS = 10;
+  const MAX_HOLES = 8;
+  const MAX_FILLS = 15;
+  const MAX_TEXTS = 16;
+  const MAX_HISTORY = 40;
+  const panels = [$("settings"),$("ballPanel"),$("motionPanel"),$("linePanel"),$("holePanel"),$("fillPanel"),$("fontPanel"),$("plungerPanel")];
+
+  const FX = {
+    master:.72,
+    plungerReturnMs: 180,
+    lpfEnabled:false,
+    lpfFreq:6500,
+    lpfQ:1.1,
+    revEnabled:false,
+    reverbMix:.62,
+    shimmerMix:0,
+    reverbPreDelay:.028,
+    reverbRoomSize:.16,
+    reverbDecay:.62,
+    reverbBrightness:7000,
+    delayEnabled:false,
+    delayMix:.42,
+    delayTime:.34,
+    delayFeedback:.55,
+    granularMix:.35,
+    delayFilter:6200,
+    modEnabled:false,
+    chorusMix:.42,
+    chorusRate:0.85,
+    tapeSat:.48,
+    tapeFlutter:.28,
+    lineWidth:2,
+    bgColor:DEFAULT_BG_COLOR,
+    lineColor:DEFAULT_LINE_COLOR,
+    ballTone:"pad",
+ballColor:DEFAULT_BALL_COLOR,
+ballVolume:1.0,
+
+    motionSpeed:1,
+    lineStraight:false,
+    fillAlpha:0.35,
+    drawWidth:960,
+    drawHeight:540
+  };
+
+  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  const strokeWidth=(m=1)=>Math.max(0.1,FX.lineWidth*m);
+
+  function getTone(key){
+    return BALL_TONES[key] || BALL_TONES.pad;
+  }
+
+  function resize(){
+    D=Math.min(devicePixelRatio||1,2);
+    W=clamp(+$("drawWidth").value || FX.drawWidth, 320, 2048);
+    H=clamp(+$("drawHeight").value || FX.drawHeight, 240, 2048);
+
+    FX.drawWidth = W;
+    FX.drawHeight = H;
+
+    canvas.width = W * D;
+    canvas.height = H * D;
+    canvas.style.width = W + "px";
+    canvas.style.height = H + "px";
+
+    ctx.setTransform(D,0,0,D,0,0);
+    applyViewTransform();
+  }
+
+  function touchDist(a,b){
+    return Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY);
+  }
+
+  function pos(e){
+    const p=e.touches?e.touches[0]:e;
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x:(p.clientX - rect.left) / zoom,
+      y:(p.clientY - rect.top) / zoom
+    };
+  }
+
+  function applyViewTransform(){
+    canvas.style.transform = `translate(${panX}px, ${panY}px) scale(${zoom})`;
+  }
+
+  function touchCenter(a,b){
+    return {
+      x:(a.clientX+b.clientX)/2,
+      y:(a.clientY+b.clientY)/2
+    };
+  }
+
+  function seg(px,py,a,b){
+    const dx=b.x-a.x,dy=b.y-a.y,l=dx*dx+dy*dy;
+    const t=l?clamp(((px-a.x)*dx+(py-a.y)*dy)/l,0,1):0;
+    const x=a.x+dx*t,y=a.y+dy*t;
+    return {x,y,d:Math.hypot(px-x,py-y)};
+  }
+
+  function hexToRgb(hex){
+    let h=hex.replace("#","");
+    if(h.length===3)h=h.split("").map(c=>c+c).join("");
+    const n=parseInt(h,16);
+    return {r:(n>>16)&255,g:(n>>8)&255,b:n&255};
+  }
+
+  function rgbToHex(r,g,b){
+    return "#"+[r,g,b].map(v=>clamp(Math.round(v),0,255).toString(16).padStart(2,"0")).join("");
+  }
+
+  function shadeHex(hex,factor){
+    const c=hexToRgb(hex);
+    return rgbToHex(c.r*factor,c.g*factor,c.b*factor);
+  }
+
+  function applyTheme(){
+    document.documentElement.style.setProperty("--bg", FX.bgColor);
+    document.documentElement.style.setProperty("--bg2", shadeHex(FX.bgColor,.52));
+  }
+
+ async function ensureAudio() {
+  try {
+    // すでに作成済みなら、stateだけ必ず整える
+    if (audioReadyPromise) {
+      await audioReadyPromise;
+      if (audio && audio.state === "suspended") {
+        await audio.resume();
+      }
+      // 念のため unlock(無音) が未完なら実施
+      if (audio && audio.state === "running" && !audioUnlocked && master) {
+        // iOS初回アンロック用（無音）
+        const silentBuffer = audio.createBuffer(1, 1, audio.sampleRate);
+        const silentSource = audio.createBufferSource();
+        const silentGain = audio.createGain();
+
+        silentSource.buffer = silentBuffer;
+        silentGain.gain.value = 0.00001;
+
+        silentSource.connect(silentGain);
+        silentGain.connect(master);
+
+        silentSource.start();
+        silentSource.stop(audio.currentTime + 0.02);
+
+        audioUnlocked = true;
+      }
+      return audio?.state === "running";
+    }
+
+    audioReadyPromise = (async () => {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) throw new Error("Web Audio API is not supported.");
+
+      audio = new AC({ latencyHint: "interactive" });
+
+      master = audio.createGain();
+      master.gain.value = FX.master;
+
+      mainFilter = audio.createBiquadFilter();
+      mainFilter.type = "lowpass";
+      mainFilter.frequency.value = FX.lpfEnabled ? FX.lpfFreq : 20000;
+      mainFilter.Q.value = FX.lpfQ;
+
+      outputComp = audio.createDynamicsCompressor();
+      outputComp.threshold.value = -3;
+      outputComp.knee.value = 10;
+      outputComp.ratio.value = 4;
+      outputComp.attack.value = 0.003;
+      outputComp.release.value = 0.12;
+
+      tapeFilter = audio.createBiquadFilter();
+      tapeFilter.type = "lowpass";
+      tapeFilter.frequency.value = 12000;
+      tapeFilter.Q.value = 0.7;
+
+      tapeShaper = audio.createWaveShaper();
+      tapeShaper.curve = makeSoftClipCurve(1.03);
+      tapeShaper.oversample = "4x";
+
+      // 経路
+      master.connect(mainFilter);
+      mainFilter.connect(outputComp);
+      outputComp.connect(tapeFilter);
+      tapeFilter.connect(tapeShaper);
+      tapeShaper.connect(audio.destination);
+
+      // chorus/tape flutter LFO
+      chorusLFO = audio.createOscillator();
+      chorusLFO.type = "sine";
+      chorusLFO.frequency.value = 0.15 + FX.chorusRate * 0.35;
+
+      chorusGain = audio.createGain();
+      chorusGain.gain.value = 0;
+
+      chorusLFO.connect(chorusGain);
+      chorusLFO.start();
+
+      tapeLFO = audio.createOscillator();
+      tapeLFO.type = "sine";
+      tapeLFO.frequency.value = 0.25 + FX.tapeFlutter * 0.35;
+
+      tapeGainNode = audio.createGain();
+      tapeGainNode.gain.value = 0;
+
+      tapeLFO.connect(tapeGainNode);
+      tapeLFO.start();
+    })();
+
+    await audioReadyPromise;
+
+    // ここが重要：必ず resume
+    if (audio.state === "suspended") {
+      await audio.resume();
+    }
+
+    // iOS初回アンロック（無音）
+    if (audio.state === "running" && !audioUnlocked && master) {
+      const silentBuffer = audio.createBuffer(1, 1, audio.sampleRate);
+      const silentSource = audio.createBufferSource();
+      const silentGain = audio.createGain();
+
+      silentSource.buffer = silentBuffer;
+      silentGain.gain.value = 0.00001;
+
+      silentSource.connect(silentGain);
+      silentGain.connect(master);
+
+      silentSource.start();
+      silentSource.stop(audio.currentTime + 0.02);
+
+      audioUnlocked = true;
+    }
+
+    // FX反映
+    updateFX();
+
+    // 追加：発音前にmasterが確実にゼロではないよう整える（安全策）
+    if (master) {
+      master.gain.cancelScheduledValues(audio.currentTime);
+      master.gain.setTargetAtTime(Math.max(0.0001, FX.master), audio.currentTime, 0.015);
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Audio initialization failed:", error);
+    return false;
+  }
+}
+
+  function buildScale(){
+    const k=NAMES.indexOf($("key").value),s=SCALES[$("scale").value];
+    notes=[];
+    for(let o=0;o<4;o++){
+      for(const n of s){
+        notes.push(440*Math.pow(2,(12*(o+4)+k+n-69)/12));
+      }
+    }
+  }
+
+  function updateFontUI(){
+    $("fontWeightV").textContent = $("fontWeight").selectedOptions[0]?.textContent || "";
+  }
+
+  function rebuildTextMasks(){
+    texts.forEach(buildTextMask);
+    lastTextMaskLineWidth = FX.lineWidth;
+  }
+
+  function clonePoint(p){
+    return { x: +p.x, y: +p.y };
+  }
+
+  function cloneLineObj(o){
+    return { ...o, p:(o.p || []).map(clonePoint) };
+  }
+
+  function cloneSliderObj(o){
+    return { ...o, a:clonePoint(o.a), e:clonePoint(o.e) };
+  }
+
+  function cloneSpinObj(o){
+    return {
+      ...o,
+      missingEdges: o.missingEdges ? { ...o.missingEdges } : undefined
+    };
+  }
+
+  function cloneHoleObj(o){
+    return { ...o };
+  }
+
+  function cloneTextObj(o){
+    return {
+      type:o.type,
+      id:o.id,
+      x:o.x,
+      y:o.y,
+      text:o.text,
+      size:o.size,
+      weight:o.weight,
+      family:o.family,
+      scale:o.scale ?? 1,
+      rot:o.rot ?? 0,
+      note:o.note
+    };
+  }
+
+  function clonePlungerObj(o){
+    return { ...o, a:clonePoint(o.a), e:clonePoint(o.e) };
+  }
+
+  function cloneFillObj(o){
+    return {
+      type:o.type,
+      id:o.id,
+      c:o.c,
+      alpha:o.alpha,
+      note:o.note,
+      w:o.w || canvas.width,
+      h:o.h || canvas.height,
+      pixels:Array.from(o.pixels || [])
+    };
+  }
+
+  function cloneBallObj(b){
+    return {
+      type:"ball",
+      x:b.x,
+      y:b.y,
+      vx:b.vx,
+      vy:b.vy,
+      r:b.r,
+      c:b.c,
+      w:b.w,
+      lim:b.lim,
+      rel:b.rel,
+      tone:b.tone,
+volume:b.volume,
+n:b.n,
+
+      al:b.al,
+      fade:b.fade,
+      last:b.last,
+      hitKey:b.hitKey
+    };
+  }
+
+  function makeObjectSnapshot(o){
+    switch(o?.type){
+      case "line": return cloneLineObj(o);
+      case "slider": return cloneSliderObj(o);
+      case "spin": return cloneSpinObj(o);
+      case "hole": return cloneHoleObj(o);
+      case "text": return cloneTextObj(o);
+      case "plunger": return clonePlungerObj(o);
+      case "fill": return cloneFillObj(o);
+      case "ball": return cloneBallObj(o);
+      default: return { ...o };
+    }
+  }
+
+  function snapshotObjectsState(){
+    return {
+      objSeq,
+      note,
+      lines: lines.slice(),
+      sliders: sliders.slice(),
+      spins: spins.slice(),
+      holes: holes.slice(),
+      fills: fills.slice(),
+      texts: texts.slice(),
+      plungers: plungers.slice()
+    };
+  }
+
+  function snapshotBallsState(){
+    return balls.slice();
+  }
+
+  function snapshotRecState(){
+    return {
+      recording,
+      firstRec,
+      recStart,
+      loopDur,
+      sequenceStopped,
+      events: events.map(e => ({ ...e }))
+    };
+  }
+
+  function setToggleState(secId, on){
+    const sec = $(secId);
+    if(!sec) return;
+    const btn = sec.querySelector(".fx-toggle");
+    if(!btn) return;
+    sec.classList.toggle("enabled", !!on);
+    btn.classList.toggle("active", !!on);
+    btn.textContent = on ? "ON" : "OFF";
+  }
+
+  function rebuildFillCanvas(f){
+    const cW = canvas.width;
+    const cH = canvas.height;
+    const srcW = f.w || cW;
+    const srcH = f.h || cH;
+
+    const fillCanvas = document.createElement("canvas");
+    fillCanvas.width = cW;
+    fillCanvas.height = cH;
+
+    const fCtx = fillCanvas.getContext("2d");
+    const img = fCtx.createImageData(cW, cH);
+    const data = img.data;
+    const rgb = hexToRgb(f.c || FX.lineColor);
+    const pixels = f.pixels || [];
+
+    for(let i = 0; i < pixels.length; i++){
+      const idx = pixels[i];
+      const sx = idx % srcW;
+      const sy = Math.floor(idx / srcW);
+
+      const nx = clamp(Math.round((sx / Math.max(1, srcW - 1)) * (cW - 1)), 0, cW - 1);
+      const ny = clamp(Math.round((sy / Math.max(1, srcH - 1)) * (cH - 1)), 0, cH - 1);
+
+      const p = (ny * cW + nx) * 4;
+      data[p] = rgb.r;
+      data[p + 1] = rgb.g;
+      data[p + 2] = rgb.b;
+      data[p + 3] = 255;
+    }
+
+    fCtx.putImageData(img, 0, 0);
+
+    return {
+      ...f,
+      pixels: new Int32Array(pixels),
+      canvas: fillCanvas,
+      w: srcW,
+      h: srcH
+    };
+  }
+
+  function makeLiveObjectFromSnapshot(s){
+    if(!s) return null;
+
+    switch(s.type){
+      case "ball":
+        return new Ball(
+          s.x, s.y, s.vx, s.vy,
+          s.r, s.c, s.w, s.lim, s.rel, s.tone || "pad"
+        );
+
+      case "line":
+        return cloneLineObj(s);
+
+      case "slider":
+        return cloneSliderObj(s);
+
+      case "spin":
+        return cloneSpinObj(s);
+
+      case "hole":
+        return cloneHoleObj(s);
+
+      case "text":
+        return buildTextMask({
+          ...cloneTextObj(s),
+          scale:s.scale ?? 1,
+          rot:s.rot ?? 0
+        });
+
+      case "plunger":
+        return clonePlungerObj(s);
+
+      case "fill":
+        return rebuildFillCanvas({
+          ...cloneFillObj(s),
+          pixels:Array.from(s.pixels || [])
+        });
+
+      default:
+        return { ...s };
+    }
+  }
+
+  function applySnapshotToExisting(target, snapshot){
+    const live = makeLiveObjectFromSnapshot(snapshot);
+    for(const k of Object.keys(target)) delete target[k];
+    Object.assign(target, live);
+    return target;
+  }
+
+  function restoreMovedObject(type, id, snapshot){
+    const arr = collectionByType(type);
+    if(!arr) return;
+    const i = arr.findIndex(o => o.id === id);
+    if(i < 0) return;
+    applySnapshotToExisting(arr[i], snapshot);
+  }
+
+  function restoreObjectsState(s){
+    objSeq = s.objSeq ?? objSeq;
+    note = s.note ?? note;
+
+    lines = s.lines ? s.lines.slice() : [];
+    sliders = s.sliders ? s.sliders.slice() : [];
+    spins = s.spins ? s.spins.slice() : [];
+    holes = s.holes ? s.holes.slice() : [];
+    fills = s.fills ? s.fills.slice() : [];
+    texts = s.texts ? s.texts.slice() : [];
+    plungers = s.plungers ? s.plungers.slice() : [];
+
+    moveTarget = null;
+  }
+
+  function restoreBallsState(s){
+    balls = (s || []).slice();
+  }
+
+  function syncRecUI(){
+    $("rec").classList.toggle("recording", recording);
+    $("rec").textContent = recording ? "STOP" : "REC";
+    $("recTime").style.display = recording ? "block" : "none";
+    $("recTime").textContent = recording
+      ? (recStart === null ? "WAITING" : `${((Date.now() - recStart) / 1000).toFixed(1)}s`)
+      : "WAITING";
+    $("seqStop").classList.toggle("active", sequenceStopped);
+  }
+
+  function restoreRecState(s){
+    recording = !!s.recording;
+    firstRec = !!s.firstRec;
+    recStart = s.recStart ?? null;
+    loopDur = s.loopDur ?? 0;
+    sequenceStopped = !!s.sequenceStopped;
+    events = (s.events || []).map(e => ({ ...e }));
+
+    timers.forEach(clearTimeout);
+    timers = [];
+
+    syncRecUI();
+
+    if(!recording && !sequenceStopped && events.length && loopDur > 200){
+      playLoop();
+    }
+  }
+
+  function collectionByType(type){
+    return {
+      ball: balls,
+      line: lines,
+      slider: sliders,
+      spin: spins,
+      hole: holes,
+      fill: fills,
+      text: texts,
+      plunger: plungers
+    }[type];
+  }
+
+  function pushHistoryItem(item){
+    history.push(item);
+    if(history.length > MAX_HISTORY) history.shift();
+  }
+
+  function pitchForHit(h){
+    if(!notes.length) return 440;
+    const base = Number.isFinite(h?.src?.note) ? h.src.note : 0;
+    const edge = Number.isFinite(h?.edgeNote) ? h.edgeNote : 0;
+    return notes[Math.abs(base + edge) % notes.length];
+  }
+
+ function updateFX(){
+  const prevDrawW = FX.drawWidth;
+  const prevDrawH = FX.drawHeight;
+  const prevLineWidth = FX.lineWidth;
+
+  FX.drawWidth = clamp(+$("drawWidth").value || FX.drawWidth, 320, 2048);
+  FX.drawHeight = clamp(+$("drawHeight").value || FX.drawHeight, 240, 2048);
+
+  FX.plungerReturnMs = +$("plungerReturnMs").value;
+
+  $("plungerReturnMsV").textContent = `${FX.plungerReturnMs}ms`;
+  $("plungerSizeV").textContent = `${+$("plungerSize").value}px`;
+
+  FX.master = +$("masterVolume").value;
+  FX.lpfFreq = +$("lpfFreq").value;
+  FX.lpfQ = +$("lpfQ").value;
+  FX.reverbMix = +$("reverbMix").value;
+  FX.shimmerMix = +$("shimmerMix").value;
+  FX.reverbPreDelay = +$("reverbPreDelay").value;
+  FX.reverbRoomSize = +$("reverbRoomSize").value;
+  FX.reverbDecay = +$("reverbDecay").value;
+  FX.reverbBrightness = +$("reverbBrightness").value;
+  FX.delayMix = +$("delayMix").value;
+  FX.delayTime = +$("delayTime").value;
+  FX.delayFeedback = +$("delayFeedback").value;
+  FX.granularMix = +$("granularMix").value;
+  FX.delayFilter = +$("delayFilter").value;
+  FX.chorusMix = +$("chorusMix").value;
+  FX.chorusRate = +$("chorusRate").value;
+  FX.tapeSat = +$("tapeSat").value;
+  FX.tapeFlutter = +$("tapeFlutter").value;
+  FX.lineWidth = +$("lineWidth").value;
+  FX.bgColor = $("bgColor").value;
+  FX.lineColor = $("lineColor").value;
+  FX.motionSpeed = +$("motionSpeed").value;
+FX.ballTone = $("ballTone").value;
+FX.ballVolume = +$("ballVolume").value / 100;
+FX.fillAlpha = +$("fillAlpha").value;
+
+  const tone = getTone(FX.ballTone);
+  FX.ballColor = tone.color;
+
+  $("drawWidthV").textContent = `${FX.drawWidth}px`;
+  $("drawHeightV").textContent = `${FX.drawHeight}px`;
+
+  $("masterVolumeV").textContent = `${Math.round(FX.master * 100)}%`;
+  $("lpfFreqV").textContent = `${Math.round(FX.lpfFreq)}Hz`;
+  $("lpfQV").textContent = FX.lpfQ.toFixed(1);
+  $("reverbMixV").textContent = `${Math.round(FX.reverbMix * 100)}%`;
+  $("shimmerMixV").textContent = `${Math.round(FX.shimmerMix * 100)}%`;
+  $("reverbPreDelayV").textContent = `${FX.reverbPreDelay.toFixed(3)}s`;
+  $("reverbRoomSizeV").textContent = `${FX.reverbRoomSize.toFixed(3)}s`;
+  $("reverbDecayV").textContent = `${Math.round(FX.reverbDecay * 100)}%`;
+  $("reverbBrightnessV").textContent = `${Math.round(FX.reverbBrightness / 1000 * 10) / 10}k`;
+  $("delayMixV").textContent = `${Math.round(FX.delayMix * 100)}%`;
+  $("delayTimeV").textContent = `${FX.delayTime.toFixed(2)}s`;
+  $("delayFeedbackV").textContent = `${Math.round(FX.delayFeedback * 100)}%`;
+  $("granularMixV").textContent = `${Math.round(FX.granularMix * 100)}%`;
+  $("delayFilterV").textContent = `${Math.round(FX.delayFilter / 1000 * 10) / 10}k`;
+  $("chorusMixV").textContent = `${Math.round(FX.chorusMix * 100)}%`;
+  $("chorusRateV").textContent = `${FX.chorusRate.toFixed(1)}Hz`;
+  $("tapeSatV").textContent = `${Math.round(FX.tapeSat * 100)}%`;
+  $("tapeFlutterV").textContent = `${Math.round(FX.tapeFlutter * 100)}%`;
+  $("lineWidthV").textContent = `${FX.lineWidth.toFixed(1)}px`;
+  $("bgColorV").textContent = FX.bgColor.toUpperCase();
+  $("lineColorV").textContent = FX.lineColor.toUpperCase();
+  $("motionSpeedV").textContent = `${FX.motionSpeed.toFixed(2)}x`;
+  $("ballToneV").textContent = tone.label;
+$("ballVolumeV").textContent =
+  `${Math.round(FX.ballVolume * 100)}%`;
+
+  $("ballToneV").style.color = tone.color;
+  $("fillAlphaV").textContent = `${Math.round(FX.fillAlpha * 100)}%`;
+
+  applyTheme();
+
+  if(master && audio){
+    master.gain.cancelScheduledValues(audio.currentTime);
+    master.gain.setTargetAtTime(FX.master, audio.currentTime, .015);
+  }
+
+  if(mainFilter && audio){
+    mainFilter.frequency.setTargetAtTime(
+      FX.lpfEnabled ? FX.lpfFreq : 20000,
+      audio.currentTime,
+      .015
+    );
+    mainFilter.Q.setTargetAtTime(FX.lpfQ, audio.currentTime, .015);
+  }
+
+  if(outputComp && audio){
+    outputComp.threshold.setTargetAtTime(0, audio.currentTime, .015);
+    outputComp.ratio.setTargetAtTime(1, audio.currentTime, .015);
+    outputComp.knee.setTargetAtTime(0, audio.currentTime, .015);
+  }
+
+  if(tapeFilter && audio){
+    const cut = FX.modEnabled
+      ? clamp(12000 - FX.tapeSat * 1200, 9000, 12000)
+      : 12000;
+    tapeFilter.frequency.setTargetAtTime(cut, audio.currentTime, .02);
+  }
+
+  if(tapeShaper && audio){
+    tapeShaper.curve = FX.modEnabled
+      ? makeSoftClipCurve(1.00 + FX.tapeSat * 0.18)
+      : makeSoftClipCurve(1.0);
+  }
+
+  if(chorusLFO && chorusGain && audio){
+    chorusLFO.frequency.setTargetAtTime(
+      FX.modEnabled ? (0.12 + FX.chorusRate * 0.35) : (0.15 + FX.chorusRate * 0.35),
+      audio.currentTime,
+      .02
+    );
+    chorusGain.gain.setTargetAtTime(
+      FX.modEnabled ? (8 + FX.chorusMix * 18) : 0,
+      audio.currentTime,
+      .02
+    );
+  }
+
+  if(tapeLFO && tapeGainNode && audio){
+    tapeLFO.frequency.setTargetAtTime(
+      FX.modEnabled ? (0.18 + FX.tapeFlutter * 0.25) : (0.25 + FX.tapeFlutter * 0.35),
+      audio.currentTime,
+      .02
+    );
+    tapeGainNode.gain.setTargetAtTime(
+      FX.modEnabled ? (0.0004 + FX.tapeFlutter * 0.0008) : 0,
+      audio.currentTime,
+      .02
+    );
+  }
+
+  if(texts.length && prevLineWidth !== FX.lineWidth){
+    rebuildTextMasks();
+  }
+
+  if(prevDrawW !== FX.drawWidth || prevDrawH !== FX.drawHeight){
+    resize();
+  }
+}
+
+async function playSound(f, v, r, w = 1, rel = 1, toneKey = FX.ballTone) {
+  try {
+    /*
+      最初の発音時にも待機する。
+      これでiPhoneで「最初だけ鳴らない」問題を防ぐ。
+    */
+    const ready = await ensureAudio();
+
+    if (!ready || !audio || !master || audio.state !== "running") {
+      return;
+    }
+
+    if (!Number.isFinite(f)) {
+      return;
+    }
+    if(!Number.isFinite(f)) return;
+
+    const tone = getTone(toneKey);
+    const baseF = f * Math.pow(2, (tone.transpose ?? 0) / 12);
+
+    lastSound = performance.now();
+    voices++;
+
+    const now = audio.currentTime;
+    const amp = clamp(v, .18, 1);
+    const release = clamp(tone.release * rel * clamp(.85 + w * .25, .75, 1.8), .08, 8);
+
+    const a = audio.createOscillator();
+    const b = audio.createOscillator();
+    const ga = audio.createGain();
+    const gb = audio.createGain();
+    const fi = audio.createBiquadFilter();
+    const env = audio.createGain();
+    const dry = audio.createGain();
+
+    const delay = audio.createDelay(2.0);
+    const delayFilter = audio.createBiquadFilter();
+    const delayOut = audio.createGain();
+    const delayFeedback = audio.createGain();
+
+    const revPre = audio.createDelay(.35);
+    const revA = audio.createDelay(.45);
+    const revB = audio.createDelay(.45);
+    const revC = audio.createDelay(.45);
+    const revFilter = audio.createBiquadFilter();
+    const revGainA = audio.createGain();
+    const revGainB = audio.createGain();
+    const revGainC = audio.createGain();
+    const revFeedback = audio.createGain();
+    const revOut = audio.createGain();
+
+    const shimOsc = audio.createOscillator();
+    const shimGain = audio.createGain();
+
+    let fm = null;
+    let fmGain = null;
+
+    if(toneKey === "metal"){
+      a.type = "sine";
+      b.type = "sine";
+      a.frequency.setValueAtTime(baseF, now);
+      b.frequency.setValueAtTime(baseF * tone.ratio, now);
+      a.detune.setValueAtTime(-4, now);
+      b.detune.setValueAtTime(9, now);
+
+      ga.gain.value = .92;
+      gb.gain.value = .30;
+
+      fi.type = "bandpass";
+      fi.frequency.setValueAtTime(clamp(baseF * 3.2, 700, 12000), now);
+      fi.Q.value = 12;
+
+      fm = audio.createOscillator();
+      fmGain = audio.createGain();
+      fm.type = "sine";
+      fm.frequency.setValueAtTime(baseF * 3.7, now);
+      fmGain.gain.setValueAtTime(baseF * .78, now);
+      fm.connect(fmGain);
+      fmGain.connect(a.frequency);
+      fmGain.connect(b.frequency);
+    }else{
+      a.type = tone.wave1;
+      b.type = tone.wave2;
+      a.frequency.setValueAtTime(baseF, now);
+      b.frequency.setValueAtTime(baseF * tone.ratio, now);
+      a.detune.setValueAtTime(-tone.detune, now);
+      b.detune.setValueAtTime(tone.detune, now);
+
+      ga.gain.value = tone.mix1;
+      gb.gain.value = tone.mix2;
+
+      fi.type = "lowpass";
+      fi.frequency.setValueAtTime(clamp(baseF * tone.cutoffMul, 600, tone.cutoffMax), now);
+      fi.Q.value = tone.q;
+    }
+
+    env.gain.setValueAtTime(.0001, now);
+    env.gain.exponentialRampToValueAtTime(clamp(amp, .18, 1) * tone.amp, now + tone.attack);
+    env.gain.exponentialRampToValueAtTime(.0001, now + release);
+
+    dry.gain.value = clamp(tone.dry - FX.delayMix * .08 - FX.reverbMix * .10 - FX.chorusMix * .04, .06, .88);
+
+    const loFi = audio.createBiquadFilter();
+    loFi.type = "lowpass";
+    loFi.frequency.setValueAtTime(
+      FX.modEnabled
+        ? clamp(9000 - FX.tapeSat * 1200, 6500, 12000)
+        : clamp(baseF * tone.cutoffMul, 600, tone.cutoffMax),
+      now
+    );
+    loFi.Q.value = FX.modEnabled ? 0.65 : tone.q;
+
+    const sat = audio.createWaveShaper();
+    sat.curve = makeSoftClipCurve(FX.modEnabled ? (1.00 + FX.tapeSat * 0.18) : 1.0);
+    sat.oversample = "4x";
+
+    if(FX.modEnabled && chorusGain){
+      chorusGain.connect(a.detune);
+      chorusGain.connect(b.detune);
+      chorusGain.connect(loFi.frequency);
+    }
+
+    if(FX.modEnabled && tapeGainNode){
+      tapeGainNode.connect(delay.delayTime);
+    }
+
+    delay.delayTime.setValueAtTime(FX.delayTime * tone.delayTimeMul, now);
+    delayFilter.type = "lowpass";
+    delayFilter.frequency.setValueAtTime(clamp(FX.delayFilter * tone.delayFilterMul, 500, 12000), now);
+    delayOut.gain.value = FX.delayEnabled ? FX.delayMix * tone.delaySend * 1.05 : 0;
+    delayFeedback.gain.value = FX.delayEnabled ? clamp(FX.delayFeedback * tone.delayFeedback, 0, .94) : 0;
+
+    revPre.delayTime.setValueAtTime(FX.reverbPreDelay * tone.revPre, now);
+    revA.delayTime.setValueAtTime(FX.reverbRoomSize * .73 * tone.revPre, now);
+    revB.delayTime.setValueAtTime(FX.reverbRoomSize * 1.17 * tone.revPre, now);
+    revC.delayTime.setValueAtTime(FX.reverbRoomSize * 1.61 * tone.revPre, now);
+
+    revFilter.type = "lowpass";
+    revFilter.frequency.setValueAtTime(clamp(FX.reverbBrightness * tone.revBright, 800, 12000), now);
+
+    const activeRevMix = FX.revEnabled ? FX.reverbMix * tone.revSend * 1.10 : 0;
+    revGainA.gain.value = activeRevMix * .26;
+    revGainB.gain.value = activeRevMix * .20;
+    revGainC.gain.value = activeRevMix * .16;
+    revFeedback.gain.value = FX.revEnabled ? clamp(FX.reverbDecay * tone.revDecay, 0, .94) : 0;
+    revOut.gain.value = activeRevMix * 1.15;
+
+    shimOsc.type = "sine";
+    shimOsc.frequency.setValueAtTime(baseF * tone.shimmerRatio, now);
+    shimGain.gain.setValueAtTime(0, now);
+    if(FX.revEnabled){
+      shimGain.gain.linearRampToValueAtTime(FX.shimmerMix * tone.shimmer * 0.75, now + .06);
+      shimGain.gain.exponentialRampToValueAtTime(.0001, now + release * 1.35);
+    }
+
+    a.connect(ga);
+    b.connect(gb);
+    ga.connect(fi);
+    gb.connect(fi);
+    fi.connect(loFi);
+    loFi.connect(sat);
+    sat.connect(env);
+
+    env.connect(dry);
+    dry.connect(master);
+
+    env.connect(delay);
+    delay.connect(delayFilter);
+    delayFilter.connect(delayOut);
+    delayOut.connect(master);
+    delayFilter.connect(delayFeedback);
+    delayFeedback.connect(delay);
+
+    if(FX.revEnabled){
+      env.connect(revPre);
+      shimOsc.connect(shimGain);
+      shimGain.connect(revPre);
+
+      revPre.connect(revA);
+      revPre.connect(revB);
+      revPre.connect(revC);
+
+      revA.connect(revFilter);
+      revB.connect(revFilter);
+      revC.connect(revFilter);
+
+      revFilter.connect(revGainA);
+      revFilter.connect(revGainB);
+      revFilter.connect(revGainC);
+
+      revGainA.connect(revOut);
+      revGainB.connect(revOut);
+      revGainC.connect(revOut);
+
+      revOut.connect(master);
+
+      revFilter.connect(revFeedback);
+      revFeedback.connect(revA);
+    }
+
+    a.start(now);
+    b.start(now);
+    if(fm) fm.start(now);
+    if(FX.revEnabled) shimOsc.start(now);
+
+    a.stop(now + release + .1);
+    b.stop(now + release + .1);
+    if(fm) fm.stop(now + release + .1);
+    if(FX.revEnabled) shimOsc.stop(now + release * 1.2);
+
+    let cleaned = false;
+
+    const stopVoice = () => {
+      if(cleaned) return;
+      cleaned = true;
+
+      try{ a.stop(); }catch(e){}
+      try{ b.stop(); }catch(e){}
+      try{ if(fm) fm.stop(); }catch(e){}
+      try{ if(FX.revEnabled) shimOsc.stop(); }catch(e){}
+      try{ loFi.disconnect(); sat.disconnect(); }catch(e){}
+
+      try{
+        a.disconnect(); b.disconnect(); ga.disconnect(); gb.disconnect();
+        fi.disconnect(); env.disconnect(); dry.disconnect();
+        delay.disconnect(); delayFilter.disconnect(); delayOut.disconnect(); delayFeedback.disconnect();
+        revPre.disconnect(); revA.disconnect(); revB.disconnect(); revC.disconnect();
+        revFilter.disconnect(); revGainA.disconnect(); revGainB.disconnect(); revGainC.disconnect();
+        revFeedback.disconnect(); revOut.disconnect(); shimOsc.disconnect(); shimGain.disconnect();
+        if(fm){ fm.disconnect(); }
+        if(fmGain){ fmGain.disconnect(); }
+      }catch(e){}
+
+      voices = Math.max(0, voices - 1);
+    };
+
+    registerVoiceStop(stopVoice);
+
+    const cleanup = Math.max(release + .3, 2.0);
+    setTimeout(() => {
+      stopVoice();
+      unregisterVoiceStop(stopVoice);
+    }, cleanup * 1000);
+
+  }catch(e){
+    voices = Math.max(0, voices - 1);
+  }
+}
+
+  function plungerState(p, now){
+    const a0 = p.a || {x:p.x, y:p.y};
+    const e0 = p.e || {x:p.x, y:p.y + (p.len ?? +$("plungerSize").value ?? 96)};
+
+    const dx = e0.x - a0.x;
+    const dy = e0.y - a0.y;
+    const L = Math.hypot(dx, dy) || 1;
+
+    const ux = dx / L;
+    const uy = dy / L;
+    const nx = -uy;
+    const ny = ux;
+
+    const barW = p.barW ?? Math.max(44, (p.len ?? +$("plungerSize").value ?? 96) * .9);
+    const travelMax = L;
+
+    let pull = p.pull || 0;
+
+    if(p.fireAt){
+      const t = clamp((now - p.fireAt) / FX.plungerReturnMs, 0, 1);
+      pull = (p.pull || 0) * (1 - t);
+
+      if(t >= 1){
+        p.pull = 0;
+        p.fireAt = 0;
+      }
+    }
+
+    pull = clamp(pull, 0, travelMax);
+
+    const head = {
+      x:a0.x + ux * pull,
+      y:a0.y + uy * pull
+    };
+
+    return {
+      guideA:a0,
+      guideB:e0,
+      hitA:{ x:head.x - nx * barW/2, y:head.y - ny * barW/2 },
+      hitB:{ x:head.x + nx * barW/2, y:head.y + ny * barW/2 },
+      vx:0,
+      vy:p.fireAt ? -Math.max(6, pull * 1.2) : 0,
+      sp:p.fireAt ? Math.max(6, pull * 1.2) : 0,
+      src:p
+    };
+  }
+
+  function flipperState(f, now){
+    const restAngle = Number.isFinite(f.restAngle)
+      ? f.restAngle
+      : (f.side < 0 ? 0 : Math.PI);
+
+    const activeAngle = Number.isFinite(f.activeAngle)
+      ? f.activeAngle
+      : (f.side < 0 ? -Math.PI/4 : Math.PI - Math.PI/4);
+
+    const t = f.hitAt ? clamp((now - f.hitAt) / 110, 0, 1) : 1;
+    const eased = Math.sin(t * Math.PI);
+    const ang = restAngle + (activeAngle - restAngle) * eased;
+    const len = f.len ?? 120;
+
+    const a = {x:f.x, y:f.y};
+    const b = {
+      x:f.x + Math.cos(ang) * len,
+      y:f.y + Math.sin(ang) * len
+    };
+
+    const dAng = (activeAngle - restAngle) * Math.cos(t * Math.PI) * Math.PI / 110;
+
+    return {
+      a,
+      b,
+      vx:-Math.sin(ang) * len * dAng / 60,
+      vy: Math.cos(ang) * len * dAng / 60,
+      sp: Math.abs(dAng) * len,
+      src:f
+    };
+  }
+
+  function drawPlunger(p, now){
+    const z = plungerState(p, now);
+    if(!z) return;
+
+    drawLine([z.guideA, z.guideB], FX.lineColor, strokeWidth(1.1), [4,8]);
+    drawLine([z.hitA, z.hitB], FX.lineColor, strokeWidth(2.4));
+  }
+
+  function drawFlipper(f, now){
+    const z = flipperState(f, now);
+    if(!z) return;
+
+    drawLine([z.a, z.b], FX.lineColor, strokeWidth(2.8));
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(z.a.x, z.a.y, 5, 0, Math.PI * 2);
+    ctx.fillStyle = FX.lineColor;
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function sliderState(s,t){
+    const dx=s.e.x-s.a.x,dy=s.e.y-s.a.y,L=Math.hypot(dx,dy);
+    if(!L)return;
+
+    const tx=dx/L,ty=dy/L,c=L*2;
+    let m=((t-s.at)/1000*s.sp*FX.motionSpeed)%c;
+    if(m<0)m+=c;
+
+    const fw=m<=L,d=fw?m:c-m,x=s.a.x+tx*d,y=s.a.y+ty*d,nx=-ty,ny=tx,h=s.len/2;
+
+    return {
+      a:{x:x-nx*h,y:y-ny*h},
+      b:{x:x+nx*h,y:y+ny*h},
+      vx:tx*s.sp*FX.motionSpeed*(fw?1:-1)/60,
+      vy:ty*s.sp*FX.motionSpeed*(fw?1:-1)/60,
+      sp:s.sp*FX.motionSpeed
+    };
+  }
+
+  function spinState(s,t){
+    const shape=s.shape||"bar";
+    const w=s.sp*Math.PI/180*s.dir*FX.motionSpeed;
+    const an=s.angle+(t-s.at)/1000*w;
+    const R=s.len/2;
+
+    if(shape==="bar"){
+      const a={x:s.x+Math.cos(an)*R,y:s.y+Math.sin(an)*R};
+      const b={x:s.x-Math.cos(an)*R,y:s.y-Math.sin(an)*R};
+
+      return {
+        kind:shape,
+        x:s.x,
+        y:s.y,
+        pts:[a,b],
+        edges:[{
+          a,b,
+          edgeNote:0,
+          edgeIndex:0,
+          vx:-Math.sin(an)*R*w/60,
+          vy:Math.cos(an)*R*w/60,
+          sp:Math.abs(w)*R
+        }],
+        sp:Math.abs(w)*R,
+        src:s
+      };
+    }
+
+    const sides=SPIN_SIDES[shape]||3;
+    const base=SPIN_OFFSETS[shape]??-Math.PI/2;
+    const pts=[];
+
+    for(let i=0;i<sides;i++){
+      const th=an+base+i*Math.PI*2/sides;
+      pts.push({x:s.x+Math.cos(th)*R,y:s.y+Math.sin(th)*R});
+    }
+
+    const missing=s.missingEdges||{};
+    const edges=[];
+
+    for(let i=0;i<sides;i++){
+      if(missing[i]) continue;
+      const a=pts[i],b=pts[(i+1)%sides];
+      const mx=(a.x+b.x)/2,my=(a.y+b.y)/2;
+      edges.push({
+        a,b,
+        edgeNote:i,
+        edgeIndex:i,
+        vx:-w*(my-s.y)/60,
+        vy:w*(mx-s.x)/60,
+        sp:Math.abs(w)*R
+      });
+    }
+
+    if(!edges.length) return null;
+
+    return {
+      kind:shape,
+      x:s.x,
+      y:s.y,
+      pts,
+      edges,
+      sp:Math.abs(w)*R,
+      src:s
+    };
+  }
+
+  function buildTextMask(t){
+    const text = String(t.text ?? "").replace(/\s+/g," ").trim();
+    t.text = text;
+
+    if(!text){
+      t.mask = null;
+      return t;
+    }
+
+    t.scale = clamp(+t.scale || 1, .2, 8);
+    t.rot = +t.rot || 0;
+
+    const measureCanvas = buildTextMask._mc || (buildTextMask._mc=document.createElement("canvas"));
+    const mctx = buildTextMask._mctx || (buildTextMask._mctx=measureCanvas.getContext("2d"));
+
+    const font = `${t.weight} ${t.size}px ${t.family}`;
+    mctx.font = font;
+    const metrics = mctx.measureText(text);
+
+    const baseW = Math.max(1, metrics.width || t.size);
+    const baseH = Math.max(
+      1,
+      (metrics.actualBoundingBoxAscent || t.size * .8) +
+      (metrics.actualBoundingBoxDescent || t.size * .25)
+    );
+
+    const pad = Math.ceil(Math.max(12, t.size * .5) * t.scale);
+    const side = Math.ceil(Math.hypot(baseW * t.scale, baseH * t.scale) + pad * 2);
+
+    const c = document.createElement("canvas");
+    c.width = Math.max(2, side);
+    c.height = Math.max(2, side);
+
+    const cx = c.getContext("2d",{willReadFrequently:true});
+    cx.clearRect(0,0,c.width,c.height);
+    cx.translate(c.width/2, c.height/2);
+    cx.rotate(t.rot);
+    cx.scale(t.scale, t.scale);
+    cx.font = font;
+    cx.textAlign = "center";
+    cx.textBaseline = "middle";
+    cx.lineJoin = "round";
+    cx.lineCap = "round";
+    cx.strokeStyle = "#fff";
+    cx.lineWidth = Math.max(2, FX.lineWidth * 1.25 / t.scale);
+    cx.strokeText(text, 0, 0);
+
+    const data = cx.getImageData(0,0,c.width,c.height).data;
+    const alpha = new Uint8ClampedArray(c.width * c.height);
+    for(let i=0,j=3;i<alpha.length;i++,j+=4) alpha[i] = data[j];
+
+    t.font = font;
+    t.mask = {
+      alpha,
+      w:c.width,
+      h:c.height,
+      x0:t.x - c.width/2,
+      y0:t.y - c.height/2,
+      thresh:20
+    };
+
+    return t;
+  }
+
+  function sampleTextAlpha(t,x,y){
+    if(!t?.mask) return 0;
+    const lx = Math.floor(x - t.mask.x0);
+    const ly = Math.floor(y - t.mask.y0);
+    if(lx<0||ly<0||lx>=t.mask.w||ly>=t.mask.h) return 0;
+    return t.mask.alpha[ly * t.mask.w + lx] || 0;
+  }
+
+  function textBallOverlap(t,x,y,r){
+    if(sampleTextAlpha(t,x,y) > t.mask.thresh) return true;
+    const n = 12;
+    for(let i=0;i<n;i++){
+      const a = i / n * Math.PI * 2;
+      const px = x + Math.cos(a) * r * .95;
+      const py = y + Math.sin(a) * r * .95;
+      if(sampleTextAlpha(t,px,py) > t.mask.thresh) return true;
+    }
+    return false;
+  }
+
+  function textNormalAt(t,x,y){
+    const s = 2;
+    const gx = sampleTextAlpha(t,x+s,y) - sampleTextAlpha(t,x-s,y);
+    const gy = sampleTextAlpha(t,x,y+s) - sampleTextAlpha(t,x,y-s);
+    let nx = -gx, ny = -gy;
+    let L = Math.hypot(nx,ny);
+
+    if(L < .001){
+      nx = x - (t.mask.x0 + t.mask.w/2);
+      ny = y - (t.mask.y0 + t.mask.h/2);
+      L = Math.hypot(nx,ny) || 1;
+    }
+
+    return {x:nx/L,y:ny/L};
+  }
+
+  function textEdgeNoteAt(t,x,y){
+    const cell = Math.max(8, Math.round(t.size / 3));
+    const cx = Math.max(0, Math.floor((x - t.mask.x0) / cell));
+    const cy = Math.max(0, Math.floor((y - t.mask.y0) / cell));
+    return (cx * 7 + cy * 13 + t.id) % 64;
+  }
+
+  function sweep(x0,y0,x1,y1,a,b,r,src,vx=0,vy=0,sp=0,edgeNote=0){
+    const N=Math.max(4,Math.min(24,Math.ceil(Math.hypot(x1-x0,y1-y0)/Math.max(2.2,r*.42))));
+    let old=0;
+
+    for(let i=0;i<=N;i++){
+      const t=i/N,q=seg(x0+(x1-x0)*t,y0+(y1-y0)*t,a,b);
+
+      if(q.d<=r){
+        let lo=old,hi=t;
+
+        for(let j=0;j<8;j++){
+          const m=(lo+hi)/2,z=seg(x0+(x1-x0)*m,y0+(y1-y0)*m,a,b);
+          if(z.d<=r)hi=m;else lo=m;
+        }
+
+        const x=x0+(x1-x0)*hi,y=y0+(y1-y0)*hi,z=seg(x,y,a,b);
+        return {t:hi,x,y,sx:z.x,sy:z.y,a,b,r,src,vx,vy,sp,edgeNote};
+      }
+
+      old=t;
+    }
+
+    return null;
+  }
+
+  function sweepText(x0,y0,x1,y1,ball,t){
+    if(!t?.mask) return null;
+
+    const bx0 = Math.min(x0,x1) - ball.r;
+    const by0 = Math.min(y0,y1) - ball.r;
+    const bx1 = Math.max(x0,x1) + ball.r;
+    const by1 = Math.max(y0,y1) + ball.r;
+
+    if(
+      bx1 < t.mask.x0 ||
+      bx0 > t.mask.x0 + t.mask.w ||
+      by1 < t.mask.y0 ||
+      by0 > t.mask.y0 + t.mask.h
+    ) return null;
+
+    const N=Math.max(4,Math.min(30,Math.ceil(Math.hypot(x1-x0,y1-y0)/Math.max(2,ball.r*.45))));
+    let old=0;
+
+    for(let i=0;i<=N;i++){
+      const u=i/N;
+      const x=x0+(x1-x0)*u;
+      const y=y0+(y1-y0)*u;
+
+      if(textBallOverlap(t,x,y,ball.r)){
+        let lo=old,hi=u;
+
+        for(let j=0;j<8;j++){
+          const m=(lo+hi)/2;
+          const mx=x0+(x1-x0)*m;
+          const my=y0+(y1-y0)*m;
+          if(textBallOverlap(t,mx,my,ball.r)) hi=m; else lo=m;
+        }
+
+        const hx=x0+(x1-x0)*hi;
+        const hy=y0+(y1-y0)*hi;
+        const n=textNormalAt(t,hx,hy);
+
+        return {
+          t:hi,
+          x:hx,
+          y:hy,
+          sx:hx,
+          sy:hy,
+          a:{x:hx-n.x,y:hy-n.y},
+          b:{x:hx+n.x,y:hy+n.y},
+          r:ball.r,
+          src:t,
+          vx:0,
+          vy:0,
+          sp:0,
+          edgeNote:textEdgeNoteAt(t,hx,hy),
+          normal:n
+        };
+      }
+
+      old=u;
+    }
+
+    return null;
+  }
+
+  function collision(ball,x0,y0,x1,y1,now){
+    let best=null;
+    const take=h=>{if(h&&(!best||h.t<best.t))best=h;};
+
+    const lineHit=Math.max(0.1,FX.lineWidth*0.75);
+    const motionHit=Math.max(0.15,FX.lineWidth*1.2);
+
+    for(const l of lines){
+      for(let i=0;i<l.p.length-1;i++){
+        take(sweep(x0,y0,x1,y1,l.p[i],l.p[i+1],ball.r+lineHit,l));
+      }
+    }
+
+    for(const s of sliders){
+      const z=sliderState(s,now);
+      if(z)take(sweep(x0,y0,x1,y1,z.a,z.b,ball.r+motionHit,s,z.vx,z.vy,z.sp,0));
+    }
+
+    for(const p of plungers){
+      const z = plungerState(p, now);
+      if(z){
+        take(
+          sweep(
+            x0, y0, x1, y1,
+            z.hitA, z.hitB,
+            ball.r + Math.max(1.5, FX.lineWidth * 0.35),
+            p,
+            z.vx, z.vy, z.sp,
+            0
+          )
+        );
+      }
+    }
+
+    for(const s of spins){
+      const z=spinState(s,now);
+      if(z){
+        for(const e of z.edges){
+          take(sweep(x0,y0,x1,y1,e.a,e.b,ball.r+motionHit,s,e.vx,e.vy,e.sp,e.edgeNote));
+        }
+      }
+    }
+
+    for(const t of texts){
+      take(sweepText(x0,y0,x1,y1,ball,t));
+    }
+
+    return best;
+  }
+
+  class Ball{
+ constructor(
+  x,
+  y,
+  vx = null,
+  vy = null,
+  r = 2,
+  c = DEFAULT_BALL_COLOR,
+  w = 1,
+  lim = 10,
+  rel = 1,
+  tone = "pad",
+  volume = 1.0
+){
+
+      this.x=x;this.y=y;
+      this.vx=vx??(Math.random()-.5)*1.4;
+      this.vy=vy??0;
+      this.r=r;this.c=c;this.w=w;this.lim=lim;this.rel=rel;
+     this.tone = tone;
+
+/*
+  玉ごとの音量。
+  生成時のBALL Volumeが保存される。
+*/
+this.volume = clamp(Number(volume) || 1, 0, 2);
+
+      this.n=0;this.al=1;this.fade=false;this.last=0;
+      this.hitKey=null;
+    }
+
+    update(now){
+      if(this.fade){
+        this.al-=.04;
+        this.r*=.965;
+        return;
+      }
+
+      const motion = FX.motionSpeed;
+      this.vy+=+$("gravity").value*this.w*motion;
+
+      for(const h of holes){
+        const dx=h.x-this.x,dy=h.y-this.y,d=Math.hypot(dx,dy)||.001;
+
+        if(d<h.r*2.4){
+          const f=(1-d/(h.r*2.4))*.14;
+          this.vx+=dx/d*f*motion;
+          this.vy+=dy/d*f*motion;
+        }
+
+        if(d<h.r+this.r*.45){
+          this.fade=true;
+          return;
+        }
+      }
+
+      let rem=1,k=0;
+      let touched=false;
+
+      while(rem>.0001&&k++<6){
+        const x0=this.x,y0=this.y;
+        const h=collision(this,x0,y0,x0+this.vx*rem*motion,y0+this.vy*rem*motion,now);
+
+        if(!h){
+          this.x+=this.vx*rem*motion;
+          this.y+=this.vy*rem*motion;
+          break;
+        }
+
+        touched=true;
+
+        this.x=x0+this.vx*rem*motion*Math.max(0,h.t-.001);
+        this.y=y0+this.vy*rem*motion*Math.max(0,h.t-.001);
+
+        let nx,ny;
+
+        if(h.normal){
+          nx=h.normal.x;
+          ny=h.normal.y;
+        }else{
+          nx=h.x-h.sx;
+          ny=h.y-h.sy;
+          let L=Math.hypot(nx,ny);
+
+          if(L<.001){
+            nx=-(h.b.y-h.a.y);
+            ny=h.b.x-h.a.x;
+            L=Math.hypot(nx,ny)||1;
+          }
+
+          nx/=L;
+          ny/=L;
+        }
+
+        let rvx=this.vx-h.vx,rvy=this.vy-h.vy;
+
+        if(rvx*nx+rvy*ny>0){
+          nx*=-1;
+          ny*=-1;
+        }
+
+        const dot=rvx*nx+rvy*ny,impact=Math.abs(dot),boost=clamp(h.sp/360,0,1);
+        const bo=clamp(+$("bounce").value+boost*.28,.1,.99);
+
+        rvx=(rvx-2*dot*nx)*bo;
+        rvy=(rvy-2*dot*ny)*bo;
+
+        this.vx=rvx+h.vx*(1+boost);
+        this.vy=rvy+h.vy*(1+boost);
+
+        this.x=h.sx+nx*(h.r+3.5);
+        this.y=h.sy+ny*(h.r+3.5);
+
+        if(impact>CONTACT_IMPACT_MIN){
+          this.n++;
+
+          const key=`${h.src?.type ?? "obj"}:${h.src?.id ?? h.src?.note ?? 0}:${h.edgeNote ?? 0}`;
+
+          if(h.src&&notes.length&&!h.src.noSound&&key!==this.hitKey){
+            playSound(
+  pitchForHit(h),
+
+  /*
+    衝突の強さ × 玉個別の音量
+  */
+  clamp(
+    clamp((impact + boost * 2) / 5, .25, 1) * this.volume,
+    .0001,
+    2
+  ),
+
+  this.r,
+  this.w,
+  this.rel,
+  this.tone
+);
+
+          }
+
+          this.hitKey=key;
+
+          if(this.n>=this.lim){
+            this.fade=true;
+            return;
+          }
+        }
+
+        rem*=Math.max(0,1-h.t-.001);
+      }
+
+      if(!touched)this.hitKey=null;
+
+      if(this.y-this.r>H||this.x+this.r<0||this.x-this.r>W){
+        this.fade=true;
+      }
+    }
+
+    draw(){
+      ctx.save();
+      ctx.globalAlpha=Math.max(0,this.al);
+
+      ctx.beginPath();
+      ctx.arc(this.x,this.y,this.r,0,Math.PI*2);
+      ctx.fillStyle=this.c;
+      ctx.shadowColor=this.c;
+      ctx.shadowBlur=10;
+      ctx.fill();
+
+      ctx.shadowBlur=0;
+      ctx.strokeStyle="rgba(255,255,255,.22)";
+      ctx.lineWidth=strokeWidth(.35);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  function drawLine(p,c,w,d=[]){
+    if(p.length<2)return;
+    ctx.beginPath();
+    ctx.moveTo(p[0].x,p[0].y);
+    for(let i=1;i<p.length;i++)ctx.lineTo(p[i].x,p[i].y);
+    ctx.strokeStyle=c;
+    ctx.lineWidth=w;
+    ctx.setLineDash(d);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  function drawSpinShape(z,c){
+    if(!z||!z.pts||z.pts.length<2)return;
+    if(z.kind==="bar"){
+      drawLine(z.pts,c,strokeWidth(2.8));
+    }else{
+      const missing = z.src?.missingEdges || {};
+      const hasMissing = Object.keys(missing).length > 0;
+
+      if(!hasMissing){
+        drawLine([...z.pts,z.pts[0]],c,strokeWidth(2.4));
+      }else{
+        const sides = z.pts.length;
+        for(let i=0;i<sides;i++){
+          if(!missing[i]){
+            drawLine([z.pts[i],z.pts[(i+1)%sides]],c,strokeWidth(2.4));
+          }
+        }
+      }
+    }
+  }
+
+  function drawTextObject(t, alpha=1){
+    if(!t?.text)return;
+
+    ctx.save();
+    ctx.globalAlpha=alpha;
+    ctx.translate(t.x,t.y);
+    ctx.rotate(t.rot || 0);
+    ctx.scale(t.scale || 1, t.scale || 1);
+    ctx.font=`${t.weight} ${t.size}px ${t.family}`;
+    ctx.textAlign="center";
+    ctx.textBaseline="middle";
+    ctx.lineJoin="round";
+    ctx.lineCap="round";
+    ctx.fillStyle=FX.lineColor;
+    ctx.strokeStyle=FX.lineColor;
+    ctx.lineWidth=Math.max(1,FX.lineWidth*.75);
+    ctx.fillText(t.text,0,0);
+    ctx.strokeText(t.text,0,0);
+    ctx.restore();
+  }
+
+ function drawHole(h) {
+  ctx.save();
+
+  /* 黒い円 */
+  ctx.beginPath();
+  ctx.arc(h.x, h.y, h.r, 0, Math.PI * 2);
+  ctx.fillStyle = "#050507";
+  ctx.fill();
+
+  /* 控えめな外枠 */
+  ctx.strokeStyle = "rgba(255,255,255,0.22)";
+  ctx.lineWidth = Math.max(1, FX.lineWidth * 0.7);
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+
+  function drawFill(f){
+    if(!f || !f.pixels || f.pixels.length === 0 || !f.canvas) return;
+    ctx.save();
+    ctx.globalAlpha = f.alpha;
+    ctx.drawImage(f.canvas, 0, 0, W, H);
+    ctx.restore();
+  }
+
+  function floodFill(startX, startY, fillColor, alphaVal){
+    const cW = canvas.width;
+    const cH = canvas.height;
+    const intX = Math.round(startX * D);
+    const intY = Math.round(startY * D);
+    if(intX < 0 || intY < 0 || intX >= cW || intY >= cH) return;
+
+    const tempCanvas = document.createElement("canvas");
+    tempCanvas.width = cW;
+    tempCanvas.height = cH;
+    const tCtx = tempCanvas.getContext("2d", {willReadFrequently:true});
+
+    tCtx.clearRect(0,0,cW,cH);
+    tCtx.setTransform(D,0,0,D,0,0);
+    tCtx.lineCap = "round";
+    tCtx.lineJoin = "round";
+    lines.forEach(l => drawLineCtx(tCtx, l.p, "#ffffff", strokeWidth(1)));
+    sliders.forEach(s => drawLineCtx(tCtx, [s.a, s.e], "#ffffff", strokeWidth(1.15), [4,10]));
+    spins.forEach(s => {
+      const z = spinState(s, Date.now());
+      if(z) drawSpinShapeCtx(tCtx, z, "#ffffff");
+    });
+    texts.forEach(t => drawTextObjectCtx(tCtx, t));
+
+    const imgData = tCtx.getImageData(0, 0, cW, cH);
+    const data = imgData.data;
+
+    const getAlpha = (x, y) => data[(y * cW + x) * 4 + 3];
+
+    if(getAlpha(intX, intY) > 20) return;
+
+    const visited = new Uint8Array(cW * cH);
+    const queue = [intX, intY];
+    const pixels = [];
+    visited[intY * cW + intX] = 1;
+
+    let head = 0;
+    while(head < queue.length){
+      const cx = queue[head++];
+      const cy = queue[head++];
+
+      pixels.push(cy * cW + cx);
+
+      const neighbors = [cx+1, cy, cx-1, cy, cx, cy+1, cx, cy-1];
+      for(let i = 0; i < neighbors.length; i += 2){
+        const nx = neighbors[i];
+        const ny = neighbors[i+1];
+        if(nx >= 0 && ny >= 0 && nx < cW && ny < cH){
+          const idx = ny * cW + nx;
+          if(!visited[idx]){
+            visited[idx] = 1;
+            if(getAlpha(nx, ny) <= 20){
+              queue.push(nx, ny);
+            }
+          }
+        }
+      }
+      if(pixels.length > cW * cH * 0.4) break;
+    }
+
+    if(pixels.length > 0){
+      const fillCanvas = document.createElement("canvas");
+      fillCanvas.width = cW;
+      fillCanvas.height = cH;
+      const fCtx = fillCanvas.getContext("2d");
+      const fillImgData = fCtx.createImageData(cW, cH);
+      const fillData = fillImgData.data;
+      const rgb = hexToRgb(fillColor);
+
+      for(let i = 0; i < pixels.length; i++){
+        const idx = pixels[i] * 4;
+        fillData[idx] = rgb.r;
+        fillData[idx+1] = rgb.g;
+        fillData[idx+2] = rgb.b;
+        fillData[idx+3] = 255;
+      }
+      fCtx.putImageData(fillImgData, 0, 0);
+
+      const fillObj = {
+        type: "fill",
+        id: objSeq++,
+        canvas: fillCanvas,
+        pixels: new Int32Array(pixels),
+        c: fillColor,
+        alpha: alphaVal,
+        note: note++
+      };
+      fills.push(fillObj);
+      pushHistoryItem({t:"fill", r:fillObj});
+      while(fills.length > MAX_FILLS) {
+        fills.shift();
+      }
+    }
+  }
+
+  function drawLineCtx(c, p, col, w, d=[]){
+    if(p.length<2)return;
+    c.beginPath();
+    c.moveTo(p[0].x,p[0].y);
+    for(let i=1;i<p.length;i++)c.lineTo(p[i].x,p[i].y);
+    c.strokeStyle=col;
+    c.lineWidth=w;
+    c.setLineDash(d);
+    c.stroke();
+    c.setLineDash([]);
+  }
+
+  function drawSpinShapeCtx(c, z, col){
+    if(!z||!z.pts||z.pts.length<2)return;
+    if(z.kind==="bar"){
+      drawLineCtx(c, z.pts, col, strokeWidth(2.8));
+    }else{
+      const missing = z.src?.missingEdges || {};
+      const hasMissing = Object.keys(missing).length > 0;
+      if(!hasMissing){
+        drawLineCtx(c, [...z.pts,z.pts[0]], col, strokeWidth(2.4));
+      }else{
+        const sides = z.pts.length;
+        for(let i=0;i<sides;i++){
+          if(!missing[i]){
+            drawLineCtx(c, [z.pts[i],z.pts[(i+1)%sides]], col, strokeWidth(2.4));
+          }
+        }
+      }
+    }
+  }
+
+  function drawTextObjectCtx(c, t){
+    if(!t?.text)return;
+    c.save();
+    c.translate(t.x,t.y);
+    c.rotate(t.rot || 0);
+    c.scale(t.scale || 1, t.scale || 1);
+    c.font=`${t.weight} ${t.size}px ${t.family}`;
+    c.textAlign="center";
+    c.textBaseline="middle";
+    c.lineJoin="round";
+    c.lineCap="round";
+    c.fillStyle="#ffffff";
+    c.strokeStyle="#ffffff";
+    c.lineWidth=Math.max(1,FX.lineWidth*.75);
+    c.fillText(t.text,0,0);
+    c.strokeText(t.text,0,0);
+    c.restore();
+  }
+
+  function spawn(x, y, vx = null, vy = null, record = true, hist = true, o = {}) {
+  const toneKey = o.tone ?? FX.ballTone;
+  const tone = getTone(toneKey);
+
+  /*
+    玉ごとに音量を持つ。
+    録音再生時には記録済みの volume を使用する。
+  */
+  const ballVolume = clamp(
+    Number(o.volume ?? FX.ballVolume),
+    0,
+    2
+  );
+
+  const b = new Ball(
+  x,
+  y,
+  vx,
+  vy,
+  o.r ?? +$("ballSize").value,
+  o.c ?? tone.color,
+  o.w ?? +$("weight").value,
+  o.lim ?? +$("ballLimitPer").value,
+  o.rel ?? +$("release").value,
+  toneKey,
+  ballVolume
+);
+
+
+
+  balls.push(b);
+
+  while (balls.length > +$("ballLimit").value) {
+    balls.shift();
+  }
+
+  /*
+    重要:
+    玉は通常UNDOの履歴に入れない。
+    これで通常のUNDOを押しても、
+    玉の出現・玉の録音には影響しない。
+  */
+  if (hist && !recording) {
+    // 玉は通常UNDO対象外のため、何もしない。
+  }
+
+  if (recording && record) {
+  const n = Date.now();
+
+  if (recStart === null) {
+    recStart = n;
+  }
+
+  let rel = n - recStart;
+
+  if (!firstRec && loopDur) {
+    rel %= loopDur;
+  }
+
+  events.push({
+    rel,
+    x,
+    y,
+    vx: b.vx,
+    vy: b.vy,
+    r: b.r,
+    c: b.c,
+    w: b.w,
+    lim: b.lim,
+    s: b.rel,
+    tone: b.tone,
+    volume: b.volume
+  });
+
+  if (events.length > 300) {
+    events.shift();
+  }
+}
+
+}
+
+  function buildTextObject(x,y,text=null,opt={}){
+    const raw = String(text ?? $("fontText").value ?? "").replace(/\s+/g," ").trim();
+    if(!raw) return null;
+
+    const t = {
+      type:"text",
+      id:objSeq++,
+      x,
+      y,
+      text:raw,
+      size:+(opt.size ?? $("fontSize").value),
+      weight:+(opt.weight ?? $("fontWeight").value),
+      family:opt.family ?? $("fontFamily").value,
+      scale:+(opt.scale ?? 1),
+      rot:+(opt.rot ?? 0),
+      note:note++
+    };
+
+    buildTextMask(t);
+    texts.push(t);
+
+    while(texts.length>MAX_TEXTS) {
+      texts.shift();
+    }
+
+    pushHistoryItem({t:"text",r:t});
+
+    return t;
+  }
+
+  function panel(p){
+    panels.forEach(x=>x.classList.remove("open"));
+    if(p)p.classList.add("open");
+    $("overlay").classList.toggle("open",!!p);
+  }
+
+  function setMode(m){
+    mode = m;
+
+    ["ball","line","slider","spin","hole","fill","font","plunger","move"].forEach(x=>{
+      const btn = $(x);
+      if(btn) btn.classList.toggle("active", x === m);
+    });
+
+    $("shapeRow").style.display = "none";
+    $("dirRow").style.display = "none";
+    panel(null);
+
+    if(m === "ball") panel($("ballPanel"));
+
+    if(m === "slider"){
+      $("motionTitle").textContent = "SLIDER";
+      panel($("motionPanel"));
+    }
+
+    if(m === "spin"){
+      $("motionTitle").textContent = "SPIN";
+      $("shapeRow").style.display = "flex";
+      $("dirRow").style.display = "flex";
+      panel($("motionPanel"));
+    }
+
+    if(m === "line") panel($("linePanel"));
+    if(m === "hole") panel($("holePanel"));
+    if(m === "fill") panel($("fillPanel"));
+    if(m === "font") panel($("fontPanel"));
+    if(m === "plunger") panel($("plungerPanel"));
+  }
+
+  function removeAt(p, now=Date.now()){
+    let best=null;
+    const lineErase=Math.max(22,FX.lineWidth*4);
+
+    lines.forEach((o,i)=>{
+      for(let j=0;j<o.p.length-1;j++){
+        const d=seg(p.x,p.y,o.p[j],o.p[j+1]).d;
+        if(d<lineErase&&(!best||d<best.d)){
+          best={kind:"remove",arr:lines,i,d};
+        }
+      }
+    });
+
+    sliders.forEach((o,i)=>{
+      const d=seg(p.x,p.y,o.a,o.e).d;
+      if(d<lineErase&&(!best||d<best.d)){
+        best={kind:"remove",arr:sliders,i,d};
+      }
+    });
+
+    spins.forEach((o,i)=>{
+      const z=spinState(o,now);
+      if(!z) return;
+
+      if(z.kind==="bar"){
+        const d=Math.hypot(p.x-o.x,p.y-o.y);
+        const rr=o.r??(o.len?o.len/2:45);
+        if(d<rr+12&&(!best||d<best.d)){
+          best={kind:"remove",arr:spins,i,d};
+        }
+        return;
+      }
+
+      z.edges.forEach(e=>{
+        const d=seg(p.x,p.y,e.a,e.b).d;
+        if(d<lineErase&&(!best||d<best.d)){
+          best={kind:"spin-edge",arr:spins,i,d,edgeIndex:e.edgeIndex,spin:o};
+        }
+      });
+    });
+
+    plungers.forEach((o,i)=>{
+      const z = plungerState(o, now);
+      if(!z) return;
+
+      const d = seg(p.x, p.y, z.hitA, z.hitB).d;
+      const hitR = Math.max(28, FX.lineWidth * 5.5, (o.len ?? 120) * 0.9);
+
+      if(d < hitR && (!best || d < best.d)){
+        best = {kind:"remove", arr:plungers, i, d};
+      }
+    });
+
+    fills.forEach((o,i)=>{
+      const intX = Math.round(p.x * D);
+      const intY = Math.round(p.y * D);
+      const cW = canvas.width;
+      const cH = canvas.height;
+      if(intX>=0 && intY>=0 && intX<cW && intY<cH){
+        const idx = intY * cW + intX;
+        for(let k=0; k<o.pixels.length; k++){
+          if(o.pixels[k] === idx){
+            const d = 0;
+            if(!best || d < best.d){
+              best={kind:"remove",arr:fills,i,d};
+            }
+            break;
+          }
+        }
+      }
+    });
+
+    texts.forEach((o,i)=>{
+      const box=o.mask;
+      const d=Math.hypot(p.x-o.x,p.y-o.y);
+      const pad=Math.max(10,FX.lineWidth*3);
+      if(box){
+        if(
+          p.x>=box.x0-pad &&
+          p.x<=box.x0+box.w+pad &&
+          p.y>=box.y0-pad &&
+          p.y<=box.y0+box.h+pad &&
+          (!best||d<best.d)
+        ){
+          best={kind:"remove",arr:texts,i,d};
+        }
+      }else if(d<60&&(!best||d<best.d)){
+        best={kind:"remove",arr:texts,i,d};
+      }
+    });
+
+    holes.forEach((o,i)=>{
+      const d=Math.hypot(p.x-o.x,p.y-o.y);
+      if(d<o.r+10&&(!best||d<best.d))best={kind:"remove",arr:holes,i,d};
+    });
+
+    if(!best) return;
+
+    if(best.kind==="spin-edge"){
+      const s=best.arr[best.i];
+      if(!s) return;
+
+      s.missingEdges ||= {};
+      s.missingEdges[best.edgeIndex]=true;
+
+      const sides=SPIN_SIDES[s.shape]||0;
+      let missingCount=0;
+      for(let k=0;k<sides;k++){
+        if(s.missingEdges[k]) missingCount++;
+      }
+
+      if(missingCount>=sides){
+        const removed=best.arr.splice(best.i,1)[0];
+        history=history.filter(x=>x.r!==removed);
+      }
+    }else{
+      const removed=best.arr.splice(best.i,1)[0];
+      history=history.filter(x=>x.r!==removed);
+    }
+  }
+
+  function pickMoveTarget(p, now = Date.now()){
+    let best = null;
+    const take = (type, arr, i, d) => {
+      if(!best || d < best.d){
+        best = { type, arr, i, obj:arr[i], d };
+      }
+    };
+
+    const lineHit = Math.max(22, FX.lineWidth * 4);
+
+    lines.forEach((o, i) => {
+      for(let j = 0; j < o.p.length - 1; j++){
+        const d = seg(p.x, p.y, o.p[j], o.p[j + 1]).d;
+        if(d < lineHit) take("line", lines, i, d);
+      }
+    });
+
+    sliders.forEach((o, i) => {
+      const d = seg(p.x, p.y, o.a, o.e).d;
+      if(d < lineHit) take("slider", sliders, i, d);
+    });
+
+    spins.forEach((o, i) => {
+      const z = spinState(o, now);
+      if(!z) return;
+
+      if(z.kind === "bar"){
+        const d = Math.hypot(p.x - o.x, p.y - o.y);
+        const rr = o.r ?? (o.len ? o.len / 2 : 45);
+        if(d < rr + 12) take("spin", spins, i, d);
+      }else{
+        z.edges.forEach(e => {
+          const d = seg(p.x, p.y, e.a, e.b).d;
+          if(d < lineHit) take("spin", spins, i, d);
+        });
+      }
+    });
+
+    plungers.forEach((o, i) => {
+      const z = plungerState(o, now);
+      if(!z) return;
+
+      const d = seg(p.x, p.y, z.hitA, z.hitB).d;
+      const hitR = Math.max(28, FX.lineWidth * 5.5, (o.len ?? 120) * 0.9);
+      if(d < hitR) take("plunger", plungers, i, d);
+    });
+
+    texts.forEach((o, i) => {
+      const box = o.mask;
+      const d = Math.hypot(p.x - o.x, p.y - o.y);
+      const pad = Math.max(10, FX.lineWidth * 3);
+
+      if(box){
+        if(
+          p.x >= box.x0 - pad &&
+          p.x <= box.x0 + box.w + pad &&
+          p.y >= box.y0 - pad &&
+          p.y <= box.y0 + box.h + pad
+        ){
+          take("text", texts, i, d);
+        }
+      }else if(d < 60){
+        take("text", texts, i, d);
+      }
+    });
+
+    holes.forEach((o, i) => {
+      const d = Math.hypot(p.x - o.x, p.y - o.y);
+      if(d < o.r + 10) take("hole", holes, i, d);
+    });
+
+    fills.forEach((o, i) => {
+      const intX = Math.round(p.x * D);
+      const intY = Math.round(p.y * D);
+      const cW = canvas.width;
+      const cH = canvas.height;
+
+      if(intX >= 0 && intY >= 0 && intX < cW && intY < cH){
+        const idx = intY * cW + intX;
+        for(const px of (o.pixels || [])){
+          if(px === idx){
+            take("fill", fills, i, 0);
+            break;
+          }
+        }
+      }
+    });
+
+    return best;
+  }
+
+  function translateFillObject(f, dx, dy){
+    const sx = Math.round(dx * D);
+    const sy = Math.round(dy * D);
+    if(!sx && !sy) return;
+
+    const w = canvas.width;
+    const h = canvas.height;
+    const moved = [];
+
+    for(const idx of (f.pixels || [])){
+      const x = idx % w;
+      const y = Math.floor(idx / w);
+      const nx = x + sx;
+      const ny = y + sy;
+      if(nx >= 0 && ny >= 0 && nx < w && ny < h){
+        moved.push(ny * w + nx);
+      }
+    }
+
+    const rebuilt = rebuildFillCanvas({
+      ...f,
+      pixels: moved,
+      w,
+      h
+    });
+
+    Object.assign(f, rebuilt);
+  }
+
+  function translateObject(obj, dx, dy){
+    if(!obj) return;
+
+    switch(obj.type){
+      case "line":
+        obj.p.forEach(pt => { pt.x += dx; pt.y += dy; });
+        break;
+
+      case "slider":
+        obj.a.x += dx; obj.a.y += dy;
+        obj.e.x += dx; obj.e.y += dy;
+        break;
+
+      case "spin":
+        obj.x += dx;
+        obj.y += dy;
+        break;
+
+      case "hole":
+        obj.x += dx;
+        obj.y += dy;
+        break;
+
+      case "text":
+        obj.x += dx;
+        obj.y += dy;
+        buildTextMask(obj);
+        break;
+
+      case "plunger":
+        obj.a.x += dx; obj.a.y += dy;
+        obj.e.x += dx; obj.e.y += dy;
+        break;
+
+      case "fill":
+        translateFillObject(obj, dx, dy);
+        break;
+    }
+  }
+function getSavedArray(project, key){
+  if(Array.isArray(project?.objects?.[key])) return project.objects[key];
+  if(Array.isArray(project?.[key])) return project[key];
+  return [];
+}
+
+function loadLineObj(o){
+  return { ...o, p:(o.p || []).map(clonePoint) };
+}
+
+function loadSliderObj(o){
+  return { ...o, a:clonePoint(o.a), e:clonePoint(o.e) };
+}
+
+function loadSpinObj(o){
+  return {
+    ...o,
+    missingEdges: o.missingEdges ? { ...o.missingEdges } : undefined
+  };
+}
+
+function loadHoleObj(o){
+  return { ...o };
+}
+
+function loadTextObj(o){
+  return {
+    type:o.type,
+    id:o.id,
+    x:o.x,
+    y:o.y,
+    text:o.text,
+    size:o.size,
+    weight:o.weight,
+    family:o.family,
+    scale:o.scale ?? 1,
+    rot:o.rot ?? 0,
+    note:o.note
+  };
+}
+
+function loadPlungerObj(o){
+  return { ...o, a:clonePoint(o.a), e:clonePoint(o.e) };
+}
+
+function loadFillObj(o){
+  return {
+    type:o.type,
+    id:o.id,
+    c:o.c,
+    alpha:o.alpha,
+    note:o.note,
+    w:o.w || canvas.width,
+    h:o.h || canvas.height,
+    pixels:Array.from(o.pixels || [])
+  };
+}
+
+function loadBallObj(o){
+  const b = new Ball(
+    o.x, o.y, o.vx, o.vy,
+    o.r, o.c || getTone(o.tone).color, o.w, o.lim, o.rel, o.tone || "pad"
+  );
+  b.n = o.n ?? 0;
+  b.al = o.al ?? 1;
+  b.fade = !!o.fade;
+  b.last = o.last ?? 0;
+  b.hitKey = o.hitKey ?? null;
+  return b;
+}
+function serializeProject(){
+  return {
+    version: 1,
+    savedAt: Date.now(),
+    fx: { ...FX },
+    ui: {
+      key: $("key").value,
+      scale: $("scale").value,
+      ballTone: $("ballTone").value,
+      ballSize: $("ballSize").value,
+      ballLimitPer: $("ballLimitPer").value,
+      weight: $("weight").value,
+      release: $("release").value,
+      speed: $("speed").value,
+      length: $("length").value,
+      dir: $("dir").value,
+      spinShape: $("spinShape").value,
+      holeSize: $("holeSize").value,
+      fontText: $("fontText").value,
+      fontSize: $("fontSize").value,
+      fontWeight: $("fontWeight").value,
+      plungerSize: $("plungerSize").value,
+      fontFamily: $("fontFamily").value
+    },
+    meta: {
+      objSeq,
+      note
+    },
+    rec: {
+      loopDur,
+      events: events.map(e => ({ ...e }))
+    },
+    objects: {
+      lines: lines.map(o => cloneLineObj(o)),
+      sliders: sliders.map(o => cloneSliderObj(o)),
+      spins: spins.map(o => cloneSpinObj(o)),
+      holes: holes.map(o => cloneHoleObj(o)),
+      texts: texts.map(o => cloneTextObj(o)),
+      plungers: plungers.map(o => clonePlungerObj(o)),
+      fills: fills.map(o => cloneFillObj(o)),
+      balls: balls.map(o => cloneBallObj(o))
+    }
+  };
+}
+
+  function applyProject(project){
+  if(!project || (project.version != null && project.version !== 1)){
+    alert("Project形式が正しくありません。");
+    return;
+  }
+
+  const root = project || {};
+  const savedArray = (key) => {
+    if(Array.isArray(project?.objects?.[key])) return project.objects[key];
+    if(Array.isArray(project?.[key])) return project[key];
+    return [];
+  };
+
+  const toNum = (v, d=0) => Number.isFinite(+v) ? +v : d;
+
+  const loadLineObj = (o) => ({
+    ...o,
+    type: o.type || "line",
+    p: (o.p || []).map(clonePoint)
+  });
+
+  const loadSliderObj = (o) => ({
+    ...o,
+    type: o.type || "slider",
+    a: clonePoint(o.a),
+    e: clonePoint(o.e)
+  });
+
+  const loadSpinObj = (o) => ({
+    ...o,
+    type: o.type || "spin",
+    x: toNum(o.x),
+    y: toNum(o.y),
+    sp: toNum(o.sp),
+    len: toNum(o.len),
+    r: toNum(o.r),
+    dir: toNum(o.dir, 1),
+    angle: toNum(o.angle),
+    at: toNum(o.at, Date.now()),
+    missingEdges: o.missingEdges ? { ...o.missingEdges } : undefined
+  });
+
+  const loadHoleObj = (o) => ({
+    ...o,
+    type: o.type || "hole",
+    x: toNum(o.x),
+    y: toNum(o.y),
+    r: toNum(o.r, 32)
+  });
+
+  const loadTextObj = (o) => ({
+    type: o.type || "text",
+    id: o.id,
+    x: toNum(o.x),
+    y: toNum(o.y),
+    text: o.text ?? "",
+    size: toNum(o.size, 42),
+    weight: o.weight ?? 400,
+    family: o.family ?? "system-ui, sans-serif",
+    scale: o.scale ?? 1,
+    rot: o.rot ?? 0,
+    note: o.note
+  });
+
+  const loadPlungerObj = (o) => ({
+    ...o,
+    type: o.type || "plunger",
+    a: clonePoint(o.a),
+    e: clonePoint(o.e),
+    barW: toNum(o.barW, 96),
+    pull: toNum(o.pull, 0),
+    fireAt: toNum(o.fireAt, 0)
+  });
+
+  const loadFillObj = (o) => ({
+    ...o,
+    type: o.type || "fill",
+    c: o.c || FX.lineColor,
+    alpha: o.alpha ?? 0.35,
+    note: o.note,
+    w: toNum(o.w, canvas.width),
+    h: toNum(o.h, canvas.height),
+    pixels: Array.from(o.pixels || [])
+  });
+
+  const loadBallObj = (o) => {
+    const toneKey = o.tone || "pad";
+    const tone = getTone(toneKey);
+
+    const b = new Ball(
+  toNum(o.x),
+  toNum(o.y),
+  toNum(o.vx),
+  toNum(o.vy),
+  toNum(o.r, 2),
+  o.c || tone.color,
+  toNum(o.w, 1),
+  toNum(o.lim, 10),
+  toNum(o.rel, 1),
+  toneKey,
+  o.volume ?? 1.0
+);
+
+
+    b.n = toNum(o.n, 0);
+    b.al = o.al ?? 1;
+    b.fade = !!o.fade;
+    b.last = toNum(o.last, 0);
+    b.hitKey = o.hitKey ?? null;
+    b.type = "ball";
+    return b;
+  };
+
+  stopLoop();
+
+  recording = false;
+firstRec = true;
+recStart = null;
+loopDur = 0;
+events = [];
+
+timers = [];
+sequenceStopped = false;
+
+
+  drawing = false;
+  erasing = false;
+  pinch = false;
+  stroke = null;
+  drag = 0;
+  moveTarget = null;
+  fontDraft = null;
+  fontGesture = null;
+  plungerDraft = null;
+  playPlunger = null;
+
+  zoom = 1;
+  panX = 0;
+  panY = 0;
+  applyViewTransform();
+
+  eraserOn = false;
+  $("eraser").classList.remove("active");
+  $("eraser").textContent = "ERASER";
+
+  $("rec").classList.remove("recording");
+  $("rec").textContent = "REC";
+  $("recTime").style.display = "none";
+  $("recTime").textContent = "WAITING";
+  $("seqStop").classList.remove("active");
+
+  lines = [];
+  sliders = [];
+  spins = [];
+  holes = [];
+  fills = [];
+  texts = [];
+  balls = [];
+  plungers = [];
+  flippers = [];
+  history = [];
+
+  const fx = project.fx || {};
+  const ui = project.ui || {};
+  const rec = project.rec || {};
+
+  Object.assign(FX, fx);
+
+  $("key").value = ui.key ?? "A";
+  $("scale").value = ui.scale ?? "minorPentatonic";
+  $("ballTone").value = fx.ballTone ?? ui.ballTone ?? "pad";
+  $("plungerSize").value = ui.plungerSize ?? fx.plungerSize ?? 96;
+
+  $("ballSize").value = ui.ballSize ?? 2;
+  $("ballLimitPer").value = ui.ballLimitPer ?? 10;
+  $("weight").value = ui.weight ?? 1;
+  $("release").value = ui.release ?? 1;
+  $("speed").value = ui.speed ?? 120;
+  $("length").value = ui.length ?? 64;
+  $("dir").value = ui.dir ?? 1;
+  $("spinShape").value = ui.spinShape ?? "bar";
+  $("holeSize").value = ui.holeSize ?? 32;
+  $("fontText").value = ui.fontText ?? "HELLO";
+  $("fontSize").value = ui.fontSize ?? 42;
+  $("fontWeight").value = ui.fontWeight ?? 400;
+  $("fontFamily").value = ui.fontFamily ?? "system-ui, sans-serif";
+
+  $("masterVolume").value = fx.master ?? FX.master;
+  $("lpfFreq").value = fx.lpfFreq ?? FX.lpfFreq;
+  $("lpfQ").value = fx.lpfQ ?? FX.lpfQ;
+  $("reverbMix").value = fx.reverbMix ?? FX.reverbMix;
+  $("shimmerMix").value = fx.shimmerMix ?? FX.shimmerMix;
+  $("reverbPreDelay").value = fx.reverbPreDelay ?? FX.reverbPreDelay;
+  $("reverbRoomSize").value = fx.reverbRoomSize ?? FX.reverbRoomSize;
+  $("reverbDecay").value = fx.reverbDecay ?? FX.reverbDecay;
+  $("reverbBrightness").value = fx.reverbBrightness ?? FX.reverbBrightness;
+  $("delayMix").value = fx.delayMix ?? FX.delayMix;
+  $("delayTime").value = fx.delayTime ?? FX.delayTime;
+  $("delayFeedback").value = fx.delayFeedback ?? FX.delayFeedback;
+  $("granularMix").value = fx.granularMix ?? FX.granularMix;
+  $("delayFilter").value = fx.delayFilter ?? FX.delayFilter;
+  $("chorusMix").value = fx.chorusMix ?? FX.chorusMix;
+  $("chorusRate").value = fx.chorusRate ?? FX.chorusRate;
+  $("tapeSat").value = fx.tapeSat ?? FX.tapeSat;
+  $("tapeFlutter").value = fx.tapeFlutter ?? FX.tapeFlutter;
+  $("lineWidth").value = fx.lineWidth ?? FX.lineWidth;
+  $("bgColor").value = fx.bgColor ?? FX.bgColor;
+  $("lineColor").value = fx.lineColor ?? FX.lineColor;
+  $("motionSpeed").value = fx.motionSpeed ?? FX.motionSpeed;
+  $("fillAlpha").value = fx.fillAlpha ?? FX.fillAlpha;
+  $("drawWidth").value = fx.drawWidth ?? ui.drawWidth ?? root.drawWidth ?? FX.drawWidth;
+  $("drawHeight").value = fx.drawHeight ?? ui.drawHeight ?? root.drawHeight ?? FX.drawHeight;
+  $("plungerReturnMs").value = fx.plungerReturnMs ?? FX.plungerReturnMs;
+
+  setToggleState("sec-lpf", !!fx.lpfEnabled);
+  setToggleState("sec-rev", !!fx.revEnabled);
+  setToggleState("sec-delay", !!fx.delayEnabled);
+  setToggleState("sec-mod", !!fx.modEnabled);
+  setToggleState("sec-line-straight", !!fx.lineStraight);
+
+  updateFontUI();
+  buildScale();
+  updateFX();
+
+  resize();
+
+  lines = savedArray("lines").map(loadLineObj);
+  sliders = savedArray("sliders").map(loadSliderObj);
+  spins = savedArray("spins").map(loadSpinObj);
+  holes = savedArray("holes").map(loadHoleObj);
+  texts = savedArray("texts").map(o => buildTextMask({
+    ...loadTextObj(o),
+    scale: o.scale ?? 1,
+    rot: o.rot ?? 0
+  }));
+  fills = savedArray("fills").map(o => rebuildFillCanvas(loadFillObj(o)));
+  plungers = savedArray("plungers").map(loadPlungerObj);
+  balls = savedArray("balls").map(loadBallObj);
+
+  loopDur = rec.loopDur ?? root.loopDur ?? 0;
+  events = (rec.events ?? root.events ?? []).map(e => ({ ...e }));
+  firstRec = !(events.length && loopDur > 200);
+
+  objSeq = project.meta?.objSeq ?? root.objSeq ?? objSeq;
+  note = project.meta?.note ?? root.note ?? note;
+
+  if(events.length && loopDur > 200){
+    sequenceStopped = false;
+    $("seqStop").classList.remove("active");
+    playLoop();
+  }
+
+  panel(null);
+}
+
+function down(e){
+  if (e.pointerType === "touch" && e.cancelable) {
+    e.preventDefault();
+  }
+
+  if(e.target.closest("button,select,input,.panel,.bottom-wrap")) return;
+
+  // 以下は既存処理
+
+    if(e.touches?.length >= 2){
+      e.preventDefault();
+
+      const c = touchCenter(e.touches[0], e.touches[1]);
+
+      if(mode === "font" && editMode && fontDraft){
+        fontGesture = {
+          startDist: touchDist(e.touches[0], e.touches[1]),
+          startAngle: Math.atan2(
+            e.touches[1].clientY - e.touches[0].clientY,
+            e.touches[1].clientX - e.touches[0].clientX
+          ),
+          startScale: fontDraft.scale ?? 1,
+          startRot: fontDraft.rot ?? 0,
+          startX: fontDraft.x ?? c.x,
+          startY: fontDraft.y ?? c.y,
+          centerX: c.x,
+          centerY: c.y
+        };
+        drawing = false;
+        erasing = false;
+        stroke = null;
+        drag = 0;
+        return;
+      }
+
+      pinch = true;
+      pinchStartDist = touchDist(e.touches[0], e.touches[1]);
+      pinchStartZoom = zoom;
+      pinchAnchorX = (c.x - panX) / zoom;
+      pinchAnchorY = (c.y - panY) / zoom;
+
+      drawing = false;
+      erasing = false;
+      stroke = null;
+      drag = 0;
+      return;
+    }
+
+    if(e.cancelable) e.preventDefault();
+    ensureAudio();
+
+    const p = pos(e);
+
+    if(!editMode){
+      const pl = plungers.find(pl => {
+        const z = plungerState(pl, Date.now());
+        if(!z) return false;
+        return seg(p.x, p.y, z.hitA, z.hitB).d < Math.max(18, FX.lineWidth * 4);
+      });
+
+      if(pl){
+        playPlunger = pl;
+        pl.pull = 0;
+        pl.fireAt = 0;
+        drawing = false;
+        erasing = false;
+        stroke = null;
+        drag = 0;
+        return;
+      }
+      return;
+    }
+
+    if(eraserOn){
+      erasing = true;
+      removeAt(p, Date.now());
+      return;
+    }
+
+    if(mode === "move"){
+      moveTarget = pickMoveTarget(p, Date.now());
+      if(moveTarget){
+        moveTarget.before = makeObjectSnapshot(moveTarget.obj);
+        moveTarget.last = { ...p };
+        moveTarget.moved = false;
+      }
+      return;
+    }
+
+    if(mode === "plunger"){
+      drawing = true;
+      drag = 0;
+      stroke = {
+        k:"plunger",
+        a:p,
+        e:p,
+        p:[p],
+        c:FX.lineColor
+      };
+      return;
+    }
+
+    if(mode === "font"){
+      const raw = String($("fontText").value ?? "").replace(/\s+/g," ").trim();
+      if(!raw) return;
+
+      fontDraft = {
+        type:"text",
+        id:objSeq++,
+        x:p.x,
+        y:p.y,
+        text:raw,
+        size:+$("fontSize").value,
+        weight:+$("fontWeight").value,
+        family:$("fontFamily").value,
+        scale:1,
+        rot:0,
+        note:note++
+      };
+      return;
+    }
+
+    if(mode === "ball"){
+      spawn(p.x, p.y);
+      return;
+    }
+
+    if(mode === "hole"){
+      const h = {
+        type:"hole",
+        id:objSeq++,
+        x:p.x,
+        y:p.y,
+        r:+$("holeSize").value,
+        note:note++
+      };
+      holes.push(h);
+      pushHistoryItem({t:"hole", r:h});
+      while(holes.length > MAX_HOLES){
+        holes.shift();
+      }
+      return;
+    }
+
+    if(mode === "fill"){
+      floodFill(p.x, p.y, FX.lineColor, FX.fillAlpha);
+      return;
+    }
+
+    if(mode === "spin"){
+      const s = {
+        type:"spin",
+        id:objSeq++,
+        x:p.x,
+        y:p.y,
+        c:FX.lineColor,
+        sp:+$("speed").value,
+        len:+$("length").value,
+        r:+$("length").value/2,
+        dir:+$("dir").value,
+        shape:$("spinShape").value,
+        angle:Math.random()*Math.PI*2,
+        at:Date.now(),
+        note:note++
+      };
+
+      spins.push(s);
+      pushHistoryItem({t:"spin", r:s});
+      while(spins.length > MAX_SPINS){
+        spins.shift();
+      }
+      return;
+    }
+
+    drawing = true;
+    drag = 0;
+
+    stroke = {
+      k:mode,
+      a:p,
+      e:p,
+      p:[p],
+      c:FX.lineColor
+    };
+  }
+
+  function move(e){
+    const p = pos(e);
+
+    if(!editMode && playPlunger){
+      const a = playPlunger.a || {x:playPlunger.x, y:playPlunger.y};
+      const b = playPlunger.e || {x:playPlunger.x, y:playPlunger.y + 96};
+
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const L = Math.hypot(dx, dy) || 1;
+      const ux = dx / L;
+      const uy = dy / L;
+
+      const proj = (p.x - a.x) * ux + (p.y - a.y) * uy;
+      playPlunger.pull = clamp(proj, 0, L);
+      return;
+    }
+
+    if(editMode && mode === "move" && moveTarget){
+      const dx = p.x - moveTarget.last.x;
+      const dy = p.y - moveTarget.last.y;
+
+      if(dx || dy){
+        translateObject(moveTarget.obj, dx, dy);
+        moveTarget.last = { ...p };
+        moveTarget.moved = true;
+      }
+      return;
+    }
+
+    if(editMode && mode === "font" && fontDraft){
+      if(e.touches?.length >= 2 && fontGesture){
+        e.preventDefault();
+
+        const c = touchCenter(e.touches[0], e.touches[1]);
+        const d = touchDist(e.touches[0], e.touches[1]);
+        const a = Math.atan2(
+          e.touches[1].clientY - e.touches[0].clientY,
+          e.touches[1].clientX - e.touches[0].clientX
+        );
+
+        fontDraft.scale = clamp(fontGesture.startScale * d / fontGesture.startDist, .2, 8);
+        fontDraft.rot = fontGesture.startRot + (a - fontGesture.startAngle);
+        fontDraft.x = fontGesture.startX + (c.x - fontGesture.centerX);
+        fontDraft.y = fontGesture.startY + (c.y - fontGesture.centerY);
+        return;
+      }
+
+      fontDraft.x = p.x;
+      fontDraft.y = p.y;
+      return;
+    }
+
+    if(e.touches?.length >= 2){
+      e.preventDefault();
+
+      const c = touchCenter(e.touches[0], e.touches[1]);
+      const d = touchDist(e.touches[0], e.touches[1]);
+
+      if(!pinch){
+        pinch = true;
+        pinchStartDist = d;
+        pinchStartZoom = zoom;
+        pinchAnchorX = (c.x - panX) / zoom;
+        pinchAnchorY = (c.y - panY) / zoom;
+      }
+
+      zoom = clamp(
+        pinchStartZoom * d / pinchStartDist,
+        .65,
+        2.8
+      );
+
+      panX = c.x - pinchAnchorX * zoom;
+      panY = c.y - pinchAnchorY * zoom;
+
+      applyViewTransform();
+
+      drawing = false;
+      erasing = false;
+      stroke = null;
+      drag = 0;
+      return;
+    }
+
+    if(pinch) return;
+
+    if(!editMode && playPlunger){
+      const a = playPlunger.a || {x:playPlunger.x, y:playPlunger.y};
+      const b = playPlunger.e || {x:playPlunger.x, y:playPlunger.y + 96};
+
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const L = Math.hypot(dx, dy) || 1;
+      const ux = dx / L;
+      const uy = dy / L;
+
+      const proj = (p.x - a.x) * ux + (p.y - a.y) * uy;
+      playPlunger.pull = clamp(proj, 0, L);
+      return;
+    }
+
+    if(editMode && mode === "plunger" && plungerDraft){
+      const a = plungerDraft.a || {x:plungerDraft.x, y:plungerDraft.y};
+      const b = plungerDraft.e || {x:plungerDraft.x, y:plungerDraft.y + 96};
+
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const L = Math.hypot(dx, dy) || 1;
+      const ux = dx / L;
+      const uy = dy / L;
+
+      const proj = (p.x - a.x) * ux + (p.y - a.y) * uy;
+      plungerDraft.pull = clamp(proj, 0, L);
+      return;
+    }
+
+    if(erasing){
+      if(e.cancelable) e.preventDefault();
+      removeAt(p, Date.now());
+      return;
+    }
+
+    if(!drawing || !stroke) return;
+    if(e.cancelable) e.preventDefault();
+
+    if(stroke.k === "plunger"){
+      stroke.e = p;
+      drag = Math.hypot(p.x - stroke.a.x, p.y - stroke.a.y);
+      return;
+    }
+
+    if(stroke.k === "line"){
+      if(FX.lineStraight){
+        stroke.e = p;
+        drag = Math.hypot(p.x - stroke.a.x, p.y - stroke.a.y);
+      }else{
+        const q = stroke.p.at(-1);
+        const d = Math.hypot(p.x - q.x, p.y - q.y);
+        if(d > 4){
+          stroke.p.push(p);
+          drag += d;
+        }
+      }
+    }else{
+      stroke.e = p;
+      drag = Math.hypot(p.x - stroke.a.x, p.y - stroke.a.y);
+    }
+  }
+
+  function up(){
+    if(pinch){
+      pinch = false;
+      return;
+    }
+
+    if(editMode && mode === "move" && moveTarget){
+      if(moveTarget.moved){
+        pushHistoryItem({
+          t:"move",
+          type:moveTarget.type,
+          id:moveTarget.obj.id,
+          before:moveTarget.before
+        });
+      }
+      moveTarget = null;
+      return;
+    }
+
+    if(!editMode && playPlunger){
+      playPlunger.fireAt = Date.now();
+      playPlunger = null;
+      return;
+    }
+
+    if(erasing){
+      erasing = false;
+      return;
+    }
+
+    if(editMode && mode === "plunger" && plungerDraft){
+      plungerDraft.fireAt = Date.now();
+      plungerDraft = null;
+      return;
+    }
+
+    if(editMode && mode === "font" && fontDraft){
+      buildTextObject(fontDraft.x, fontDraft.y, fontDraft.text, fontDraft);
+      fontDraft = null;
+      fontGesture = null;
+      return;
+    }
+
+    if(stroke && stroke.k === "plunger"){
+      const shouldSave = drag >= 10;
+      if(shouldSave){
+        const o = {
+          type:"plunger",
+          id:objSeq++,
+          a:stroke.a,
+          e:stroke.e,
+          barW:+$("plungerSize").value,
+          pull:0,
+          fireAt:0,
+          noSound:false,
+          note:note++
+        };
+        plungers.push(o);
+        pushHistoryItem({t:"plunger", r:o});
+      }
+
+      stroke = null;
+      drag = 0;
+      return;
+    }
+
+    if(!drawing || !stroke) return;
+    drawing = false;
+
+    if(stroke.k === "line"){
+      const shouldSave = FX.lineStraight ? drag >= 4 : stroke.p.length > 1;
+      if(shouldSave){
+        const o = {
+          type:"line",
+          id:objSeq++,
+          p:FX.lineStraight ? [stroke.a, stroke.e] : stroke.p,
+          c:FX.lineColor,
+          note:note++
+        };
+        lines.push(o);
+        pushHistoryItem({t:"line", r:o});
+
+        while(lines.length > MAX_LINES){
+          lines.shift();
+        }
+      }
+    }else if(stroke.k === "slider" && drag >= 10){
+      const o = {
+        type:"slider",
+        id:objSeq++,
+        a:stroke.a,
+        e:stroke.e,
+        c:FX.lineColor,
+        sp:+$("speed").value,
+        len:+$("length").value,
+        at:Date.now(),
+        note:note++
+      };
+
+      sliders.push(o);
+      pushHistoryItem({t:"slider", r:o});
+
+      while(sliders.length > MAX_SLIDERS){
+        sliders.shift();
+      }
+    }
+
+    stroke = null;
+    drag = 0;
+  }
+
+  function stopLoop() {
+  timers.forEach(clearTimeout);
+  timers = [];
+
+  sequenceStopped = true;
+
+  /*
+    停止中はPLAYと表示する
+  */
+  $("seqStop").textContent = "PLAY";
+  $("seqStop").classList.add("active");
+}
+
+  function playLoop(){
+    if(!events.length||loopDur<=200||timers.length||sequenceStopped)return;
+
+    const schedule=()=>{
+      if(sequenceStopped)return;
+
+      timers=[];
+
+      for(const e of events){
+        timers.push(setTimeout(()=>{
+          if(sequenceStopped)return;
+          spawn(e.x, e.y, e.vx, e.vy, false, false, {
+  r: e.r,
+  c: e.c,
+  w: e.w,
+  lim: e.lim,
+  rel: e.s,
+
+  /*
+    録音した玉固有の音色・音量を再現する
+  */
+  tone: e.tone,
+  volume: e.volume ?? 1.0
+});
+
+        },e.rel));
+      }
+
+      timers.push(setTimeout(schedule,loopDur));
+    };
+
+    schedule();
+  }
+
+  function resumeLoop() {
+  if (!events.length || loopDur <= 200) {
+    return;
+  }
+
+  sequenceStopped = false;
+
+  /*
+    再生中はSTOPと表示する
+  */
+  $("seqStop").textContent = "STOP";
+  $("seqStop").classList.remove("active");
+
+  playLoop();
+}
+
+  function bind(a,b,s=""){
+    const x=$(a),y=$(b);
+    const update=()=>y.textContent=x.value+s;
+    x.oninput=update;
+    update();
+  }
+
+  function toggleView(){
+    const on=!document.body.classList.contains("view-mode");
+    document.body.classList.toggle("view-mode",on);
+
+    if(on){
+      panel(null);
+      $("view").textContent="BACK";
+    }else{
+      $("view").textContent="VIEW";
+    }
+  }
+
+  document.querySelectorAll(".fx-toggle").forEach(btn => {
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      const targetId = btn.getAttribute("data-target");
+      const sec = $(targetId);
+      const isActive = sec.classList.toggle("enabled");
+      btn.classList.toggle("active", isActive);
+      btn.textContent = isActive ? "ON" : "OFF";
+
+      if(targetId === "sec-lpf") FX.lpfEnabled = isActive;
+      if(targetId === "sec-rev") FX.revEnabled = isActive;
+      if(targetId === "sec-delay") FX.delayEnabled = isActive;
+      if(targetId === "sec-mod") FX.modEnabled = isActive;
+      if(targetId === "sec-line-straight") FX.lineStraight = isActive;
+      updateFX();
+    };
+  });
+
+/*
+  iPhone Safari向け音声アンロック。
+
+  pointerdown を主に使うことで、
+  touchstart / mousedown の二重発火を避ける。
+*/
+document.addEventListener("pointerdown", () => {
+  // ユーザー操作起点なので、ここでresume/unlockが走る
+  ensureAudio();
+}, {
+  passive: true,
+  capture: true
+});
+
+document.addEventListener("keydown", () => {
+  ensureAudio();
+}, {
+  passive: true,
+  capture: true
+});
+ let activeCanvasPointerId = null;
+let isFinalized = false; // 1タップ（pointerdown）につきupを1回にする
+
+/*
+  初回タップ時も await しない。
+  FONTのfontDraftを即座に作成する。
+*/
+canvas.addEventListener("pointerdown", (e) => {
+  ensureAudio();
+
+  e.preventDefault();
+
+  activeCanvasPointerId = e.pointerId;
+  isFinalized = false; // ★追加
+
+  try { canvas.setPointerCapture(e.pointerId); } catch (error) {}
+  down(e);
+}, { passive: false });
+canvas.addEventListener("pointermove", (e) => {
+  if (activeCanvasPointerId !== null && e.pointerId !== activeCanvasPointerId) {
+    return;
+  }
+
+  move(e);
+}, { passive: false });
+
+function finishCanvasPointer(e) {
+  if (activeCanvasPointerId === null) return;
+
+  // ★追加：もう確定済みなら何もしない
+  if (isFinalized) return;
+
+  if (
+    activeCanvasPointerId !== null &&
+    e.pointerId !== undefined &&
+    e.pointerId !== activeCanvasPointerId
+  ) {
+    return;
+  }
+
+  // ★ここで確定処理を1回に固定
+  isFinalized = true;
+  
+  up(e);
+
+  try {
+    if (e.pointerId !== undefined) {
+      canvas.releasePointerCapture(e.pointerId);
+    }
+  } catch (error) {}
+
+  activeCanvasPointerId = null;
+  // 必要なら isFinalized はそのままでOK（pointerdownでfalseに戻す）
+}
+canvas.addEventListener("pointerup", finishCanvasPointer, {
+  passive: false
+});
+
+canvas.addEventListener("pointercancel", finishCanvasPointer, {
+  passive: false
+});
+
+/*
+  iPhone Safariでまれにcanvasの外側でpointerupになる場合の保険。
+  fontDraftが残ったまま透明プレビューになることを防ぐ。
+*/
+window.addEventListener("pointerup", (e) => {
+  if (activeCanvasPointerId === null) {
+    return;
+  }
+
+  finishCanvasPointer(e);
+}, {
+  passive: false
+});
+
+canvas.addEventListener("pointercancel", up, { passive: false });
+
+
+  ["ball","line","slider","spin","hole","fill","font","plunger","move"].forEach(x=>{
+    const btn = $(x);
+    if(btn) btn.onclick = () => setMode(x);
+  });
+
+  $("eraser").onclick=()=>{
+    eraserOn=!eraserOn;
+    $("eraser").classList.toggle("active",eraserOn);
+    $("eraser").textContent=eraserOn?"ERASER ON":"ERASER";
+  };
+
+  $("menu").onclick=()=>{
+    panel($("settings").classList.contains("open")?null:$("settings"));
+  };
+
+  $("view").onclick=toggleView;
+  $("edit").onclick = () => {
+    editMode = !editMode;
+    $("edit").classList.toggle("active", editMode);
+    $("edit").textContent = editMode ? "EDIT ON" : "EDIT OFF";
+
+    document.body.classList.toggle("edit-off", !editMode);
+
+    if(editMode){
+      playPlunger = null;
+    }else{
+      drawing = false;
+      erasing = false;
+      stroke = null;
+      drag = 0;
+      fontDraft = null;
+      fontGesture = null;
+      plungerDraft = null;
+      moveTarget = null;
+    }
+  };
+
+  $("overlay").onclick=()=>panel(null);
+
+  document.querySelectorAll(".close").forEach(b=>{
+    b.onclick=()=>panel(null);
+  });
+
+  $("key").onchange=buildScale;
+  $("scale").onchange=buildScale;
+  $("fontWeight").onchange=updateFontUI;
+  $("ballTone").onchange=updateFX;
+
+  $("rec").onclick=()=>{
+    ensureAudio();
+
+    if(recording){
+      recording=false;
+
+ if (firstRec && recStart !== null) {
+  loopDur = Math.max(200, Date.now() - recStart);
+  firstRec = false;
+
+  /*
+    録音終了後は、そのままループ再生を開始する。
+    再生中なのでボタン表示は STOP。
+  */
+  sequenceStopped = false;
+
+  $("seqStop").textContent = "STOP";
+  $("seqStop").classList.remove("active");
+
+  playLoop();
+}
+
+
+      recStart=null;
+      $("rec").classList.remove("recording");
+      $("rec").textContent="REC";
+      $("recTime").style.display="none";
+    }else{
+      recording=true;
+
+      if(!events.length||!loopDur){
+        firstRec=true;
+        recStart=null;
+        $("recTime").textContent="WAITING";
+      }else{
+        firstRec=false;
+        recStart=Date.now();
+        resumeLoop();
+      }
+
+      $("rec").classList.add("recording");
+      $("rec").textContent="STOP";
+      $("recTime").style.display="block";
+    }
+  };
+
+  $("seqStop").onclick = async () => {
+  await ensureAudio();
+
+  /*
+    再生中なら停止
+  */
+  if (!sequenceStopped && timers.length) {
+    stopLoop();
+
+    if (recording) {
+      recording = false;
+      recStart = null;
+
+      $("rec").classList.remove("recording");
+      $("rec").textContent = "REC";
+      $("recTime").style.display = "none";
+    }
+
+    return;
+  }
+
+  /*
+    停止中なら再生開始
+  */
+  resumeLoop();
+};
+
+/*
+  玉録音専用UNDO。
+
+  通常のUNDOとは完全に分離しているため、
+  線・穴・文字・スライダー等のUNDOに影響しない。
+*/
+/*
+  玉の録音データだけを1つ取り消す。
+  通常のUNDO、線、穴、文字、現在画面上の玉には影響しない。
+*/
+$("recUndo").onclick = () => {
+  if (!events.length) {
+    return;
+  }
+
+  const wasPlaying = !sequenceStopped;
+
+  /*
+    録音済みの最後の玉だけを削除。
+  */
+  events.pop();
+
+  /*
+    現在予約されているループ再生を作り直す。
+  */
+  timers.forEach(clearTimeout);
+  timers = [];
+
+  if (events.length === 0) {
+    loopDur = 0;
+    stopLoop();
+    return;
+  }
+
+  if (wasPlaying && loopDur > 200) {
+    sequenceStopped = false;
+    $("seqStop").textContent = "STOP";
+    $("seqStop").classList.remove("active");
+    playLoop();
+  }
+};
+
+$("clearRec").onclick = () => {
+  stopLoop();
+
+  recording = false;
+  firstRec = true;
+  recStart = null;
+  loopDur = 0;
+  events = [];
+
+  $("rec").classList.remove("recording");
+  $("rec").textContent = "REC";
+
+  $("recTime").style.display = "none";
+  $("recTime").textContent = "WAITING";
+
+  /*
+    録音がないため再生不可だが、
+    状態としては停止中。
+  */
+  $("seqStop").textContent = "PLAY";
+  $("seqStop").classList.add("active");
+};
+
+
+  
+  $("clearObj").onclick=()=>{
+    pushHistoryItem({ t:"clearObj", snapshot:snapshotObjectsState() });
+
+    lines=[];
+    sliders=[];
+    spins=[];
+    holes=[];
+    fills=[];
+    texts=[];
+    plungers=[];
+
+    drawing=false;
+    erasing=false;
+    stroke=null;
+    drag=0;
+    moveTarget=null;
+    fontDraft=null;
+    fontGesture=null;
+    plungerDraft=null;
+  };
+
+  $("clearBalls").onclick=()=>{
+    pushHistoryItem({ t:"clearBalls", snapshot:snapshotBallsState() });
+    balls=[];
+  };
+
+  $("saveProject").onclick = (e) => {
+    e.preventDefault();
+    try {
+      const data = serializeProject();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `orbit_project_${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (err) {
+      alert("保存に失敗しました。");
+    }
+  };
+
+  $("loadProject").onclick = (e) => {
+    e.preventDefault();
+    $("projectFile").click();
+  };
+
+  $("projectFile").onchange = async (e) => {
+    const file = e.target.files?.[0];
+    if(!file) return;
+
+    try{
+      const text = await file.text();
+      const json = JSON.parse(text);
+      applyProject(json);
+    }catch(err){
+      alert("読み込みに失敗しました。JSON形式を確認してください。");
+    }finally{
+      e.target.value = "";
+    }
+  };
+
+  [
+  "masterVolume",
+  "lpfFreq",
+  "lpfQ",
+  "reverbMix",
+  "shimmerMix",
+  "reverbPreDelay",
+  "reverbRoomSize",
+  "reverbDecay",
+  "reverbBrightness",
+  "delayMix",
+  "delayTime",
+  "delayFeedback",
+  "granularMix",
+  "delayFilter",
+  "chorusMix",
+  "chorusRate",
+  "tapeSat",
+  "tapeFlutter",
+  "lineWidth",
+  "bgColor",
+  "lineColor",
+  "motionSpeed",
+  "fillAlpha",
+  "drawWidth",
+  "drawHeight",
+  "ballVolume"
+]
+.forEach(id=>{
+    $(id).addEventListener("input", updateFX);
+  });
+
+  $("ballTone").addEventListener("change", updateFX);
+
+  updateFX();
+
+  bind("speed","speedV","px/s");
+  bind("length","lengthV","px");
+  bind("holeSize","holeSizeV","px");
+  bind("ballSize","ballSizeV","px");
+  bind("ballLimitPer","ballLimitPerV","x");
+  bind("weight","weightV","x");
+  bind("release","releaseV","s");
+  bind("ballLimit","ballLimitV");
+  bind("gravity","gravityV");
+  bind("motionSpeed","motionSpeedV","x");
+  bind("bounce","bounceV");
+  bind("fontSize","fontSizeV","px");
+  bind("fillAlpha","fillAlphaV","%");
+  bind("drawWidth","drawWidthV","px");
+  bind("drawHeight","drawHeightV","px");
+  bind("plungerSize","plungerSizeV","px");
+  bind("plungerReturnMs","plungerReturnMsV","ms");
+bind("ballVolume", "ballVolumeV", "%");
+
+  updateFontUI();
+
+  resize();
+  buildScale();
+  addEventListener("resize",resize);
+function removeObjectById(type, id) {
+    const arr = collectionByType(type);
+    if (!arr) return false;
+    const i = arr.findIndex(o => o && o.id === id);
+    if (i >= 0) {
+      arr.splice(i, 1);
+      return true;
+    }
+    return false;
+  }
+
+  function undoLast() {
+    if (!history.length) return;
+
+    const item = history.pop();
+
+    // history に入っているパターンに応じて戻す
+    switch (item?.t) {
+      case "clearObj":
+        // snapshot が入っている想定（あなたの clearObj で pushHistoryItem してる）
+        if (item.snapshot) restoreObjectsState(item.snapshot);
+        return;
+
+      case "clearBalls":
+        if (item.snapshot) restoreBallsState(item.snapshot);
+        return;
+
+      case "move":
+        // move の undo（before を使う）
+        if (item.type && item.id != null && item.before) {
+          restoreMovedObject(item.type, item.id, item.before);
+        }
+        return;
+
+      // 直前に作ったオブジェクト削除で戻す（line/hole/text/plunger/fill/slider/spin など）
+      case "line":
+      case "slider":
+      case "spin":
+      case "hole":
+      case "text":
+      case "plunger":
+      case "fill":
+        // r がオブジェクト参照として入っているケースが多い
+        if (item?.r?.id != null) {
+          const type = item.t;
+          removeObjectById(type, item.r.id);
+        }
+        return;
+
+      default:
+        // 何が入っていても落ちない保険
+        return;
+    }
+  }
+
+  $("undo").onclick = () => {
+    undoLast();
+  };
+  function render(){
+    const now=Date.now();
+
+    ctx.clearRect(0,0,W,H);
+
+    fills.forEach(drawFill);
+    holes.forEach(drawHole);
+    plungers.forEach(p=>drawPlunger(p,now));
+
+    ctx.lineCap="round";
+    ctx.lineJoin="round";
+
+    lines.forEach(l=>drawLine(l.p,FX.lineColor,strokeWidth(1)));
+
+    sliders.forEach(s=>{
+      const z=sliderState(s,now);
+      drawLine([s.a,s.e],FX.lineColor,strokeWidth(1.15),[4,10]);
+      if(z)drawLine([z.a,z.b],FX.lineColor,strokeWidth(2.8));
+    });
+
+    for(let i=spins.length-1;i>=0;i--){
+      const s=spins[i];
+      const z=spinState(s,now);
+      if(!z){
+        spins.splice(i,1);
+        continue;
+      }
+      drawSpinShape(z,FX.lineColor);
+    }
+
+    texts.forEach(drawTextObject);
+    if(fontDraft){
+      drawTextObject(fontDraft, 0.28);
+    }
+
+    if(stroke){
+      const previewW = stroke.k==="line" ? strokeWidth(1) : strokeWidth(1.15);
+      const previewPts = stroke.k==="line"
+        ? (FX.lineStraight ? [stroke.a, stroke.e] : stroke.p)
+        : [stroke.a,stroke.e];
+      drawLine(
+        previewPts,
+        FX.lineColor,
+        previewW,
+        stroke.k==="line" ? [] : [8,8]
+      );
+    }
+
+    for(let i=balls.length-1;i>=0;i--){
+      balls[i].update(now);
+      balls[i].draw();
+      if(balls[i].al<=0||balls[i].r<.3){
+        balls.splice(i,1);
+      }
+    }
+
+    if(recording){
+      $("recTime").textContent=recStart===null
+        ?"WAITING"
+        :`${((firstRec?now-recStart:(now-recStart)%loopDur)/1000).toFixed(1)}s`;
+    }
+
+    requestAnimationFrame(render);
+  }
+
+  requestAnimationFrame(render);
+  </script>
+</body>
+</html>
