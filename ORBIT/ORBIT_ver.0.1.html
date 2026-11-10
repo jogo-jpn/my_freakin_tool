@@ -3,6 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+
   <title>ORBIT - Ambient Edition Pro</title>
   <style>
     :root{
@@ -284,17 +288,17 @@
       padding:6px max(6px,env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom)) max(6px,env(safe-area-inset-left));
       pointer-events:none
     }
+/* ボタンが押せるように復活 */
+.bottom,
+.bottom-box,
+.bottom-wrap * {
+  pointer-events: auto;
+}
 
-    .bottom{
-  width:100%;
-  display:flex;
-  flex-direction:column;
-  gap:5px;
-  padding:6px;
-  border:1px solid var(--bd);
-  border-radius:14px;
-  background:rgba(10,14,22,.9);
-  pointer-events:auto;
+.bottom{
+  border:none;
+  background:transparent;
+  padding:0;       /* 外枠の余白が邪魔なら0推奨 */
 }
 
 .bottom-row{
@@ -308,8 +312,9 @@
 }
 
 .bottom-row-bottom{
-  grid-template-columns:repeat(2,minmax(0,1fr));
+  grid-template-columns:repeat(3,minmax(0,1fr));
 }
+
 
 .bottom button{
   width:100%;
@@ -374,15 +379,42 @@
       pointer-events:none
     }
 
-    body.view-mode .top .tool:not(#view){
-      display:none!important
-    }
-    body.view-mode #view{
-      color:#061018;
-      background:var(--ac);
-      border-color:var(--ac)
-    }
+body.view-mode .top .tool-group-draw{
+  display:none !important;
+}
 
+body.view-mode .top .tool-group-control{
+  background:transparent !important;
+  border:none !important;
+  padding:0 !important;
+  gap:0 !important;
+}
+
+body.view-mode .top .tool-group-control .tool:not(#view){
+  display:none !important;
+}
+
+body.view-mode .top .tool-group-control #view{
+  background:transparent !important;
+  border:none !important;
+  box-shadow:none !important;
+  padding:0 !important;
+  min-width:0 !important;
+  min-height:0 !important;
+  width:auto !important;
+  height:auto !important;
+  color:#eaf1f8 !important;
+}
+
+/* 下のボタンを非表示 */
+body.view-mode .bottom-wrap{
+  display:none !important;
+}
+
+/* EDIT ボタンを非表示 */
+body.view-mode .top-actions{
+  display:none !important;
+}
     body.edit-off .top,
     body.edit-off .bottom-wrap,
     body.edit-off .hint,
@@ -450,10 +482,103 @@
   }
 }
 
+.bottom-box{
+  border:1px solid var(--bd);
+  border-radius:12px;
+  padding:6px;
+  background:rgba(10,14,22,.7);
+}
+    /* スプラッシュロゴ */
+    #splash{
+      position:fixed;
+      inset:0;
+      z-index:99999;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:
+        radial-gradient(circle at 50% 40%, rgba(139,233,255,.14), transparent 30%),
+        linear-gradient(180deg, #081c38, #042A57);
+      transition:opacity .35s ease;
+    }
 
+    #splash.hide{
+      opacity:0;
+      pointer-events:none;
+    }
+
+/* ORBIT ロゴ専用スプラッシュ */
+#splash{
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: linear-gradient(180deg, #0c2e5d 0%, #072544 55%, #031427 100%);
+  transition: opacity .35s ease;
+}
+
+#splash::before{
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(255,255,255,.10), transparent 28%),
+    radial-gradient(circle at 50% 58%, rgba(139,233,255,.14), transparent 42%),
+    radial-gradient(circle at 50% 50%, rgba(0,0,0,.10), transparent 60%);
+  pointer-events: none;
+}
+
+#splash.hide{
+  opacity: 0;
+  pointer-events: none;
+}
+
+#splash .splash-logo{
+  position: relative;
+  z-index: 1;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: clamp(54px, 13vw, 112px);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0;
+  color: #eef2f8;
+  text-transform: uppercase;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+  -webkit-text-stroke: 1px rgba(255,255,255,.06);
+  text-shadow:
+    0 1px 0 rgba(0,0,0,.35),
+    0 3px 8px rgba(0,0,0,.28),
+    0 0 14px rgba(255,255,255,.08);
+  transform: translateY(-1px);
+  animation: orbitLogoIn .45s ease-out both;
+}
+
+@keyframes orbitLogoIn{
+  from{
+    opacity: 0;
+    transform: translateY(10px) scale(.96);
+    filter: blur(2px);
+  }
+  to{
+    opacity: 1;
+    transform: translateY(-1px) scale(1);
+    filter: blur(0);
+  }
+}
   </style>
 </head>
 <body>
+
+
+  <div id="splash" aria-label="ORBIT logo">
+    <div class="splash-logo">ORBIT</div>
+  </div>
+
+
   <div id="stage"><canvas id="canvas"></canvas></div>
 
 <div class="top">
@@ -633,12 +758,13 @@
         <button class="fx-toggle" data-target="sec-rev">OFF</button>
       </div>
       <div class="fx-content">
-        <div class="row"><label>Reverb Mix</label><input id="reverbMix" type="range" min="0" max="1" step=".01" value=".62"><span id="reverbMixV" class="value"></span></div>
+        <div class="row"><label>Reverb Mix</label><input id="reverbMix" type="range" min="0" max="1" step=".01" value=".10">
+<span id="reverbMixV" class="value"></span></div>
         <div class="row"><label>Shimmer (+1 Oct)</label><input id="shimmerMix" type="range" min="0" max="1" step=".01" value="0"><span id="shimmerMixV" class="value"></span></div>
-        <div class="row"><label>Pre Delay</label><input id="reverbPreDelay" type="range" min="0" max=".20" step=".005" value=".028"><span id="reverbPreDelayV" class="value"></span></div>
+       
         <div class="row"><label>Room Size</label><input id="reverbRoomSize" type="range" min=".02" max=".25" step=".005" value=".16"><span id="reverbRoomSizeV" class="value"></span></div>
         <div class="row"><label>Decay</label><input id="reverbDecay" type="range" min="0" max=".85" step=".01" value=".62"><span id="reverbDecayV" class="value"></span></div>
-        <div class="row"><label>Brightness</label><input id="reverbBrightness" type="range" min="800" max="10000" step="100" value="7000"><span id="reverbBrightnessV" class="value"></span></div>
+
       </div>
     </div>
 
@@ -648,7 +774,7 @@
         <button class="fx-toggle" data-target="sec-delay">OFF</button>
       </div>
       <div class="fx-content">
-        <div class="row"><label>Delay Mix</label><input id="delayMix" type="range" min="0" max="1" step=".01" value=".42"><span id="delayMixV" class="value"></span></div>
+        <div class="row"><label>Delay Mix</label><input id="delayMix" type="range" min="0" max="1" step=".01" value=".10"><span id="delayMixV" class="value"></span></div>
         <div class="row"><label>Delay Time</label><input id="delayTime" type="range" min=".05" max="1.20" step=".01" value=".34"><span id="delayTimeV" class="value"></span></div>
         <div class="row"><label>Feedback</label><input id="delayFeedback" type="range" min="0" max=".80" step=".01" value=".55"><span id="delayFeedbackV" class="value"></span></div>
         <div class="row"><label>Granular Grains</label><input id="granularMix" type="range" min="0" max="1" step=".01" value=".35"><span id="granularMixV" class="value"></span></div>
@@ -678,8 +804,7 @@
         <div class="row"><label>Stroke Width</label><input id="lineWidth" type="range" min="0.1" max="18" step=".1" value=".5"><span id="lineWidthV" class="value"></span></div>
         <div class="row"><label>Background</label><input id="bgColor" type="color" value="#042A57"><span id="bgColorV" class="value"></span></div>
         <div class="row"><label>Line Color</label><input id="lineColor" type="color" value="#EAE9F1"><span id="lineColorV" class="value"></span></div>
-        <div class="row"><label>Draw Width</label><input id="drawWidth" type="number" min="320" max="4096" step="10" value="960"><span id="drawWidthV" class="value"></span></div>
-        <div class="row"><label>Draw Height</label><input id="drawHeight" type="number" min="240" max="4096" step="10" value="540"><span id="drawHeightV" class="value"></span></div>
+        
       </div>
     </div>
 
@@ -787,10 +912,12 @@
 
   <div id="linePanel" class="panel small">
     <div class="header"><div class="title"><strong>LINE</strong><span>Line drawing settings</span></div><button class="close">×</button></div>
-    <div class="section" id="sec-line-straight">
+    <div class="section enabled" id="sec-line-straight">
+
       <div class="section-header">
         <span class="section-title">STRAIGHT LINE MODE</span>
-        <button class="fx-toggle" data-target="sec-line-straight">OFF</button>
+      <button class="fx-toggle active" data-target="sec-line-straight">ON</button>
+
       </div>
       <p class="note">ON にすると、LINE は始点と終点を結ぶ1本の直線になります。</p>
     </div>
@@ -834,25 +961,31 @@
   <div id="recTime">WAITING</div>
 
   <div class="bottom-wrap">
-  <div class="bottom bottom-layout">
-    <!-- 1段目 -->
+<div class="bottom bottom-layout">
+  <div class="bottom-box">
     <div class="bottom-row bottom-row-top">
       <button id="rec">REC</button>
       <button id="seqStop">STOP</button>
       <button id="recUndo">R UNDO</button>
       <button id="clearRec">C REC</button>
     </div>
+  </div>
 
-    <!-- 2段目 -->
+  <div class="divider"></div>
+
+  <div class="bottom-box">
     <div class="bottom-row bottom-row-bottom">
-      <button id="clearObj">C OBJ</button>
-      <button id="clearBalls">C BALL</button>
+      <button id="undo">UNDO</button>
+      <button id="clearObj">OBJ CLR</button>
+      <button id="clearBalls">BALL CLR</button>
     </div>
   </div>
 </div>
+</div>
 
-  <div class="hint">• BALL: choose a tone in the panel, then tap<br>• LINE / SLIDER: drag<br>• SPIN / HOLE / FILL / FONT: tap<br>• MOVE: drag the object<br>• VIEW hides most controls</div>
 
+
+  
   <script>
   const $ = id => document.getElementById(id);
   const canvas = $("canvas");
@@ -1088,7 +1221,20 @@ let recording=false,firstRec=true,recStart=null,loopDur=0,events=[],timers=[],se
   const MAX_FILLS = 15;
   const MAX_TEXTS = 16;
   const MAX_HISTORY = 40;
-  const panels = [$("settings"),$("ballPanel"),$("motionPanel"),$("linePanel"),$("holePanel"),$("fillPanel"),$("fontPanel"),$("plungerPanel")];
+
+const REVERB_PRE_DELAY = 0.028;
+const REVERB_BRIGHTNESS = 7000;
+
+const panels = [
+  $("settings"),
+  $("ballPanel"),
+  $("motionPanel"),
+  $("linePanel"),
+  $("holePanel"),
+  $("fillPanel"),
+  $("fontPanel"),
+  $("plungerPanel")
+];
 
   const FX = {
     master:.72,
@@ -1097,15 +1243,14 @@ let recording=false,firstRec=true,recStart=null,loopDur=0,events=[],timers=[],se
     lpfFreq:6500,
     lpfQ:1.1,
     revEnabled:false,
-    reverbMix:.62,
-    shimmerMix:0,
-    reverbPreDelay:.028,
-    reverbRoomSize:.16,
-    reverbDecay:.62,
-    reverbBrightness:7000,
-    delayEnabled:false,
-    delayMix:.42,
-    delayTime:.34,
+  reverbMix:.10,
+shimmerMix:0,
+reverbRoomSize:.16,
+reverbDecay:.62,
+
+delayMix:.10,
+delayTime:.34,
+
     delayFeedback:.55,
     granularMix:.35,
     delayFilter:6200,
@@ -1122,7 +1267,7 @@ ballColor:DEFAULT_BALL_COLOR,
 ballVolume:1.0,
 
     motionSpeed:1,
-    lineStraight:false,
+    lineStraight:true,
     fillAlpha:0.35,
     drawWidth:960,
     drawHeight:540
@@ -1135,22 +1280,31 @@ ballVolume:1.0,
     return BALL_TONES[key] || BALL_TONES.pad;
   }
 
-  function resize(){
-    D=Math.min(devicePixelRatio||1,2);
-    W=clamp(+$("drawWidth").value || FX.drawWidth, 320, 2048);
-    H=clamp(+$("drawHeight").value || FX.drawHeight, 240, 2048);
+ function resize(){
+  const vv = window.visualViewport;
 
-    FX.drawWidth = W;
-    FX.drawHeight = H;
+  const viewportW = Math.round(vv ? vv.width : window.innerWidth);
+  const viewportH = Math.round(vv ? vv.height : window.innerHeight);
 
-    canvas.width = W * D;
-    canvas.height = H * D;
-    canvas.style.width = W + "px";
-    canvas.style.height = H + "px";
+  D = Math.min(window.devicePixelRatio || 1, 2);
 
-    ctx.setTransform(D,0,0,D,0,0);
-    applyViewTransform();
-  }
+  W = Math.max(1, viewportW);
+  H = Math.max(1, viewportH);
+
+  FX.drawWidth = W;
+  FX.drawHeight = H;
+
+  canvas.width = Math.round(W * D);
+  canvas.height = Math.round(H * D);
+
+  canvas.style.width = `${W}px`;
+  canvas.style.height = `${H}px`;
+
+  ctx.setTransform(D, 0, 0, D, 0, 0);
+
+  applyViewTransform();
+}
+
 
   function touchDist(a,b){
     return Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY);
@@ -1204,134 +1358,148 @@ ballVolume:1.0,
     document.documentElement.style.setProperty("--bg2", shadeHex(FX.bgColor,.52));
   }
 
- async function ensureAudio() {
+ function unlockIOSAudioImmediately() {
+  if (!audio) return;
+
   try {
-    if (!audioReadyPromise) {
-      audioReadyPromise = (async () => {
-        const AC = window.AudioContext || window.webkitAudioContext;
-
-        if (!AC) {
-          throw new Error("Web Audio API is not supported.");
-        }
-
-        audio = new AC({
-          latencyHint: "interactive"
-        });
-
-        master = audio.createGain();
-        master.gain.value = FX.master;
-
-        mainFilter = audio.createBiquadFilter();
-        mainFilter.type = "lowpass";
-        mainFilter.frequency.value = FX.lpfEnabled ? FX.lpfFreq : 20000;
-        mainFilter.Q.value = FX.lpfQ;
-
-        outputComp = audio.createDynamicsCompressor();
-        outputComp.threshold.value = -3;
-        outputComp.knee.value = 10;
-        outputComp.ratio.value = 4;
-        outputComp.attack.value = 0.003;
-        outputComp.release.value = 0.12;
-
-        tapeFilter = audio.createBiquadFilter();
-        tapeFilter.type = "lowpass";
-        tapeFilter.frequency.value = 12000;
-        tapeFilter.Q.value = 0.7;
-
-        tapeShaper = audio.createWaveShaper();
-        tapeShaper.curve = makeSoftClipCurve(1.03);
-        tapeShaper.oversample = "4x";
-
-        /*
-          音声経路:
-
-          各ボール音
-            ↓
-          master
-            ↓
-          mainFilter
-            ↓
-          compressor
-            ↓
-          tapeFilter
-            ↓
-          tapeShaper
-            ↓
-          iPhone speaker / headphone
-        */
-        master.connect(mainFilter);
-        mainFilter.connect(outputComp);
-        outputComp.connect(tapeFilter);
-        tapeFilter.connect(tapeShaper);
-        tapeShaper.connect(audio.destination);
-
-        chorusLFO = audio.createOscillator();
-        chorusLFO.type = "sine";
-        chorusLFO.frequency.value = 0.15 + FX.chorusRate * 0.35;
-
-        chorusGain = audio.createGain();
-        chorusGain.gain.value = 0;
-
-        chorusLFO.connect(chorusGain);
-        chorusLFO.start();
-
-        tapeLFO = audio.createOscillator();
-        tapeLFO.type = "sine";
-        tapeLFO.frequency.value = 0.25 + FX.tapeFlutter * 0.35;
-
-        tapeGainNode = audio.createGain();
-        tapeGainNode.gain.value = 0;
-
-        tapeLFO.connect(tapeGainNode);
-        tapeLFO.start();
-      })();
+    /*
+      iOS Safari / ホーム画面Webアプリ用。
+      必ず pointerdown 等のユーザー操作中に同期実行する。
+    */
+    if (audio.state !== "running") {
+      const resumeResult = audio.resume();
+      if (resumeResult?.catch) {
+        resumeResult.catch(() => {});
+      }
     }
+
+    if (!audioUnlocked) {
+      const silent = audio.createBufferSource();
+      const gain = audio.createGain();
+
+      silent.buffer = audio.createBuffer(1, 1, audio.sampleRate);
+      gain.gain.value = 0.00001;
+
+      /*
+        master 経由ではなく destination に直接接続する。
+        AudioContext 自体を確実にアンロックするため。
+      */
+      silent.connect(gain);
+      gain.connect(audio.destination);
+
+      silent.start(0);
+      silent.stop(audio.currentTime + 0.03);
+
+      audioUnlocked = true;
+    }
+  } catch (error) {
+    console.warn("iOS audio unlock failed:", error);
+  }
+}
+
+async function ensureAudio() {
+  try {
+    if (audioReadyPromise) {
+      /*
+        ここはユーザー操作中に呼ばれる可能性があるため、
+        await より先に同期的に resume / 無音再生を行う。
+      */
+      unlockIOSAudioImmediately();
+
+      await audioReadyPromise;
+
+      if (audio?.state === "suspended") {
+        await audio.resume();
+      }
+
+      return audio?.state === "running";
+    }
+
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) {
+      throw new Error("Web Audio API is not supported.");
+    }
+
+    /*
+      AudioContext の生成直後、await より前に解除することが重要。
+    */
+    audio = new AC({ latencyHint: "interactive" });
+
+    unlockIOSAudioImmediately();
+
+    audioReadyPromise = (async () => {
+      master = audio.createGain();
+      master.gain.value = FX.master;
+
+      mainFilter = audio.createBiquadFilter();
+      mainFilter.type = "lowpass";
+      mainFilter.frequency.value = FX.lpfEnabled ? FX.lpfFreq : 20000;
+      mainFilter.Q.value = FX.lpfQ;
+
+      outputComp = audio.createDynamicsCompressor();
+      outputComp.threshold.value = -3;
+      outputComp.knee.value = 10;
+      outputComp.ratio.value = 4;
+      outputComp.attack.value = 0.003;
+      outputComp.release.value = 0.12;
+
+      tapeFilter = audio.createBiquadFilter();
+      tapeFilter.type = "lowpass";
+      tapeFilter.frequency.value = 12000;
+      tapeFilter.Q.value = 0.7;
+
+      tapeShaper = audio.createWaveShaper();
+      tapeShaper.curve = makeSoftClipCurve(1.03);
+      tapeShaper.oversample = "4x";
+
+      master.connect(mainFilter);
+      mainFilter.connect(outputComp);
+      outputComp.connect(tapeFilter);
+      tapeFilter.connect(tapeShaper);
+      tapeShaper.connect(audio.destination);
+
+      chorusLFO = audio.createOscillator();
+      chorusLFO.type = "sine";
+      chorusLFO.frequency.value = 0.15 + FX.chorusRate * 0.35;
+
+      chorusGain = audio.createGain();
+      chorusGain.gain.value = 0;
+
+      chorusLFO.connect(chorusGain);
+      chorusLFO.start();
+
+      tapeLFO = audio.createOscillator();
+      tapeLFO.type = "sine";
+      tapeLFO.frequency.value = 0.25 + FX.tapeFlutter * 0.35;
+
+      tapeGainNode = audio.createGain();
+      tapeGainNode.gain.value = 0;
+
+      tapeLFO.connect(tapeGainNode);
+      tapeLFO.start();
+    })();
 
     await audioReadyPromise;
 
     /*
-      iPhone / Safari:
-      ユーザー操作中に resume を実行しないと
-      音が鳴らない場合がある。
+      グラフ作成後にも念のため再開する。
     */
     if (audio.state === "suspended") {
       await audio.resume();
     }
 
-    /*
-      iOSの初回アンロック用の無音音声。
-      ボタン・キャンバス操作の最初の一回で実行される。
-    */
-    if (audio.state === "running" && !audioUnlocked) {
-      const silentBuffer = audio.createBuffer(1, 1, audio.sampleRate);
-      const silentSource = audio.createBufferSource();
-      const silentGain = audio.createGain();
-
-      silentSource.buffer = silentBuffer;
-      silentGain.gain.value = 0.00001;
-
-      silentSource.connect(silentGain);
-      silentGain.connect(master);
-
-      silentSource.start();
-      silentSource.stop(audio.currentTime + 0.02);
-
-      audioUnlocked = true;
-    }
-
-    /*
-      iOS 17以降などで使える場合、
-      再生モードとして明示する。
-    */
-    if (navigator.audioSession) {
-      try {
-        navigator.audioSession.type = "playback";
-      } catch (error) {}
-    }
-
     updateFX();
 
-    return true;
+    if (master) {
+      master.gain.cancelScheduledValues(audio.currentTime);
+      master.gain.setTargetAtTime(
+        Math.max(0.0001, FX.master),
+        audio.currentTime,
+        0.015
+      );
+    }
+
+    return audio.state === "running";
   } catch (error) {
     console.error("Audio initialization failed:", error);
     return false;
@@ -1662,12 +1830,10 @@ n:b.n,
   }
 
  function updateFX(){
-  const prevDrawW = FX.drawWidth;
-  const prevDrawH = FX.drawHeight;
+  
   const prevLineWidth = FX.lineWidth;
 
-  FX.drawWidth = clamp(+$("drawWidth").value || FX.drawWidth, 320, 2048);
-  FX.drawHeight = clamp(+$("drawHeight").value || FX.drawHeight, 240, 2048);
+  
 
   FX.plungerReturnMs = +$("plungerReturnMs").value;
 
@@ -1679,10 +1845,9 @@ n:b.n,
   FX.lpfQ = +$("lpfQ").value;
   FX.reverbMix = +$("reverbMix").value;
   FX.shimmerMix = +$("shimmerMix").value;
-  FX.reverbPreDelay = +$("reverbPreDelay").value;
+
   FX.reverbRoomSize = +$("reverbRoomSize").value;
   FX.reverbDecay = +$("reverbDecay").value;
-  FX.reverbBrightness = +$("reverbBrightness").value;
   FX.delayMix = +$("delayMix").value;
   FX.delayTime = +$("delayTime").value;
   FX.delayFeedback = +$("delayFeedback").value;
@@ -1703,18 +1868,17 @@ FX.fillAlpha = +$("fillAlpha").value;
   const tone = getTone(FX.ballTone);
   FX.ballColor = tone.color;
 
-  $("drawWidthV").textContent = `${FX.drawWidth}px`;
-  $("drawHeightV").textContent = `${FX.drawHeight}px`;
+  
 
   $("masterVolumeV").textContent = `${Math.round(FX.master * 100)}%`;
   $("lpfFreqV").textContent = `${Math.round(FX.lpfFreq)}Hz`;
   $("lpfQV").textContent = FX.lpfQ.toFixed(1);
   $("reverbMixV").textContent = `${Math.round(FX.reverbMix * 100)}%`;
   $("shimmerMixV").textContent = `${Math.round(FX.shimmerMix * 100)}%`;
-  $("reverbPreDelayV").textContent = `${FX.reverbPreDelay.toFixed(3)}s`;
+
   $("reverbRoomSizeV").textContent = `${FX.reverbRoomSize.toFixed(3)}s`;
   $("reverbDecayV").textContent = `${Math.round(FX.reverbDecay * 100)}%`;
-  $("reverbBrightnessV").textContent = `${Math.round(FX.reverbBrightness / 1000 * 10) / 10}k`;
+
   $("delayMixV").textContent = `${Math.round(FX.delayMix * 100)}%`;
   $("delayTimeV").textContent = `${FX.delayTime.toFixed(2)}s`;
   $("delayFeedbackV").textContent = `${Math.round(FX.delayFeedback * 100)}%`;
@@ -1800,9 +1964,7 @@ $("ballVolumeV").textContent =
     rebuildTextMasks();
   }
 
-  if(prevDrawW !== FX.drawWidth || prevDrawH !== FX.drawHeight){
-    resize();
-  }
+  
 }
 
 async function playSound(f, v, r, w = 1, rel = 1, toneKey = FX.ballTone) {
@@ -1937,13 +2099,22 @@ async function playSound(f, v, r, w = 1, rel = 1, toneKey = FX.ballTone) {
     delayOut.gain.value = FX.delayEnabled ? FX.delayMix * tone.delaySend * 1.05 : 0;
     delayFeedback.gain.value = FX.delayEnabled ? clamp(FX.delayFeedback * tone.delayFeedback, 0, .94) : 0;
 
-    revPre.delayTime.setValueAtTime(FX.reverbPreDelay * tone.revPre, now);
+revPre.delayTime.setValueAtTime(
+  REVERB_PRE_DELAY * tone.revPre,
+  now
+);
+
     revA.delayTime.setValueAtTime(FX.reverbRoomSize * .73 * tone.revPre, now);
     revB.delayTime.setValueAtTime(FX.reverbRoomSize * 1.17 * tone.revPre, now);
     revC.delayTime.setValueAtTime(FX.reverbRoomSize * 1.61 * tone.revPre, now);
 
     revFilter.type = "lowpass";
-    revFilter.frequency.setValueAtTime(clamp(FX.reverbBrightness * tone.revBright, 800, 12000), now);
+revFilter.frequency.setValueAtTime(
+  clamp(REVERB_BRIGHTNESS * tone.revBright, 800, 12000),
+  now
+);
+
+
 
     const activeRevMix = FX.revEnabled ? FX.reverbMix * tone.revSend * 1.10 : 0;
     revGainA.gain.value = activeRevMix * .26;
@@ -3623,10 +3794,9 @@ sequenceStopped = false;
   $("lpfQ").value = fx.lpfQ ?? FX.lpfQ;
   $("reverbMix").value = fx.reverbMix ?? FX.reverbMix;
   $("shimmerMix").value = fx.shimmerMix ?? FX.shimmerMix;
-  $("reverbPreDelay").value = fx.reverbPreDelay ?? FX.reverbPreDelay;
+
   $("reverbRoomSize").value = fx.reverbRoomSize ?? FX.reverbRoomSize;
   $("reverbDecay").value = fx.reverbDecay ?? FX.reverbDecay;
-  $("reverbBrightness").value = fx.reverbBrightness ?? FX.reverbBrightness;
   $("delayMix").value = fx.delayMix ?? FX.delayMix;
   $("delayTime").value = fx.delayTime ?? FX.delayTime;
   $("delayFeedback").value = fx.delayFeedback ?? FX.delayFeedback;
@@ -3641,15 +3811,17 @@ sequenceStopped = false;
   $("lineColor").value = fx.lineColor ?? FX.lineColor;
   $("motionSpeed").value = fx.motionSpeed ?? FX.motionSpeed;
   $("fillAlpha").value = fx.fillAlpha ?? FX.fillAlpha;
-  $("drawWidth").value = fx.drawWidth ?? ui.drawWidth ?? root.drawWidth ?? FX.drawWidth;
-  $("drawHeight").value = fx.drawHeight ?? ui.drawHeight ?? root.drawHeight ?? FX.drawHeight;
+  
   $("plungerReturnMs").value = fx.plungerReturnMs ?? FX.plungerReturnMs;
 
   setToggleState("sec-lpf", !!fx.lpfEnabled);
   setToggleState("sec-rev", !!fx.revEnabled);
   setToggleState("sec-delay", !!fx.delayEnabled);
   setToggleState("sec-mod", !!fx.modEnabled);
-  setToggleState("sec-line-straight", !!fx.lineStraight);
+setToggleState(
+  "sec-line-straight",
+  fx.lineStraight ?? FX.lineStraight
+);
 
   updateFontUI();
   buildScale();
@@ -3695,18 +3867,21 @@ function down(e){
 
   // 以下は既存処理
 
-    if(e.touches?.length >= 2){
-      e.preventDefault();
+ const activeTouches = getActiveTouches(e);
 
-      const c = touchCenter(e.touches[0], e.touches[1]);
+if(activeTouches.length >= 2){
+  e.preventDefault();
 
-      if(mode === "font" && editMode && fontDraft){
-        fontGesture = {
-          startDist: touchDist(e.touches[0], e.touches[1]),
-          startAngle: Math.atan2(
-            e.touches[1].clientY - e.touches[0].clientY,
-            e.touches[1].clientX - e.touches[0].clientX
-          ),
+  const c = touchCenter(activeTouches[0], activeTouches[1]);
+
+  if(mode === "font" && editMode && fontDraft){
+    fontGesture = {
+      startDist: touchDist(activeTouches[0], activeTouches[1]),
+      startAngle: Math.atan2(
+        activeTouches[1].clientY - activeTouches[0].clientY,
+        activeTouches[1].clientX - activeTouches[0].clientX
+      ),
+
           startScale: fontDraft.scale ?? 1,
           startRot: fontDraft.rot ?? 0,
           startX: fontDraft.x ?? c.x,
@@ -3722,7 +3897,8 @@ function down(e){
       }
 
       pinch = true;
-      pinchStartDist = touchDist(e.touches[0], e.touches[1]);
+     pinchStartDist = touchDist(activeTouches[0], activeTouches[1]);
+
       pinchStartZoom = zoom;
       pinchAnchorX = (c.x - panX) / zoom;
       pinchAnchorY = (c.y - panY) / zoom;
@@ -3903,15 +4079,17 @@ function down(e){
     }
 
     if(editMode && mode === "font" && fontDraft){
-      if(e.touches?.length >= 2 && fontGesture){
-        e.preventDefault();
+  const activeTouches = getActiveTouches(e);
 
-        const c = touchCenter(e.touches[0], e.touches[1]);
-        const d = touchDist(e.touches[0], e.touches[1]);
-        const a = Math.atan2(
-          e.touches[1].clientY - e.touches[0].clientY,
-          e.touches[1].clientX - e.touches[0].clientX
-        );
+  if(activeTouches.length >= 2 && fontGesture){
+    e.preventDefault();
+
+    const c = touchCenter(activeTouches[0], activeTouches[1]);
+    const d = touchDist(activeTouches[0], activeTouches[1]);
+    const a = Math.atan2(
+      activeTouches[1].clientY - activeTouches[0].clientY,
+      activeTouches[1].clientX - activeTouches[0].clientX
+    );
 
         fontDraft.scale = clamp(fontGesture.startScale * d / fontGesture.startDist, .2, 8);
         fontDraft.rot = fontGesture.startRot + (a - fontGesture.startAngle);
@@ -3924,12 +4102,15 @@ function down(e){
       fontDraft.y = p.y;
       return;
     }
+const activeTouches = getActiveTouches(e);
 
-    if(e.touches?.length >= 2){
-      e.preventDefault();
+if(activeTouches.length >= 2){
+  e.preventDefault();
 
-      const c = touchCenter(e.touches[0], e.touches[1]);
-      const d = touchDist(e.touches[0], e.touches[1]);
+  const c = touchCenter(activeTouches[0], activeTouches[1]);
+  const d = touchDist(activeTouches[0], activeTouches[1]);
+
+    
 
       if(!pinch){
         pinch = true;
@@ -4023,10 +4204,14 @@ function down(e){
   }
 
   function up(){
-    if(pinch){
-      pinch = false;
-      return;
-    }
+  /*
+    2本指操作の片方が離れた場合は、
+    オブジェクト作成などを行わず終了する。
+  */
+  if(pinch){
+    return;
+  }
+
 
     if(editMode && mode === "move" && moveTarget){
       if(moveTarget.moved){
@@ -4239,75 +4424,128 @@ function down(e){
   pointerdown を主に使うことで、
   touchstart / mousedown の二重発火を避ける。
 */
-document.addEventListener("pointerdown", () => {
-  ensureAudio();
-}, {
+
+function unlockAudioFromUserGesture() {
+  /*
+    初回なら AudioContext を生成する。
+    生成後、同期処理で iOS の音声ロックを解除する。
+  */
+  if (!audio) {
+    ensureAudio();
+  } else {
+    unlockIOSAudioImmediately();
+    ensureAudio();
+  }
+}
+
+document.addEventListener("pointerdown", unlockAudioFromUserGesture, {
   passive: true,
   capture: true
 });
 
-document.addEventListener("keydown", () => {
-  ensureAudio();
-}, {
+document.addEventListener("touchstart", unlockAudioFromUserGesture, {
   passive: true,
   capture: true
 });
 
+document.addEventListener("keydown", unlockAudioFromUserGesture, {
+  passive: true,
+  capture: true
+});
 
- let activeCanvasPointerId = null;
-let isFinalized = false; // 1タップ（pointerdown）につきupを1回にする
+/*
+  PointerEvent 用のタッチ管理。
+  PointerEvent には e.touches がないため、
+  触れている pointer を自前で保持する。
+*/
+const canvasPointers = new Map();
 
+function getActiveTouches(e) {
+  /*
+    touch event の場合は、そのまま使う
+  */
+  if (e.touches) {
+    return Array.from(e.touches);
+  }
+
+  /*
+    pointer event の場合は、現在canvasを触っている
+    全pointerを touch-like な配列として返す
+  */
+  return Array.from(canvasPointers.values());
+}
+
+function isMultiTouch(e) {
+  return getActiveTouches(e).length >= 2;
+}
+ 
 /*
   初回タップ時も await しない。
   FONTのfontDraftを即座に作成する。
 */
 canvas.addEventListener("pointerdown", (e) => {
-  ensureAudio();
+  unlockAudioFromUserGesture();
+
+  /*
+    2本目の指も必ず登録する。
+    以前のコードでは1本目以外を無視していたため、
+    ピンチズームが動作しなかった。
+  */
+  canvasPointers.set(e.pointerId, {
+    clientX: e.clientX,
+    clientY: e.clientY,
+    pointerId: e.pointerId
+  });
 
   e.preventDefault();
 
-  activeCanvasPointerId = e.pointerId;
-  isFinalized = false; // ★追加
+  try {
+    canvas.setPointerCapture(e.pointerId);
+  } catch (error) {}
 
-  try { canvas.setPointerCapture(e.pointerId); } catch (error) {}
   down(e);
 }, { passive: false });
+
 canvas.addEventListener("pointermove", (e) => {
-  if (activeCanvasPointerId !== null && e.pointerId !== activeCanvasPointerId) {
+  if (!canvasPointers.has(e.pointerId)) {
     return;
   }
 
+  canvasPointers.set(e.pointerId, {
+    clientX: e.clientX,
+    clientY: e.clientY,
+    pointerId: e.pointerId
+  });
+
+  e.preventDefault();
   move(e);
 }, { passive: false });
 
 function finishCanvasPointer(e) {
-  if (activeCanvasPointerId === null) return;
-
-  // ★追加：もう確定済みなら何もしない
-  if (isFinalized) return;
-
-  if (
-    activeCanvasPointerId !== null &&
-    e.pointerId !== undefined &&
-    e.pointerId !== activeCanvasPointerId
-  ) {
+  if (!canvasPointers.has(e.pointerId)) {
     return;
   }
 
-  // ★ここで確定処理を1回に固定
-  isFinalized = true;
-  
+  /*
+    up() の実行前はpointerを残す。
+    これにより、pinch中かどうかを既存のup()が正しく処理できる。
+  */
   up(e);
 
-  try {
-    if (e.pointerId !== undefined) {
-      canvas.releasePointerCapture(e.pointerId);
-    }
-  } catch (error) {}
+  canvasPointers.delete(e.pointerId);
 
-  activeCanvasPointerId = null;
-  // 必要なら isFinalized はそのままでOK（pointerdownでfalseに戻す）
+  /*
+    指が1本以下になったらピンチ状態を解除する。
+  */
+  if (canvasPointers.size < 2) {
+    pinch = false;
+  }
+
+  try {
+    canvas.releasePointerCapture(e.pointerId);
+  } catch (error) {}
 }
+
 canvas.addEventListener("pointerup", finishCanvasPointer, {
   passive: false
 });
@@ -4316,21 +4554,13 @@ canvas.addEventListener("pointercancel", finishCanvasPointer, {
   passive: false
 });
 
-/*
-  iPhone Safariでまれにcanvasの外側でpointerupになる場合の保険。
-  fontDraftが残ったまま透明プレビューになることを防ぐ。
-*/
-window.addEventListener("pointerup", (e) => {
-  if (activeCanvasPointerId === null) {
-    return;
-  }
-
-  finishCanvasPointer(e);
-}, {
+window.addEventListener("pointerup", finishCanvasPointer, {
   passive: false
 });
 
-canvas.addEventListener("pointercancel", up, { passive: false });
+window.addEventListener("pointercancel", finishCanvasPointer, {
+  passive: false
+});
 
 
   ["ball","line","slider","spin","hole","fill","font","plunger","move"].forEach(x=>{
@@ -4593,10 +4823,8 @@ $("clearRec").onclick = () => {
   "lpfQ",
   "reverbMix",
   "shimmerMix",
-  "reverbPreDelay",
   "reverbRoomSize",
   "reverbDecay",
-  "reverbBrightness",
   "delayMix",
   "delayTime",
   "delayFeedback",
@@ -4611,10 +4839,10 @@ $("clearRec").onclick = () => {
   "lineColor",
   "motionSpeed",
   "fillAlpha",
-  "drawWidth",
-  "drawHeight",
+  
   "ballVolume"
 ]
+
 .forEach(id=>{
     $(id).addEventListener("input", updateFX);
   });
@@ -4636,8 +4864,7 @@ $("clearRec").onclick = () => {
   bind("bounce","bounceV");
   bind("fontSize","fontSizeV","px");
   bind("fillAlpha","fillAlphaV","%");
-  bind("drawWidth","drawWidthV","px");
-  bind("drawHeight","drawHeightV","px");
+  
   bind("plungerSize","plungerSizeV","px");
   bind("plungerReturnMs","plungerReturnMsV","ms");
 bind("ballVolume", "ballVolumeV", "%");
@@ -4646,8 +4873,72 @@ bind("ballVolume", "ballVolumeV", "%");
 
   resize();
   buildScale();
-  addEventListener("resize",resize);
+window.addEventListener("resize", resize);
+window.addEventListener("orientationchange", resize);
 
+/*
+  iPhone Safari、ホーム画面Webアプリ、アドレスバー表示切替時にも追従する。
+*/
+window.visualViewport?.addEventListener("resize", resize);
+
+function removeObjectById(type, id) {
+    const arr = collectionByType(type);
+    if (!arr) return false;
+    const i = arr.findIndex(o => o && o.id === id);
+    if (i >= 0) {
+      arr.splice(i, 1);
+      return true;
+    }
+    return false;
+  }
+
+  function undoLast() {
+    if (!history.length) return;
+
+    const item = history.pop();
+
+    // history に入っているパターンに応じて戻す
+    switch (item?.t) {
+      case "clearObj":
+        // snapshot が入っている想定（あなたの clearObj で pushHistoryItem してる）
+        if (item.snapshot) restoreObjectsState(item.snapshot);
+        return;
+
+      case "clearBalls":
+        if (item.snapshot) restoreBallsState(item.snapshot);
+        return;
+
+      case "move":
+        // move の undo（before を使う）
+        if (item.type && item.id != null && item.before) {
+          restoreMovedObject(item.type, item.id, item.before);
+        }
+        return;
+
+      // 直前に作ったオブジェクト削除で戻す（line/hole/text/plunger/fill/slider/spin など）
+      case "line":
+      case "slider":
+      case "spin":
+      case "hole":
+      case "text":
+      case "plunger":
+      case "fill":
+        // r がオブジェクト参照として入っているケースが多い
+        if (item?.r?.id != null) {
+          const type = item.t;
+          removeObjectById(type, item.r.id);
+        }
+        return;
+
+      default:
+        // 何が入っていても落ちない保険
+        return;
+    }
+  }
+
+  $("undo").onclick = () => {
+    undoLast();
+  };
   function render(){
     const now=Date.now();
 
@@ -4714,6 +5005,19 @@ bind("ballVolume", "ballVolumeV", "%");
   }
 
   requestAnimationFrame(render);
+
+  setTimeout(() => {
+    const splash = $("splash");
+    if (!splash) return;
+
+    splash.classList.add("hide");
+
+    setTimeout(() => {
+      splash.remove();
+    }, 350);
+  }, 750);
+
+
   </script>
 </body>
 </html>
