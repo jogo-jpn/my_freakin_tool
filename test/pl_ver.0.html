@@ -1,0 +1,1297 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+  <title>POP LOOP LAB</title>
+  <style>
+    :root{
+      --ink:#20213c;--bg:#fff4dc;--card:#fff;--purple:#7666ff;--pink:#ff5c9d;
+      --orange:#ff9a4d;--yellow:#ffe45c;--mint:#74e7c5;--blue:#55baf7;
+    }
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    html,body{
+      margin:0;width:100%;height:100%;overflow:hidden;
+      background:
+        radial-gradient(circle at 8% 8%,#ffe45c 0 5%,transparent 5.5%),
+        radial-gradient(circle at 92% 12%,#74e7c5 0 5%,transparent 5.5%),
+        radial-gradient(circle at 90% 88%,#ffb3d0 0 9%,transparent 9.5%),
+        var(--bg);
+      color:var(--ink);
+      font-family:"Arial Rounded MT Bold","Trebuchet MS",sans-serif;
+    }
+    button,input{font:inherit}
+    button{
+      appearance:none;border:2px solid var(--ink);border-radius:11px;background:var(--card);
+      color:var(--ink);box-shadow:2px 2px 0 var(--ink);font-size:10px;font-weight:900;
+      min-height:36px;padding:5px 8px;touch-action:manipulation;
+    }
+    button:active:not(:disabled){transform:translate(2px,2px);box-shadow:none}
+    button:disabled{opacity:.42;box-shadow:none}
+    input[type="range"]{width:100%;margin:0;accent-color:var(--purple)}
+    .app{
+      width:min(100%,560px);height:100dvh;margin:auto;
+      padding:max(8px,env(safe-area-inset-top)) 10px max(8px,env(safe-area-inset-bottom));
+      display:flex;flex-direction:column;gap:7px;
+    }
+    .header{display:flex;justify-content:space-between;align-items:center;gap:8px}
+    .logo{
+      font-size:clamp(19px,6vw,28px);font-weight:1000;letter-spacing:-.06em;
+      color:var(--purple);text-shadow:2px 2px var(--ink);white-space:nowrap;
+    }
+    .dot{
+      display:inline-block;width:15px;height:15px;border:2px solid var(--ink);
+      border-radius:50%;background:var(--pink);box-shadow:2px 2px var(--ink);margin-right:5px;
+    }
+    .badge{
+      border:2px solid var(--ink);border-radius:999px;background:var(--yellow);
+      box-shadow:2px 2px var(--ink);padding:6px 8px;font-size:9px;font-weight:900;
+      white-space:nowrap;
+    }
+    .status{
+      min-height:25px;border:2px solid var(--ink);border-radius:8px;background:#fff;
+      padding:5px 8px;color:#55586f;font-size:9px;font-weight:800;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    }
+    .buttons{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+    #enable{background:var(--mint)}
+    #stop{background:var(--pink);color:#fff}
+    .card{
+      border:2px solid var(--ink);border-radius:14px;background:var(--card);
+      box-shadow:3px 3px var(--ink);overflow:hidden;
+    }
+    .cardhead{
+      min-height:29px;padding:6px 8px;display:flex;justify-content:space-between;
+      align-items:center;background:var(--purple);color:#fff;font-size:9px;font-weight:1000;
+    }
+    .cardhead span{color:var(--yellow);font-size:8px}
+    .wavewrap{
+      height:clamp(105px,18dvh,145px);position:relative;touch-action:none;
+      background:
+        linear-gradient(90deg,rgba(32,33,60,.08) 1px,transparent 1px),
+        linear-gradient(rgba(32,33,60,.08) 1px,transparent 1px),
+        #fffdf7;
+      background-size:20px 20px;
+    }
+    canvas{display:block;width:100%;height:100%}
+    .region{
+      position:absolute;top:0;bottom:0;background:rgba(116,231,197,.18);
+      border-left:2px solid var(--mint);border-right:2px solid var(--pink);
+      pointer-events:none;
+    }
+    .playbar{
+      position:absolute;top:0;bottom:0;width:3px;background:var(--purple);
+      box-shadow:1px 0 #fff,-1px 0 #fff;pointer-events:none;z-index:3;
+    }
+    .playbar:before{
+      content:"";position:absolute;top:4px;left:50%;transform:translateX(-50%);
+      width:10px;height:10px;border:2px solid var(--ink);border-radius:50%;background:var(--yellow);
+    }
+    .handle{
+      position:absolute;top:0;bottom:0;width:28px;transform:translateX(-50%);
+      touch-action:none;z-index:4;
+    }
+    .handle:before{
+      content:"";position:absolute;top:8px;bottom:8px;left:9px;width:8px;
+      border:2px solid var(--ink);border-radius:6px;box-shadow:2px 2px var(--ink);
+    }
+    .handle:after{
+      position:absolute;top:10px;left:50%;transform:translateX(-50%);
+      font-size:7px;font-weight:1000;
+    }
+    #inHandle:before{background:var(--mint)}
+    #outHandle:before{background:var(--pink)}
+    #inHandle:after{content:"IN"}
+    #outHandle:after{content:"OUT"}
+    .readouts{
+      display:grid;grid-template-columns:1fr 1fr;padding:6px 8px;border-top:2px solid var(--ink);
+      background:#fff8e8;color:#55586f;font-size:8px;font-weight:900;
+    }
+    .readouts span:last-child{text-align:right}
+    .tracks{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+    .track{
+      min-width:0;border:2px solid var(--ink);border-radius:12px;background:#fff;
+      padding:5px;box-shadow:2px 2px var(--ink);
+    }
+    .top{
+      display:flex;justify-content:space-between;align-items:center;border:2px solid var(--ink);
+      border-radius:7px;padding:4px;font-size:9px;font-weight:1000;margin-bottom:5px;
+    }
+    .track:nth-child(1) .top{background:var(--blue)}
+    .track:nth-child(2) .top{background:var(--orange)}
+    .track:nth-child(3) .top{background:var(--mint)}
+    .led{width:9px;height:9px;border:2px solid var(--ink);border-radius:50%;background:#fff}
+    .led.play{background:var(--mint)}
+    .led.rec{background:var(--pink);animation:blink .65s steps(2) infinite}
+    @keyframes blink{50%{opacity:.25}}
+    .actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:3px}
+    .actions button{min-height:27px;padding:2px;font-size:7px;border-radius:7px;box-shadow:1px 1px var(--ink)}
+    .rec{background:var(--pink);color:#fff}
+    .rec.active{background:#ff2c72;animation:blink .65s steps(2) infinite}
+    .mute.active{background:var(--yellow)}
+    .clear{background:#f0f0f6}
+    .vol{display:grid;grid-template-columns:19px 1fr;gap:3px;align-items:center;margin-top:5px;font-size:8px;font-weight:900}
+    .controls{padding:7px 8px}
+    .controlhead{display:flex;justify-content:space-between;color:var(--purple);font-size:10px;font-weight:1000;margin-bottom:5px}
+    .row{display:grid;grid-template-columns:48px 1fr 40px;gap:5px;align-items:center;font-size:8px;font-weight:900}
+    .value{text-align:right;color:#55586f;font-size:8px}
+    .twocol{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:5px}
+    .twocol .row{grid-template-columns:42px 1fr 32px}
+    #fxOpen{background:var(--yellow)}
+    .fx{
+      position:fixed;z-index:10;left:0;right:0;bottom:0;height:min(78dvh,680px);
+      padding:10px 10px max(10px,env(safe-area-inset-bottom));background:#fff4dc;
+      border-top:3px solid var(--ink);border-radius:20px 20px 0 0;
+      transform:translateY(105%);transition:transform .2s ease;
+    }
+    .fx.open{transform:translateY(0)}
+    .fxhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+    .fxhead strong{font-size:17px;color:var(--purple)}
+    .fxhead button{background:var(--pink);color:#fff}
+    .fxlist{
+      height:calc(100% - 48px);overflow:auto;display:grid;gap:8px;padding:2px 3px 12px;
+      -webkit-overflow-scrolling:touch;
+    }
+    .effect{
+      border:2px solid var(--ink);border-radius:12px;background:#fff;padding:8px;
+      box-shadow:2px 2px var(--ink);
+    }
+    .effect.off{opacity:.52;background:#f1f1f5}
+    .effecthead{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
+    .ename{font-size:10px;font-weight:1000;color:var(--purple)}
+    .ename span{font-size:8px;color:#898ba1}
+    .toggle{
+      min-height:25px;padding:3px 8px;border-radius:8px;font-size:8px;
+      background:#e9e9f2;box-shadow:1px 1px var(--ink);
+    }
+    .toggle.on{background:var(--mint)}
+    .param{
+      display:grid;grid-template-columns:70px 1fr 43px;gap:6px;align-items:center;
+      min-height:24px;font-size:8px;font-weight:900;
+    }
+    .pvalue{text-align:right;color:#55586f;font-size:8px}
+  </style>
+</head>
+<body>
+<main class="app">
+  <header class="header">
+    <div class="logo"><i class="dot"></i>POP LOOP LAB</div>
+    <div class="badge" id="loopBadge">LOOP --</div>
+  </header>
+
+  <div class="status" id="status">ENABLE MIC TO START.</div>
+
+  <div class="buttons">
+    <button id="enable">ENABLE MIC</button>
+    <button id="stop" disabled>STOP ALL</button>
+  </div>
+
+  <section class="card">
+    <div class="cardhead"><b>LOOP EDITOR</b><span>DRAG IN / OUT</span></div>
+    <div class="wavewrap" id="waveWrap">
+      <canvas id="waveCanvas"></canvas>
+      <div class="region" id="region"></div>
+      <div class="playbar" id="playBar"></div>
+      <div class="handle" id="inHandle"></div>
+      <div class="handle" id="outHandle"></div>
+    </div>
+    <div class="readouts">
+      <span id="inReadout">IN: 0.00s</span>
+      <span id="outReadout">OUT: --</span>
+    </div>
+  </section>
+
+  <section class="tracks">
+    <article class="track">
+      <div class="top"><span>TRACK 1</span><i class="led" id="led0"></i></div>
+      <div class="actions">
+        <button class="rec" id="rec0" disabled>REC</button>
+        <button class="mute" id="mute0" disabled>MUTE</button>
+        <button class="clear" id="clear0" disabled>CLEAR</button>
+      </div>
+      <div class="vol"><span>VOL</span><input id="vol0" type="range" min="0" max="1.5" step=".01" value="1"></div>
+    </article>
+
+    <article class="track">
+      <div class="top"><span>TRACK 2</span><i class="led" id="led1"></i></div>
+      <div class="actions">
+        <button class="rec" id="rec1" disabled>REC</button>
+        <button class="mute" id="mute1" disabled>MUTE</button>
+        <button class="clear" id="clear1" disabled>CLEAR</button>
+      </div>
+      <div class="vol"><span>VOL</span><input id="vol1" type="range" min="0" max="1.5" step=".01" value="1"></div>
+    </article>
+
+    <article class="track">
+      <div class="top"><span>TRACK 3</span><i class="led" id="led2"></i></div>
+      <div class="actions">
+        <button class="rec" id="rec2" disabled>REC</button>
+        <button class="mute" id="mute2" disabled>MUTE</button>
+        <button class="clear" id="clear2" disabled>CLEAR</button>
+      </div>
+      <div class="vol"><span>VOL</span><input id="vol2" type="range" min="0" max="1.5" step=".01" value="1"></div>
+    </article>
+  </section>
+
+  <section class="card controls">
+    <div class="controlhead"><span>LOOP SETTINGS</span><span id="speedLabel">1.00x</span></div>
+
+    <div class="row">
+      <span>MIC VOL</span>
+      <input id="micVol" type="range" min="0" max="2" step=".01" value="1">
+      <span class="value" id="micVolValue">100%</span>
+    </div>
+
+    <div class="row">
+      <span>SPEED</span>
+      <input id="speed" type="range" min=".5" max="1.5" step=".01" value="1">
+      <span class="value" id="speedValue">1.00x</span>
+    </div>
+
+    <div class="twocol">
+      <div class="row">
+        <span>FADE IN</span>
+        <input id="fadeIn" type="range" min="0" max="1.5" step=".01" value=".04">
+        <span class="value" id="fadeInValue">40ms</span>
+      </div>
+      <div class="row">
+        <span>FADE OUT</span>
+        <input id="fadeOut" type="range" min="0" max="1.5" step=".01" value=".08">
+        <span class="value" id="fadeOutValue">80ms</span>
+      </div>
+    </div>
+  </section>
+
+  <button id="fxOpen">OPEN AMBIENT FX ✦</button>
+</main>
+
+<section class="fx" id="fx">
+  <div class="fxhead">
+    <strong>AMBIENT FX ✦</strong>
+    <button id="fxClose">CLOSE</button>
+  </div>
+
+  <div class="fxlist">
+    <section class="effect" id="reverbBox">
+      <div class="effecthead">
+        <div class="ename">REVERB <span>SPACE</span></div>
+        <button class="toggle on" id="reverbOn">ON</button>
+      </div>
+      <div class="param">
+        <span>SIZE</span>
+        <input id="rvSize" type="range" min=".4" max="7" step=".1" value="3.8">
+        <span class="pvalue" id="rvSizeV">3.8s</span>
+      </div>
+      <div class="param">
+        <span>MIX</span>
+        <input id="rvMix" type="range" min="0" max="1" step=".01" value=".35">
+        <span class="pvalue" id="rvMixV">35%</span>
+      </div>
+    </section>
+
+    <section class="effect" id="delayBox">
+      <div class="effecthead">
+        <div class="ename">DELAY <span>ECHO</span></div>
+        <button class="toggle on" id="delayOn">ON</button>
+      </div>
+      <div class="param">
+        <span>TIME</span>
+        <input id="dlTime" type="range" min=".05" max="1.4" step=".01" value=".48">
+        <span class="pvalue" id="dlTimeV">480ms</span>
+      </div>
+      <div class="param">
+        <span>FEEDBACK</span>
+        <input id="dlFeed" type="range" min="0" max=".85" step=".01" value=".45">
+        <span class="pvalue" id="dlFeedV">45%</span>
+      </div>
+      <div class="param">
+        <span>MIX</span>
+        <input id="dlMix" type="range" min="0" max="1" step=".01" value=".22">
+        <span class="pvalue" id="dlMixV">22%</span>
+      </div>
+    </section>
+
+    <section class="effect" id="chorusBox">
+      <div class="effecthead">
+        <div class="ename">CHORUS <span>WIDE</span></div>
+        <button class="toggle on" id="chorusOn">ON</button>
+      </div>
+      <div class="param">
+        <span>RATE</span>
+        <input id="chRate" type="range" min=".05" max="3" step=".01" value=".22">
+        <span class="pvalue" id="chRateV">0.22Hz</span>
+      </div>
+      <div class="param">
+        <span>DEPTH</span>
+        <input id="chDepth" type="range" min="0" max=".03" step=".001" value=".012">
+        <span class="pvalue" id="chDepthV">12ms</span>
+      </div>
+      <div class="param">
+        <span>MIX</span>
+        <input id="chMix" type="range" min="0" max="1" step=".01" value=".2">
+        <span class="pvalue" id="chMixV">20%</span>
+      </div>
+    </section>
+
+    <section class="effect" id="filterBox">
+      <div class="effecthead">
+        <div class="ename">FILTER <span>TONE</span></div>
+        <button class="toggle on" id="filterOn">ON</button>
+      </div>
+      <div class="param">
+        <span>CUTOFF</span>
+        <input id="fiCut" type="range" min="150" max="12000" step="10" value="5500">
+        <span class="pvalue" id="fiCutV">5500Hz</span>
+      </div>
+      <div class="param">
+        <span>RESONANCE</span>
+        <input id="fiQ" type="range" min=".1" max="18" step=".1" value=".8">
+        <span class="pvalue" id="fiQV">0.8</span>
+      </div>
+      <div class="param">
+        <span>MIX</span>
+        <input id="fiMix" type="range" min="0" max="1" step=".01" value=".15">
+        <span class="pvalue" id="fiMixV">15%</span>
+      </div>
+    </section>
+
+    <section class="effect" id="driveBox">
+      <div class="effecthead">
+        <div class="ename">DRIVE <span>WARM</span></div>
+        <button class="toggle on" id="driveOn">ON</button>
+      </div>
+      <div class="param">
+        <span>AMOUNT</span>
+        <input id="drAmt" type="range" min="0" max="1" step=".01" value=".06">
+        <span class="pvalue" id="drAmtV">6%</span>
+      </div>
+      <div class="param">
+        <span>MIX</span>
+        <input id="drMix" type="range" min="0" max="1" step=".01" value=".1">
+        <span class="pvalue" id="drMixV">10%</span>
+      </div>
+    </section>
+
+    <section class="effect" id="tremoloBox">
+      <div class="effecthead">
+        <div class="ename">TREMOLO <span>PULSE</span></div>
+        <button class="toggle on" id="tremoloOn">ON</button>
+      </div>
+      <div class="param">
+        <span>RATE</span>
+        <input id="trRate" type="range" min=".05" max="12" step=".05" value=".4">
+        <span class="pvalue" id="trRateV">0.40Hz</span>
+      </div>
+      <div class="param">
+        <span>DEPTH</span>
+        <input id="trDepth" type="range" min="0" max="1" step=".01" value=".15">
+        <span class="pvalue" id="trDepthV">15%</span>
+      </div>
+      <div class="param">
+        <span>MIX</span>
+        <input id="trMix" type="range" min="0" max="1" step=".01" value=".12">
+        <span class="pvalue" id="trMixV">12%</span>
+      </div>
+    </section>
+  </div>
+</section>
+
+<script>
+  const $ = id => document.getElementById(id);
+
+  let ac, stream, micSource, micGain, processor, silent;
+  let mix, master, comp;
+  let reverb, reverbGain;
+  let delay, feedback, delayGain;
+  let chorus, chorusLfo, chorusDepth, chorusGain;
+  let filter, filterGain;
+  let drive, driveGain;
+  let tremGain, tremLfo, tremDepth, tremWet;
+
+  let frames = 0;
+  let fullLength = 0;
+  let inPoint = 0;
+  let outPoint = 0;
+  let speed = 1;
+  let fadeIn = 0.04;
+  let fadeOut = 0.08;
+  let recording = null;
+  let chunks = [];
+  let drag = null;
+  let loopStartTime = 0;
+  let raf = 0;
+
+  const fxEnabled = {
+    reverb: true,
+    delay: true,
+    chorus: true,
+    filter: true,
+    drive: true,
+    tremolo: true
+  };
+
+  const colors = ["#55baf7", "#ff9a4d", "#ff5c9d"];
+
+  const tracks = Array.from({ length: 3 }, (_, i) => ({
+    i,
+    buffer: null,
+    source: null,
+    gain: null,
+    fade: null,
+    muted: false,
+    volume: 1,
+    playing: false,
+    timer: null
+  }));
+
+  function setStatus(text) {
+    $("status").textContent = text.toUpperCase();
+  }
+
+  function formatTime(seconds) {
+    return `${seconds.toFixed(2)}s`;
+  }
+
+  function regionDuration() {
+    return Math.max(0.03, outPoint - inPoint);
+  }
+
+  function createImpulse(seconds) {
+    const buffer = ac.createBuffer(2, Math.floor(ac.sampleRate * seconds), ac.sampleRate);
+
+    for (let channel = 0; channel < 2; channel++) {
+      const data = buffer.getChannelData(channel);
+
+      for (let i = 0; i < data.length; i++) {
+        data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / data.length, 2.7);
+      }
+    }
+
+    return buffer;
+  }
+
+  function createDriveCurve(amount) {
+    const size = 2048;
+    const output = new Float32Array(size);
+    const driveAmount = 1 + amount * 120;
+
+    for (let i = 0; i < size; i++) {
+      output[i] = Math.tanh((i * 2 / size - 1) * driveAmount);
+    }
+
+    return output;
+  }
+
+  async function enableAudio() {
+    try {
+      ac = new (window.AudioContext || window.webkitAudioContext)();
+      await ac.resume();
+
+      stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false,
+          channelCount: 1
+        }
+      });
+
+      setupAudioGraph();
+      setupRecorder();
+
+      $("enable").disabled = true;
+      $("enable").textContent = "MIC READY";
+      $("stop").disabled = false;
+      $("rec0").disabled = false;
+
+      setStatus("RECORD TRACK 1 TO CREATE YOUR LOOP.");
+    } catch (error) {
+      setStatus(`MIC ERROR: ${error.message}`);
+    }
+  }
+
+  function setupAudioGraph() {
+    mix = ac.createGain();
+    master = ac.createGain();
+    comp = ac.createDynamicsCompressor();
+
+    master.gain.value = 0.82;
+    comp.threshold.value = -20;
+    comp.knee.value = 18;
+    comp.ratio.value = 4;
+    comp.attack.value = 0.01;
+    comp.release.value = 0.28;
+
+    mix.connect(comp);
+    comp.connect(master);
+    master.connect(ac.destination);
+
+    reverb = ac.createConvolver();
+    reverb.buffer = createImpulse(3.8);
+    reverbGain = ac.createGain();
+    reverbGain.gain.value = 0.35;
+    mix.connect(reverb);
+    reverb.connect(reverbGain);
+    reverbGain.connect(comp);
+
+    delay = ac.createDelay(2);
+    delay.delayTime.value = 0.48;
+    feedback = ac.createGain();
+    feedback.gain.value = 0.45;
+    delayGain = ac.createGain();
+    delayGain.gain.value = 0.22;
+    mix.connect(delay);
+    delay.connect(delayGain);
+    delayGain.connect(comp);
+    delay.connect(feedback);
+    feedback.connect(delay);
+
+    chorus = ac.createDelay(0.08);
+    chorus.delayTime.value = 0.025;
+    chorusLfo = ac.createOscillator();
+    chorusLfo.frequency.value = 0.22;
+    chorusDepth = ac.createGain();
+    chorusDepth.gain.value = 0.012;
+    chorusGain = ac.createGain();
+    chorusGain.gain.value = 0.2;
+    mix.connect(chorus);
+    chorus.connect(chorusGain);
+    chorusGain.connect(comp);
+    chorusLfo.connect(chorusDepth);
+    chorusDepth.connect(chorus.delayTime);
+    chorusLfo.start();
+
+    filter = ac.createBiquadFilter();
+    filter.type = "lowpass";
+    filter.frequency.value = 5500;
+    filter.Q.value = 0.8;
+    filterGain = ac.createGain();
+    filterGain.gain.value = 0.15;
+    mix.connect(filter);
+    filter.connect(filterGain);
+    filterGain.connect(comp);
+
+    drive = ac.createWaveShaper();
+    drive.curve = createDriveCurve(0.06);
+    drive.oversample = "2x";
+    driveGain = ac.createGain();
+    driveGain.gain.value = 0.1;
+    mix.connect(drive);
+    drive.connect(driveGain);
+    driveGain.connect(comp);
+
+    tremGain = ac.createGain();
+    tremGain.gain.value = 0.925;
+    tremLfo = ac.createOscillator();
+    tremLfo.frequency.value = 0.4;
+    tremDepth = ac.createGain();
+    tremDepth.gain.value = 0.075;
+    tremWet = ac.createGain();
+    tremWet.gain.value = 0.12;
+    mix.connect(tremGain);
+    tremGain.connect(tremWet);
+    tremWet.connect(comp);
+    tremLfo.connect(tremDepth);
+    tremDepth.connect(tremGain.gain);
+    tremLfo.start();
+
+    tracks.forEach(track => {
+      track.gain = ac.createGain();
+      track.gain.gain.value = track.volume;
+      track.gain.connect(mix);
+    });
+  }
+
+  function setupRecorder() {
+    micSource = ac.createMediaStreamSource(stream);
+    micGain = ac.createGain();
+    micGain.gain.value = 1;
+
+    processor = ac.createScriptProcessor(4096, 1, 1);
+    silent = ac.createGain();
+    silent.gain.value = 0;
+
+    micSource.connect(micGain);
+    micGain.connect(processor);
+    processor.connect(silent);
+    silent.connect(ac.destination);
+
+    processor.onaudioprocess = event => {
+      if (recording === null) return;
+
+      chunks.push(new Float32Array(event.inputBuffer.getChannelData(0)));
+
+      if (frames && getRecordedFrames() >= frames) {
+        finishRecording(true);
+      }
+    };
+  }
+
+  function getRecordedFrames() {
+    return chunks.reduce((sum, chunk) => sum + chunk.length, 0);
+  }
+
+  function createRecordingBuffer(length) {
+    const buffer = ac.createBuffer(1, length, ac.sampleRate);
+    const output = buffer.getChannelData(0);
+    let offset = 0;
+
+    for (const chunk of chunks) {
+      if (offset >= length) break;
+      output.set(chunk.subarray(0, length - offset), offset);
+      offset += Math.min(chunk.length, length - offset);
+    }
+
+    const fadeFrames = Math.min(Math.floor(ac.sampleRate * 0.01), Math.floor(length / 2));
+
+    for (let i = 0; i < fadeFrames; i++) {
+      const fade = i / fadeFrames;
+      output[i] *= fade;
+      output[length - 1 - i] *= fade;
+    }
+
+    return buffer;
+  }
+
+  function clearFadeTimer(track) {
+    if (track.timer) {
+      clearInterval(track.timer);
+      track.timer = null;
+    }
+  }
+
+  function stopTrack(track) {
+    clearFadeTimer(track);
+
+    if (track.source) {
+      try { track.source.stop(); } catch (_) {}
+      try {
+        track.source.disconnect();
+        track.fade.disconnect();
+      } catch (_) {}
+    }
+
+    track.source = null;
+    track.fade = null;
+    track.playing = false;
+  }
+
+  function scheduleFades(track, when) {
+    clearFadeTimer(track);
+
+    const loopDuration = regionDuration();
+    const cycleDuration = loopDuration / speed;
+    const fadeInTime = Math.min(fadeIn, loopDuration * 0.45) / speed;
+    const fadeOutTime = Math.min(fadeOut, loopDuration * 0.45) / speed;
+
+    let nextCycle = when;
+
+    function scheduleCycle(startTime) {
+      if (!track.fade || !track.source) return;
+
+      const gain = track.fade.gain;
+      const endTime = startTime + cycleDuration;
+
+      gain.cancelScheduledValues(startTime);
+
+      if (fadeInTime > 0) {
+        gain.setValueAtTime(0.0001, startTime);
+        gain.linearRampToValueAtTime(1, startTime + fadeInTime);
+      } else {
+        gain.setValueAtTime(1, startTime);
+      }
+
+      if (fadeOutTime > 0) {
+        gain.setValueAtTime(1, Math.max(startTime, endTime - fadeOutTime));
+        gain.linearRampToValueAtTime(0.0001, endTime);
+      }
+    }
+
+    for (let i = 0; i < 8; i++) {
+      scheduleCycle(nextCycle);
+      nextCycle += cycleDuration;
+    }
+
+    track.timer = setInterval(() => {
+      if (!track.source) {
+        clearFadeTimer(track);
+        return;
+      }
+
+      while (nextCycle < ac.currentTime + 8) {
+        scheduleCycle(nextCycle);
+        nextCycle += cycleDuration;
+      }
+    }, 2000);
+  }
+
+  function startTrack(track, when) {
+    if (!track.buffer || track.muted) return;
+
+    stopTrack(track);
+
+    const source = ac.createBufferSource();
+    const fadeGain = ac.createGain();
+
+    source.buffer = track.buffer;
+    source.loop = true;
+    source.loopStart = inPoint;
+    source.loopEnd = outPoint;
+    source.playbackRate.value = speed;
+
+    source.connect(fadeGain);
+    fadeGain.connect(track.gain);
+    source.start(when, inPoint);
+
+    track.source = source;
+    track.fade = fadeGain;
+    track.playing = true;
+
+    scheduleFades(track, when);
+  }
+
+  function restartLoops() {
+    if (!ac || outPoint <= inPoint) return;
+
+    const when = ac.currentTime + 0.06;
+
+    tracks.forEach(stopTrack);
+    tracks.forEach(track => startTrack(track, when));
+
+    loopStartTime = when;
+    refreshTrackUI();
+    animatePlayBar();
+  }
+
+  function startRecording(index) {
+    if (!ac || recording !== null || (index > 0 && !frames)) return;
+
+    ac.resume();
+
+    stopTrack(tracks[index]);
+    tracks[index].buffer = null;
+
+    if (frames) restartLoops();
+
+    recording = index;
+    chunks = [];
+
+    $(`rec${index}`).textContent = "STOP";
+    $(`rec${index}`).classList.add("active");
+
+    for (let i = 0; i < 3; i++) {
+      if (i !== index) $(`rec${i}`).disabled = true;
+    }
+
+    refreshTrackUI();
+
+    setStatus(
+      index === 0
+        ? "RECORDING TRACK 1. PRESS STOP WHEN READY."
+        : `RECORDING TRACK ${index + 1}. AUTO STOP AT LOOP END.`
+    );
+  }
+
+  function finishRecording(autoStop) {
+    if (recording === null) return;
+
+    const index = recording;
+    const recorded = getRecordedFrames();
+
+    if (recorded < 800) {
+      recording = null;
+      chunks = [];
+      resetRecordButtons();
+      refreshControls();
+      setStatus("RECORDING WAS TOO SHORT.");
+      return;
+    }
+
+    if (index === 0 && !frames) {
+      frames = recorded;
+      fullLength = frames / ac.sampleRate;
+      inPoint = 0;
+      outPoint = fullLength;
+    }
+
+    tracks[index].buffer = createRecordingBuffer(frames);
+
+    recording = null;
+    chunks = [];
+
+    resetRecordButtons();
+    refreshControls();
+    drawWaveforms();
+    updateRegionUI();
+    restartLoops();
+
+    setStatus(
+      autoStop
+        ? `TRACK ${index + 1} COMPLETE. LOOPING NOW.`
+        : `TRACK ${index + 1} SAVED. LOOPING NOW.`
+    );
+  }
+
+  function resetRecordButtons() {
+    for (let i = 0; i < 3; i++) {
+      $(`rec${i}`).textContent = "REC";
+      $(`rec${i}`).classList.remove("active");
+    }
+  }
+
+  function refreshControls() {
+    tracks.forEach((track, index) => {
+      $(`rec${index}`).disabled = recording !== null || (index > 0 && !frames);
+      $(`mute${index}`).disabled = !track.buffer;
+      $(`clear${index}`).disabled = !track.buffer;
+    });
+
+    refreshTrackUI();
+  }
+
+  function refreshTrackUI() {
+    tracks.forEach((track, index) => {
+      const led = $(`led${index}`);
+      const muteButton = $(`mute${index}`);
+
+      led.className = "led";
+
+      if (recording === index) led.classList.add("rec");
+      else if (track.playing) led.classList.add("play");
+
+      muteButton.textContent = track.muted ? "ON" : "MUTE";
+      muteButton.classList.toggle("active", track.muted);
+    });
+  }
+
+  function toggleMute(index) {
+    const track = tracks[index];
+    if (!track.buffer) return;
+
+    track.muted = !track.muted;
+
+    if (track.muted) stopTrack(track);
+    else startTrack(track, ac.currentTime + 0.03);
+
+    refreshTrackUI();
+  }
+
+  function clearTrack(index) {
+    if (recording !== null) return;
+
+    stopTrack(tracks[index]);
+    tracks[index].buffer = null;
+    tracks[index].muted = false;
+
+    if (index === 0) {
+      for (let i = 1; i < 3; i++) {
+        stopTrack(tracks[i]);
+        tracks[i].buffer = null;
+        tracks[i].muted = false;
+      }
+
+      frames = 0;
+      fullLength = 0;
+      inPoint = 0;
+      outPoint = 0;
+
+      $("loopBadge").textContent = "LOOP --";
+      setStatus("TRACK 1 CLEARED. LOOP RESET.");
+    } else {
+      setStatus(`TRACK ${index + 1} CLEARED.`);
+    }
+
+    drawWaveforms();
+    updateRegionUI();
+    refreshControls();
+  }
+
+  function stopAll() {
+    if (recording !== null) finishRecording(false);
+
+    tracks.forEach(stopTrack);
+    cancelAnimationFrame(raf);
+    $("playBar").style.display = "none";
+
+    refreshTrackUI();
+    setStatus("ALL TRACKS STOPPED.");
+  }
+
+  function resizeCanvas() {
+    const rect = $("waveWrap").getBoundingClientRect();
+    const ratio = window.devicePixelRatio || 1;
+    const canvas = $("waveCanvas");
+
+    canvas.width = rect.width * ratio;
+    canvas.height = rect.height * ratio;
+    canvas.style.width = `${rect.width}px`;
+    canvas.style.height = `${rect.height}px`;
+
+    canvas.getContext("2d").setTransform(ratio, 0, 0, ratio, 0, 0);
+
+    drawWaveforms();
+    updateRegionUI();
+  }
+
+  function drawWaveforms() {
+    const canvas = $("waveCanvas");
+    const context = canvas.getContext("2d");
+    const rect = $("waveWrap").getBoundingClientRect();
+    const width = rect.width;
+    const height = rect.height;
+
+    context.clearRect(0, 0, width, height);
+
+    if (!fullLength || !tracks.some(track => track.buffer)) {
+      context.fillStyle = "#777a91";
+      context.font = "900 11px Arial";
+      context.textAlign = "center";
+      context.fillText("RECORD TRACKS TO SEE WAVEFORMS", width / 2, height / 2);
+      return;
+    }
+
+    const sectionHeight = height / 3;
+
+    tracks.forEach((track, index) => {
+      if (!track.buffer) return;
+
+      const data = track.buffer.getChannelData(0);
+      const centerY = sectionHeight * index + sectionHeight / 2;
+      const amplitude = sectionHeight * 0.38;
+      const step = Math.max(1, Math.floor(data.length / width));
+
+      context.beginPath();
+      context.strokeStyle = colors[index];
+      context.lineWidth = 1.7;
+
+      for (let x = 0; x < width; x++) {
+        const start = x * step;
+        let min = 1;
+        let max = -1;
+
+        for (let i = 0; i < step; i++) {
+          const sample = data[start + i] || 0;
+          min = Math.min(min, sample);
+          max = Math.max(max, sample);
+        }
+
+        context.moveTo(x, centerY + min * amplitude);
+        context.lineTo(x, centerY + max * amplitude);
+      }
+
+      context.stroke();
+
+      context.fillStyle = "#20213c";
+      context.font = "900 8px Arial";
+      context.textAlign = "left";
+      context.fillText(`T${index + 1}`, 5, sectionHeight * index + 11);
+    });
+  }
+
+  function updateRegionUI() {
+    if (!fullLength) {
+      $("region").style.left = "0%";
+      $("region").style.right = "0%";
+      $("inHandle").style.left = "0%";
+      $("outHandle").style.left = "100%";
+      $("inReadout").textContent = "IN: 0.00s";
+      $("outReadout").textContent = "OUT: --";
+      return;
+    }
+
+    const inPercent = inPoint / fullLength * 100;
+    const outPercent = outPoint / fullLength * 100;
+
+    $("region").style.left = `${inPercent}%`;
+    $("region").style.right = `${100 - outPercent}%`;
+    $("inHandle").style.left = `${inPercent}%`;
+    $("outHandle").style.left = `${outPercent}%`;
+
+    $("inReadout").textContent = `IN: ${formatTime(inPoint)}`;
+    $("outReadout").textContent = `OUT: ${formatTime(outPoint)}`;
+    $("loopBadge").textContent = `LOOP ${formatTime(regionDuration())}`;
+  }
+
+  function animatePlayBar() {
+    cancelAnimationFrame(raf);
+
+    function update() {
+      if (!ac || !tracks.some(track => track.playing)) {
+        $("playBar").style.display = "none";
+        return;
+      }
+
+      const realLoopDuration = regionDuration() / speed;
+      const elapsed = Math.max(0, ac.currentTime - loopStartTime);
+      const progress = (elapsed % realLoopDuration) / realLoopDuration;
+      const position = inPoint / fullLength + (regionDuration() / fullLength) * progress;
+
+      $("playBar").style.display = "block";
+      $("playBar").style.left = `${position * 100}%`;
+
+      raf = requestAnimationFrame(update);
+    }
+
+    update();
+  }
+
+  function pointerToSeconds(event) {
+    const rect = $("waveWrap").getBoundingClientRect();
+    const x = Math.max(0, Math.min(rect.width, event.clientX - rect.left));
+    return x / rect.width * fullLength;
+  }
+
+  function startDrag(event, target) {
+    if (!fullLength || recording !== null) return;
+
+    drag = target;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    moveDrag(event);
+    event.preventDefault();
+  }
+
+  function moveDrag(event) {
+    if (!drag) return;
+
+    const point = pointerToSeconds(event);
+    const minimumLength = Math.min(0.08, fullLength * 0.1);
+
+    if (drag === "in") {
+      inPoint = Math.max(0, Math.min(point, outPoint - minimumLength));
+    } else {
+      outPoint = Math.min(fullLength, Math.max(point, inPoint + minimumLength));
+    }
+
+    updateRegionUI();
+  }
+
+  function endDrag() {
+    if (!drag) return;
+
+    drag = null;
+    restartLoops();
+    setStatus("PLAY REGION UPDATED.");
+  }
+
+  function updateEffectToggle(name, enabled) {
+    const button = $(`${name}On`);
+    const box = $(`${name}Box`);
+
+    button.textContent = enabled ? "ON" : "OFF";
+    button.classList.toggle("on", enabled);
+    box.classList.toggle("off", !enabled);
+  }
+
+  function toggleEffect(name) {
+    fxEnabled[name] = !fxEnabled[name];
+    updateEffectToggle(name, fxEnabled[name]);
+
+    if (!ac) return;
+
+    const time = ac.currentTime;
+
+    if (name === "reverb") {
+      reverbGain.gain.setTargetAtTime(
+        fxEnabled.reverb ? Number($("rvMix").value) : 0,
+        time,
+        0.02
+      );
+    }
+
+    if (name === "delay") {
+      delayGain.gain.setTargetAtTime(
+        fxEnabled.delay ? Number($("dlMix").value) : 0,
+        time,
+        0.02
+      );
+    }
+
+    if (name === "chorus") {
+      chorusGain.gain.setTargetAtTime(
+        fxEnabled.chorus ? Number($("chMix").value) : 0,
+        time,
+        0.02
+      );
+    }
+
+    if (name === "filter") {
+      filterGain.gain.setTargetAtTime(
+        fxEnabled.filter ? Number($("fiMix").value) : 0,
+        time,
+        0.02
+      );
+    }
+
+    if (name === "drive") {
+      driveGain.gain.setTargetAtTime(
+        fxEnabled.drive ? Number($("drMix").value) : 0,
+        time,
+        0.02
+      );
+    }
+
+    if (name === "tremolo") {
+      tremWet.gain.setTargetAtTime(
+        fxEnabled.tremolo ? Number($("trMix").value) : 0,
+        time,
+        0.02
+      );
+    }
+  }
+
+  function bindSlider(id, outputId, callback, formatter) {
+    $(id).addEventListener("input", event => {
+      const value = Number(event.target.value);
+      $(outputId).textContent = formatter(value);
+
+      if (ac) callback(value);
+    });
+  }
+
+  $("enable").onclick = enableAudio;
+  $("stop").onclick = stopAll;
+
+  for (let i = 0; i < 3; i++) {
+    $(`rec${i}`).onclick = () => {
+      if (recording === i) finishRecording(false);
+      else startRecording(i);
+    };
+
+    $(`mute${i}`).onclick = () => toggleMute(i);
+    $(`clear${i}`).onclick = () => clearTrack(i);
+
+    $(`vol${i}`).oninput = event => {
+      const value = Number(event.target.value);
+      tracks[i].volume = value;
+
+      if (ac) {
+        tracks[i].gain.gain.setTargetAtTime(
+          tracks[i].muted ? 0 : value,
+          ac.currentTime,
+          0.015
+        );
+      }
+    };
+  }
+
+  $("micVol").oninput = event => {
+    const value = Number(event.target.value);
+    $("micVolValue").textContent = `${Math.round(value * 100)}%`;
+
+    if (ac) {
+      micGain.gain.setTargetAtTime(value, ac.currentTime, 0.015);
+    }
+  };
+
+  $("speed").oninput = event => {
+    speed = Number(event.target.value);
+    const value = `${speed.toFixed(2)}x`;
+
+    $("speedValue").textContent = value;
+    $("speedLabel").textContent = value;
+
+    if (ac && frames) restartLoops();
+  };
+
+  $("fadeIn").oninput = event => {
+    fadeIn = Number(event.target.value);
+    $("fadeInValue").textContent = `${Math.round(fadeIn * 1000)}ms`;
+
+    if (ac && frames) restartLoops();
+  };
+
+  $("fadeOut").oninput = event => {
+    fadeOut = Number(event.target.value);
+    $("fadeOutValue").textContent = `${Math.round(fadeOut * 1000)}ms`;
+
+    if (ac && frames) restartLoops();
+  };
+
+  $("fxOpen").onclick = () => $("fx").classList.add("open");
+  $("fxClose").onclick = () => $("fx").classList.remove("open");
+
+  $("inHandle").addEventListener("pointerdown", event => startDrag(event, "in"));
+  $("outHandle").addEventListener("pointerdown", event => startDrag(event, "out"));
+  $("waveWrap").addEventListener("pointermove", moveDrag);
+  $("waveWrap").addEventListener("pointerup", endDrag);
+  $("waveWrap").addEventListener("pointercancel", endDrag);
+
+  $("reverbOn").onclick = () => toggleEffect("reverb");
+  $("delayOn").onclick = () => toggleEffect("delay");
+  $("chorusOn").onclick = () => toggleEffect("chorus");
+  $("filterOn").onclick = () => toggleEffect("filter");
+  $("driveOn").onclick = () => toggleEffect("drive");
+  $("tremoloOn").onclick = () => toggleEffect("tremolo");
+
+  bindSlider("rvSize", "rvSizeV", value => {
+    reverb.buffer = createImpulse(value);
+  }, value => `${value.toFixed(1)}s`);
+
+  bindSlider("rvMix", "rvMixV", value => {
+    if (fxEnabled.reverb) reverbGain.gain.setTargetAtTime(value, ac.currentTime, 0.02);
+  }, value => `${Math.round(value * 100)}%`);
+
+  bindSlider("dlTime", "dlTimeV", value => {
+    delay.delayTime.setTargetAtTime(value, ac.currentTime, 0.02);
+  }, value => `${Math.round(value * 1000)}ms`);
+
+  bindSlider("dlFeed", "dlFeedV", value => {
+    feedback.gain.setTargetAtTime(value, ac.currentTime, 0.02);
+  }, value => `${Math.round(value * 100)}%`);
+
+  bindSlider("dlMix", "dlMixV", value => {
+    if (fxEnabled.delay) delayGain.gain.setTargetAtTime(value, ac.currentTime, 0.02);
+  }, value => `${Math.round(value * 100)}%`);
+
+  bindSlider("chRate", "chRateV", value => {
+    chorusLfo.frequency.setTargetAtTime(value, ac.currentTime, 0.02);
+  }, value => `${value.toFixed(2)}Hz`);
+
+  bindSlider("chDepth", "chDepthV", value => {
+    chorusDepth.gain.setTargetAtTime(value, ac.currentTime, 0.02);
+  }, value => `${Math.round(value * 1000)}ms`);
+
+  bindSlider("chMix", "chMixV", value => {
+    if (fxEnabled.chorus) chorusGain.gain.setTargetAtTime(value, ac.currentTime, 0.02);
+  }, value => `${Math.round(value * 100)}%`);
+
+  bindSlider("fiCut", "fiCutV", value => {
+    filter.frequency.setTargetAtTime(value, ac.currentTime, 0.02);
+  }, value => `${Math.round(value)}Hz`);
+
+  bindSlider("fiQ", "fiQV", value => {
+    filter.Q.setTargetAtTime(value, ac.currentTime, 0.02);
+  }, value => value.toFixed(1));
+
+  bindSlider("fiMix", "fiMixV", value => {
+    if (fxEnabled.filter) filterGain.gain.setTargetAtTime(value, ac.currentTime, 0.02);
+  }, value => `${Math.round(value * 100)}%`);
+
+  bindSlider("drAmt", "drAmtV", value => {
+    drive.curve = createDriveCurve(value);
+  }, value => `${Math.round(value * 100)}%`);
+
+  bindSlider("drMix", "drMixV", value => {
+    if (fxEnabled.drive) driveGain.gain.setTargetAtTime(value, ac.currentTime, 0.02);
+  }, value => `${Math.round(value * 100)}%`);
+
+  bindSlider("trRate", "trRateV", value => {
+    tremLfo.frequency.setTargetAtTime(value, ac.currentTime, 0.02);
+  }, value => `${value.toFixed(2)}Hz`);
+
+  bindSlider("trDepth", "trDepthV", value => {
+    tremDepth.gain.setTargetAtTime(value / 2, ac.currentTime, 0.02);
+    tremGain.gain.setTargetAtTime(1 - value / 2, ac.currentTime, 0.02);
+  }, value => `${Math.round(value * 100)}%`);
+
+  bindSlider("trMix", "trMixV", value => {
+    if (fxEnabled.tremolo) tremWet.gain.setTargetAtTime(value, ac.currentTime, 0.02);
+  }, value => `${Math.round(value * 100)}%`);
+
+  window.addEventListener("resize", resizeCanvas);
+
+  resizeCanvas();
+  updateRegionUI();
+</script>
+</body>
+</html>
