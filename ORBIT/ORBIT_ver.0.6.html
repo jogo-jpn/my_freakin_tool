@@ -226,14 +226,13 @@
       border-radius:18px;
       background:var(--panel);
       backdrop-filter:blur(14px);
-      transform:translateX(-50%) translateY(16px);
-      opacity:0;
-      visibility:hidden;
+      transform:translateX(-50%) translateY(0);
+      display:none;
       pointer-events:none;
-      transition:opacity .18s,transform .18s,visibility 0s linear .18s;
       touch-action:pan-y
     }
-    .panel.open{opacity:1;visibility:visible;pointer-events:auto;transform:translateX(-50%) translateY(0);transition:opacity .18s,transform .18s,visibility 0s}
+    .panel.open{display:block;pointer-events:auto;animation:panelIn .18s ease}
+    @keyframes panelIn{from{opacity:0;transform:translateX(-50%) translateY(16px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
     .small{width:min(88vw,430px)}
     .header,.row{display:flex;align-items:center;gap:10px}
     .header{justify-content:space-between;margin-bottom:12px}
@@ -613,7 +612,7 @@ body.edit-off #edit{
 
     /* ===== GRANULAR 追加分（波形と追加ボタンの状態だけ） ===== */
     /* 設定画面：波形を上に固定し、パラメーター類だけをスクロールさせる */
-    #granularPanel{
+    #granularPanel.open{
       display:flex;
       flex-direction:column;
       overflow:hidden
@@ -1135,7 +1134,7 @@ body.edit-off #edit{
       <div class="row" style="gap:8px;">
         <button id="ambOff" type="button" style="flex:1;">OFF</button>
       </div>
-      <div class="row"><label>Volume</label><input id="ambVolume" type="range" min="0" max="100" step="1" value="30"><span id="ambVolumeV" class="value">30%</span></div>
+      <div class="row"><label>Volume</label><input id="ambVolume" type="range" min="0" max="100" step="1" value="90"><span id="ambVolumeV" class="value">90%</span></div>
       <div class="row"><label>Pitch</label><input id="ambPitch" type="range" min="-12" max="12" step="1" value="0"><span id="ambPitchV" class="value">±0</span></div>
     </div>
   </div>
@@ -1567,7 +1566,7 @@ body.edit-off #edit{
 
   let W,H,D,zoom=1,panX=0,panY=0,pinch=false,pinchStartDist=0,pinchStartZoom=1,pinchAnchorX=0,pinchAnchorY=0,mode="line",drawing=false,erasing=false,eraserOn=false,stroke=null,drag=0;
   let lines=[],sliders=[],spins=[],holes=[],fills=[],texts=[],balls=[],plungers=[],flippers=[],history=[],note=0,notes=[];
-  let fontDraft=null,fontGesture=null,plungerDraft=null,moveTarget=null;
+  let fontDraft=null,fontGesture=null,plungerDraft=null,moveTarget=null,gSeekDrag=false;
   let editMode = true;
   let playPlunger = null;
   document.body.classList.toggle("edit-off", !editMode);
@@ -1749,6 +1748,13 @@ function updateBpmDisplay(){
       x:(p.clientX - rect.left) / zoom,
       y:(p.clientY - rect.top) / zoom
     };
+  }
+
+  /* タップ位置のステージ横位置（0〜1）。グラニュラーの再生位置指定に使う */
+  function stageFracX(e){
+    const t = e.touches ? e.touches[0] : e;
+    const rect = canvas.getBoundingClientRect();
+    return clamp((t.clientX - rect.left) / Math.max(1, rect.width), 0, 1);
   }
 
   function applyViewTransform(){
@@ -3600,6 +3606,7 @@ this.volume = clamp(Number(volume) || 1, 0, 2);
 
   function setMode(m){
     mode = m;
+    gSeekDrag = false;
 
     ["ball","line","slider","spin","hole","fill","font","plunger","move"].forEach(x=>{
       const btn = $(x);
@@ -4374,6 +4381,10 @@ if(activeTouches.length >= 2){
         moveTarget.before = makeObjectSnapshot(moveTarget.obj);
         moveTarget.last = { ...p };
         moveTarget.moved = false;
+      }else if(window.gStageSeek){
+        /* MOVE中に対象のない場所をタップ／ドラッグしたら、グラニュラーの再生位置をその横位置へ移す */
+        gSeekDrag = true;
+        window.gStageSeek(stageFracX(e));
       }
       return;
     }
@@ -4502,6 +4513,11 @@ if(activeTouches.length >= 2){
         moveTarget.last = { ...p };
         moveTarget.moved = true;
       }
+      return;
+    }
+
+    if(editMode && mode === "move" && gSeekDrag && window.gStageSeek){
+      window.gStageSeek(stageFracX(e));
       return;
     }
 
@@ -4643,6 +4659,11 @@ if(activeTouches.length >= 2){
     return;
   }
 
+
+    if(editMode && mode === "move" && gSeekDrag){
+      gSeekDrag = false;
+      return;
+    }
 
     if(editMode && mode === "move" && moveTarget){
       if(moveTarget.moved){
@@ -5065,7 +5086,7 @@ window.addEventListener("pointercancel", finishCanvasPointer, {
   let ambName = null;        /* 再生中のシーン */
   let ambPending = null;     /* 読み込み中のシーン */
   let ambGen = 0;            /* 再生/停止の世代（古い非同期処理を無効化する） */
-  let ambVol = .30;
+  let ambVol = .90;
   let ambPitch = 0;          /* 環境音のピッチ（半音単位、-12〜+12） */
   function ambRate(){ return Math.pow(2, ambPitch / 12); }
   /* 環境音は背景に溶け込む音量に抑える: スライダー値に固定トリムを掛けたものが実際のゲイン */
@@ -6414,6 +6435,15 @@ function removeObjectById(type, id) {
       var out = document.getElementById("gPosV");
       if (out) out.textContent = gPct(GP.position);
     }
+    /* ステージ側（MOVEモードで対象のない場所をタップ）から再生位置を動かす公開関数。nx = 波形の横位置 0〜1 */
+    window.gStageSeek = function (nx) {
+      if (gLiveRec || gStandbyScope) return; /* 録音中・スタンバイ中は位置変更を受け付けない */
+      GP.position = gClamp(nx, GP.loopStart, GP.loopEnd);
+      gSyncPos();
+      try { gDrawWave(); } catch (e) {}
+      gRingAt(GP.position, { maxR: 22, ttl: 0.9, alpha: 0.4 });
+      gAudition(GP.position);
+    };
     gBind("gBurst", function (v) { GP.burst = v; return gPct(v); });
     gBind("gTrail", function (v) { GP.trail = v; return gPct(v); });
     gBind("gSize", function (v) { GP.size = v / 1000; return Math.round(v) + "ms"; });
