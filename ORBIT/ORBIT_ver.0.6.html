@@ -7663,15 +7663,57 @@ function removeObjectById(type, id) {
     var gMonitorOn = true;
     var G_MONITOR_LEVEL = 0.8;
     var gMonitorBtn = document.getElementById("gMonitor");
+    /* 入力デバイス自動判定でモニターをOFFにした印（手動OFFと区別し、USB機器が
+       挿されたら自動でモニターを再開できるようにする） */
+    var gMonAutoOff = false;
     function gApplyMonitor() {
       if (gMonitorBtn) gMonitorBtn.classList.toggle("active", gMonitorOn);
       if (gInputChain && gInputChain.mon && audio) {
         try { gInputChain.mon.gain.setTargetAtTime(gMonitorOn ? G_MONITOR_LEVEL : 0, audio.currentTime, 0.03); } catch (e) {}
       }
     }
+    /* ---- 入力デバイス判定：USB入力ならモニターON、内蔵マイクならモニターOFF ----
+       トラックのラベル（デバイス名）で判定する。"USB" を含む名前はUSB入力。
+       内蔵マイクらしい汎用名（Microphone / Built-in / iPhone / Microphone Array /
+       "Microphone (Realtek…)" 等）は内蔵マイク。それ以外の名前付きデバイス
+       （オーディオI/Fの製品名など）は外部入力としてUSB扱いにする。
+       ラベルが取れない場合は "unknown"（モニター状態は変えない） */
+    function gClassifyInputKind(stream) {
+      var label = "";
+      try {
+        var tracks = stream && stream.getAudioTracks ? stream.getAudioTracks() : [];
+        if (tracks.length && tracks[0].label) label = String(tracks[0].label);
+      } catch (e) {}
+      var s = label.replace(/^\s+|\s+$/g, "").toLowerCase();
+      if (!s) return "unknown";
+      if (s.indexOf("usb") >= 0) return "usb";
+      if (s === "microphone" || s === "マイク" ||
+          s.indexOf("built-in") >= 0 || s.indexOf("built in") >= 0 ||
+          s.indexOf("internal") >= 0 || s.indexOf("内蔵") >= 0 ||
+          s.indexOf("iphone") >= 0 || s.indexOf("ipad") >= 0 ||
+          s.indexOf("macbook") >= 0 || s.indexOf("imac") >= 0 ||
+          s.indexOf("microphone array") >= 0 ||
+          s.indexOf("microphone (") === 0 || s.indexOf("マイク (") === 0) return "mic";
+      return "usb";
+    }
+    /* ストリーム取得時に呼ぶ：判定結果に合わせてモニターON/OFFを自動で切り替える。
+       手動でMONITORを押した場合はそちらが優先され、次のストリーム取得／
+       デバイス切り替わりまでは自動判定は上書きしない */
+    function gAutoMonitorForStream(stream) {
+      var kind = gClassifyInputKind(stream);
+      if (kind === "unknown") return kind;
+      var prev = gMonitorOn;
+      if (kind === "usb") { gMonitorOn = true; gMonAutoOff = false; }
+      else { gMonitorOn = false; gMonAutoOff = true; }
+      if (gMonitorOn !== prev) {
+        try { gSetStatus(kind === "usb" ? "USB入力を検出しました — モニターON" : "内蔵マイクを検出しました — モニターOFF"); } catch (e) {}
+      }
+      return kind;
+    }
     if (gMonitorBtn) {
       gMonitorBtn.addEventListener("click", function () {
         gMonitorOn = !gMonitorOn;
+        gMonAutoOff = false; /* 手動操作が優先：自動OFFの印は消す */
         gApplyMonitor();
         if (gMonitorOn) {
           /* ONにしたら録音していなくてもマイク音が出るよう、入力を取り始める */
@@ -7997,6 +8039,8 @@ function removeObjectById(type, id) {
       /* ブラウザ側の自動ゲイン／ノイズ処理を切り、Input Level の効きを一定にする */
       navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } }).then(function (stream) {
         gStream = stream;
+        /* 入力デバイスでモニターを自動切替（USB→ON／内蔵マイク→OFF） */
+        gAutoMonitorForStream(stream);
         gMicEnterStandby(stream);
       }).catch(function () {
         gSetStatus("マイクの許可が得られませんでした。ブラウザの設定を確認してください。");
@@ -8017,6 +8061,14 @@ function removeObjectById(type, id) {
         gMonReqPending = false;
         if (!gMonitorOn || gStream) { stream.getTracks().forEach(function (tr) { tr.stop(); }); return; }
         gStream = stream;
+        /* 入力デバイスでモニターを自動切替（USB→ON／内蔵マイク→OFF）。
+           内蔵マイクと判定したらモニターOFFのままマイクを解放する
+           （gMonAutoOff が残るので、USB機器が挿されれば自動で再開する） */
+        if (gAutoMonitorForStream(stream) === "mic") {
+          gApplyMonitor();
+          gMicStopStream();
+          return;
+        }
         if (audio) { gEnsureInputChain(); gApplyMonitor(); }
       }).catch(function (err) {
         gMonReqPending = false;
@@ -8030,6 +8082,41 @@ function removeObjectById(type, id) {
       if (!gStream) gStartMonitorMic();
       else if (!gInputChain && audio) { gEnsureInputChain(); gApplyMonitor(); }
     }, { passive: true });
+
+    /* ---- 入力デバイスの切り替わりに追随（USB I/Fの抜き差し等） ----
+       ・内蔵マイク判定で自動OFF中（マイク解放済み）に機器が変わったら取り直して再判定
+       ・モニター中の入力トラックが終了したら取り直して再判定
+       ・モニター中の入力が内蔵マイクへ切り替わったらモニターOFFにしてマイクを解放
+       録音中・スタンバイ中は触らない。手動OFFの場合は何もしない */
+    if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
+      navigator.mediaDevices.addEventListener("devicechange", function () {
+        if (gStandby || (gRec && gRec.state === "recording")) return;
+        if (!gStream) {
+          if (gMonAutoOff) { gMonitorOn = true; gStartMonitorMic(); }
+          return;
+        }
+        var trk = null;
+        try { trk = gStream.getAudioTracks()[0]; } catch (e) {}
+        if (trk && trk.readyState === "ended") {
+          gTeardownInputChain();
+          gMicStopStream();
+          if (gMonitorOn || gMonAutoOff) { gMonitorOn = true; gStartMonitorMic(); }
+          return;
+        }
+        var kind = gClassifyInputKind(gStream);
+        if (kind === "mic" && gMonitorOn) {
+          gMonitorOn = false; gMonAutoOff = true;
+          gApplyMonitor();
+          try { gSetStatus("内蔵マイクを検出しました — モニターOFF"); } catch (e) {}
+          gTeardownInputChain();
+          gMicStopStream();
+        } else if (kind === "usb" && !gMonitorOn && gMonAutoOff) {
+          gMonitorOn = true; gMonAutoOff = false;
+          gApplyMonitor();
+          try { gSetStatus("USB入力を検出しました — モニターON"); } catch (e) {}
+        }
+      });
+    }
 
     /* ---- マイク録音を WAV（16bit PCM）で保存 ---- */
     function gBufferToWav(buf) {
