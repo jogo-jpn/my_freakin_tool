@@ -1581,7 +1581,7 @@ body.edit-off #edit{
 
   let W,H,D,zoom=1,panX=0,panY=0,pinch=false,pinchStartDist=0,pinchStartZoom=1,pinchAnchorX=0,pinchAnchorY=0,mode="line",drawing=false,erasing=false,eraserOn=false,stroke=null,drag=0;
   let lines=[],sliders=[],spins=[],holes=[],fills=[],texts=[],balls=[],plungers=[],flippers=[],history=[],note=0,notes=[];
-  let fontDraft=null,fontGesture=null,plungerDraft=null,moveTarget=null,gSeekDrag=false;
+  let fontDraft=null,fontGesture=null,plungerDraft=null,moveTarget=null,gSeekDrag=false,gSeekStartY=0,gSeekStartVol=null,gSeekVolOn=false;
   let editMode = true;
   let playPlunger = null;
   document.body.classList.toggle("edit-off", !editMode);
@@ -1770,6 +1770,12 @@ function updateBpmDisplay(){
     const t = e.touches ? e.touches[0] : e;
     const rect = canvas.getBoundingClientRect();
     return clamp((t.clientX - rect.left) / Math.max(1, rect.width), 0, 1);
+  }
+
+  /* タッチ／マウスの画面Y座標。シーク中の上下ドラッグ（音量操作）の基準に使う */
+  function stageClientY(e){
+    const t = e.touches ? e.touches[0] : e;
+    return t.clientY;
   }
 
   function applyViewTransform(){
@@ -3622,6 +3628,8 @@ this.volume = clamp(Number(volume) || 1, 0, 2);
   function setMode(m){
     mode = m;
     gSeekDrag = false;
+    gSeekStartVol = null;
+    gSeekVolOn = false;
 
     ["ball","line","slider","spin","hole","fill","font","plunger","move"].forEach(x=>{
       const btn = $(x);
@@ -4397,8 +4405,12 @@ if(activeTouches.length >= 2){
         moveTarget.last = { ...p };
         moveTarget.moved = false;
       }else if(window.gStageSeek){
-        /* MOVE中に対象のない場所をタップ／ドラッグしたら、グラニュラーの再生位置をその横位置へ移す */
+        /* MOVE中に対象のない場所をタップ／ドラッグしたら、グラニュラーの再生位置をその横位置へ移す。
+           タッチ開始点と開始時の音量を記録し、ドラッグ中の上下移動で音量も変えられるようにする */
         gSeekDrag = true;
+        gSeekStartY = stageClientY(e);
+        gSeekStartVol = window.gStageGetVolume ? window.gStageGetVolume() : null;
+        gSeekVolOn = false;
         window.gStageSeek(stageFracX(e));
       }
       return;
@@ -4533,6 +4545,16 @@ if(activeTouches.length >= 2){
 
     if(editMode && mode === "move" && gSeekDrag && window.gStageSeek){
       window.gStageSeek(stageFracX(e));
+      /* シーク中にタッチ開始点から上下へ動かしたら、その移動量でグラニュラーの音量を変える（上＝大きく／下＝小さく） */
+      if(gSeekStartVol != null && window.gStageSetVolume){
+        const dy = gSeekStartY - stageClientY(e);
+        if(Math.abs(dy) > 6) gSeekVolOn = true;
+        if(gSeekVolOn){
+          const v = clamp(gSeekStartVol + dy * 0.004, 0, 1);
+          window.gStageSetVolume(v);
+          showToast(`Volume ${Math.round(v * 100)}%`);
+        }
+      }
       return;
     }
 
@@ -4677,6 +4699,8 @@ if(activeTouches.length >= 2){
 
     if(editMode && mode === "move" && gSeekDrag){
       gSeekDrag = false;
+      gSeekStartVol = null;
+      gSeekVolOn = false;
       return;
     }
 
@@ -6571,6 +6595,20 @@ function removeObjectById(type, id) {
       try { gDrawWave(); } catch (e) {}
       gRingAt(GP.position, { maxR: 22, ttl: 0.9, alpha: 0.4 });
       gAudition(GP.position);
+    };
+    /* ステージ側（MOVEシーク中の上下ドラッグ）からグラニュラーの音量を読み書きする公開関数。
+       録音中・スタンバイ中はシーク同様に受け付けない（取得は null を返す） */
+    window.gStageGetVolume = function () {
+      if (gLiveRec || gStandbyScope) return null;
+      return GP.volume;
+    };
+    window.gStageSetVolume = function (v) {
+      if (gLiveRec || gStandbyScope) return;
+      var el = document.getElementById("gVolume");
+      if (!el) return;
+      /* スライダー経由で設定し、GP.volume・入力ゲイン・数値表示・保存対象をすべて同期させる */
+      el.value = gClamp(v, 0, 1);
+      el.dispatchEvent(new Event("input", { bubbles: true }));
     };
     gBind("gBurst", function (v) { GP.burst = v; return gPct(v); });
     gBind("gTrail", function (v) { GP.trail = v; return gPct(v); });
