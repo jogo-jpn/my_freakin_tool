@@ -682,6 +682,12 @@ body.edit-off #edit{
       border-color:var(--ac);
       font-weight:700
     }
+    #gWide.active{
+      color:#061018;
+      background:var(--ac);
+      border-color:var(--ac);
+      font-weight:700
+    }
     /* GRAIN SOURCEのボタン行は常に1行（DEMO / MIC / MONITOR / AUDIO） */
     #gSrcBtns button{
       flex:1 1 0;
@@ -1079,6 +1085,7 @@ body.edit-off #edit{
           <input id="gFileInput" type="file" accept="audio/*,.wav,.mp3,.m4a,.aac,.ogg,.flac" hidden>
         </div>
         <div class="row"><label>Input Level</label><input id="gInputLevel" type="range" min="0" max="1000" step="1" value="100"><span id="gInputLevelV" class="value">100%</span></div>
+        <div class="row" style="gap:8px;"><label>Stereo</label><button id="gWide" type="button" class="active" style="flex:1;">STEREO WIDE</button></div>
         <div class="row"><label>Level</label><div id="gLevelTrack"><div id="gLevelFill"></div></div><span id="gLevelClip">CLIP</span></div>
         <div class="row" style="gap:8px;">
           <select id="gDemoSel" aria-label="Select demo sound"></select>
@@ -7693,6 +7700,27 @@ function removeObjectById(type, id) {
         try { gInputChain.mon.gain.setTargetAtTime(gMonitorOn ? G_MONITOR_LEVEL : 0, audio.currentTime, 0.03); } catch (e) {}
       }
     }
+    /* ---- 疑似ステレオ：モノラル入力を左右に広げる（Haas効果） ----
+       左はそのまま、右だけ約14ms遅らせてステレオ感を作る。モニターと
+       録音（粒の素材）の両方に効く。STEREO WIDEボタンでON/OFF（初期ON）。
+       OFF時は従来どおり素通りになるので、本当にステレオな入力もそのまま通る */
+    var gWideOn = true;
+    var G_WIDE_DELAY = 0.014;
+    var gWideBtn = document.getElementById("gWide");
+    function gApplyWide() {
+      if (gWideBtn) gWideBtn.classList.toggle("active", gWideOn);
+      if (gInputChain && audio) {
+        var t = audio.currentTime;
+        if (gInputChain.direct) { try { gInputChain.direct.gain.setTargetAtTime(gWideOn ? 0 : 1, t, 0.02); } catch (e) {} }
+        if (gInputChain.wide) { try { gInputChain.wide.gain.setTargetAtTime(gWideOn ? 1 : 0, t, 0.02); } catch (e) {} }
+      }
+    }
+    if (gWideBtn) {
+      gWideBtn.addEventListener("click", function () {
+        gWideOn = !gWideOn;
+        gApplyWide();
+      });
+    }
     /* ---- 入力デバイス判定：USB入力ならモニターON、内蔵マイクならモニターOFF ----
        トラックのラベル（デバイス名）で判定する。"USB" を含む名前はUSB入力。
        内蔵マイクらしい汎用名（Microphone / Built-in / iPhone / Microphone Array /
@@ -7777,12 +7805,23 @@ function removeObjectById(type, id) {
         var ign = audio.createGain(); ign.gain.value = GP.inputGain;
         var ian = audio.createAnalyser(); ian.fftSize = 2048;
         var idest = audio.createMediaStreamDestination();
-        isrc.connect(ign); ign.connect(ian); ign.connect(idest);
-        /* モニター経路：ゲイン後 → モニターゲイン → master（無ければ destination 直） */
+        isrc.connect(ign); ign.connect(ian);
+        /* 出力経路は2系統をゲインで切り替える：素通り（direct）と疑似ステレオ（wide）。
+           wide は左=そのまま／右=約14ms遅延を ChannelMerger で合成したもの。
+           録音先（idest）とモニターの両方がこの2系統を通る */
+        var idirect = audio.createGain(); idirect.gain.value = gWideOn ? 0 : 1;
+        ign.connect(idirect); idirect.connect(idest);
+        var imerge = audio.createChannelMerger(2);
+        var idly = audio.createDelay(0.05); idly.delayTime.value = G_WIDE_DELAY;
+        ign.connect(imerge, 0, 0);
+        ign.connect(idly); idly.connect(imerge, 0, 1);
+        var iwide = audio.createGain(); iwide.gain.value = gWideOn ? 1 : 0;
+        imerge.connect(iwide); iwide.connect(idest);
+        /* モニター経路：ゲイン後 → （direct/wide） → モニターゲイン → master（無ければ destination 直） */
         var imon = audio.createGain(); imon.gain.value = gMonitorOn ? G_MONITOR_LEVEL : 0;
-        ign.connect(imon);
+        idirect.connect(imon); iwide.connect(imon);
         if (typeof master !== "undefined" && master) imon.connect(master); else imon.connect(audio.destination);
-        gInputChain = { stream: gStream, src: isrc, gain: ign, analyser: ian, dest: idest, mon: imon, floatData: new Float32Array(ian.fftSize), byteData: new Uint8Array(ian.fftSize) };
+        gInputChain = { stream: gStream, src: isrc, gain: ign, analyser: ian, dest: idest, mon: imon, direct: idirect, wide: iwide, merge: imerge, delay: idly, floatData: new Float32Array(ian.fftSize), byteData: new Uint8Array(ian.fftSize) };
       } catch (e) { gInputChain = null; }
       return gInputChain;
     }
@@ -7793,6 +7832,10 @@ function removeObjectById(type, id) {
       try { c.gain.disconnect(); } catch (e) {}
       try { c.analyser.disconnect(); } catch (e) {}
       if (c.mon) { try { c.mon.disconnect(); } catch (e) {} }
+      if (c.direct) { try { c.direct.disconnect(); } catch (e) {} }
+      if (c.wide) { try { c.wide.disconnect(); } catch (e) {} }
+      if (c.merge) { try { c.merge.disconnect(); } catch (e) {} }
+      if (c.delay) { try { c.delay.disconnect(); } catch (e) {} }
       gResetLevelMeter();
     }
     function gResetLevelMeter() {
@@ -8317,7 +8360,7 @@ function removeObjectById(type, id) {
         if (el) sliders[id] = el.value;
       });
       var srcNameEl = document.getElementById("gSrcName");
-      d.grain = { on: gOn(), freeze: GP.freeze, key: GP.key, sliders: sliders, loopStart: GP.loopStart, loopEnd: GP.loopEnd, mode: GP.playMode, srcKind: gSrcKind, demoIdx: gSrcDemoIdx, srcName: srcNameEl ? srcNameEl.textContent : "" };
+      d.grain = { on: gOn(), freeze: GP.freeze, key: GP.key, sliders: sliders, loopStart: GP.loopStart, loopEnd: GP.loopEnd, mode: GP.playMode, wide: gWideOn, srcKind: gSrcKind, demoIdx: gSrcDemoIdx, srcName: srcNameEl ? srcNameEl.textContent : "" };
       return d;
     };
     var gOrigApply = applyProject;
@@ -8346,6 +8389,7 @@ function removeObjectById(type, id) {
         }
         gSyncRange();
         GP.freeze = !!p.grain.freeze; gSyncFreeze();
+        if (p.grain.wide != null) { gWideOn = !!p.grain.wide; gApplyWide(); }
         if (p.grain.mode === "forward" || p.grain.mode === "reverse" || p.grain.mode === "pingpong") {
           GP.playMode = p.grain.mode; gSyncMode();
         }
