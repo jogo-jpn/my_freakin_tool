@@ -357,6 +357,8 @@
     }
 
     #rec.recording{color:#ff9aac;background:rgba(255,93,122,.16);border-color:rgba(255,93,122,.7)}
+    #liveRec.recording{color:#ff9aac;background:rgba(255,93,122,.16);border-color:rgba(255,93,122,.7)}
+    #liveRecTime{font-variant-numeric:tabular-nums}
     #seqStop.active{color:#ffd27a;background:rgba(255,210,122,.12)}
 
     #recTime{
@@ -842,6 +844,25 @@ body.edit-off #edit{
       <textarea id="projectJsonText" rows="5" spellcheck="false" placeholder="SAVE を押すと、ここに保存用JSONが表示されます。コピーして残しておけば、貼り付けて LOAD TEXT でいつでも復元できます。"></textarea>
       <p class="note">
         ダウンロードが始まらない環境では、SAVE後にこの欄のJSONをコピーして保存してください。復元は、JSONを貼り付けて LOAD TEXT を押します。
+      </p>
+    </div>
+  </div>
+
+  <!-- LIVE RECORDING -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-title">LIVE RECORDING</span>
+    </div>
+
+    <div class="fx-content" style="display:flex;">
+      <div class="row" style="gap:8px;flex-wrap:wrap;">
+        <button id="liveRec" type="button">● REC</button>
+        <button id="liveRecDl" type="button" disabled>DOWNLOAD WAV</button>
+        <span id="liveRecTime" class="value">0:00</span>
+      </div>
+
+      <p class="note">
+        RECで再生中の音をそのまま録音します。停止するとWAVでダウンロードできます（最大10分）。
       </p>
     </div>
   </div>
@@ -8162,6 +8183,128 @@ function removeObjectById(type, id) {
         showToast("WAVを保存しました: " + fname);
       });
     }
+
+    /* ---- ライブレコーディング：最終出力（tapeShaper）をそのまま録って WAV で保存 ----
+       SETパネルの REC で開始／停止。マスター〜テープ段を通った「聞こえている音」を
+       ステレオPCMでキャプチャし、停止後に AudioBuffer 化して DOWNLOAD WAV で書き出す。 */
+    var liveRecBtn = document.getElementById("liveRec");
+    var liveRecDlBtn = document.getElementById("liveRecDl");
+    var liveRecTimeEl = document.getElementById("liveRecTime");
+    var liveRec = null;   /* 録音中: {proc,mute,chunksL,chunksR,len,sr,timer,startedAt} */
+    var liveRecBuf = null; /* 停止済みの録音（AudioBuffer） */
+    var LIVE_REC_MAX_SEC = 600;
+    function liveFmtTime(sec) {
+      sec = Math.max(0, Math.floor(sec));
+      var m = Math.floor(sec / 60), s = sec % 60;
+      return m + ":" + (s < 10 ? "0" : "") + s;
+    }
+    function liveRecUiUpdate() {
+      if (!liveRecBtn) return;
+      if (liveRec) {
+        liveRecBtn.textContent = "■ STOP";
+        liveRecBtn.classList.add("recording");
+      } else {
+        liveRecBtn.textContent = "● REC";
+        liveRecBtn.classList.remove("recording");
+      }
+      if (liveRecDlBtn) liveRecDlBtn.disabled = !liveRecBuf || !!liveRec;
+    }
+    function liveRecStop(auto) {
+      if (!liveRec) return;
+      var r = liveRec; liveRec = null;
+      clearInterval(r.timer);
+      try { r.proc.onaudioprocess = null; } catch (e) {}
+      try { r.tap.disconnect(r.proc); } catch (e) {}
+      try { r.proc.disconnect(); } catch (e) {}
+      try { r.mute.disconnect(); } catch (e) {}
+      var total = r.len;
+      if (total > 0 && audio) {
+        try {
+          var buf = audio.createBuffer(2, total, r.sr);
+          var l = buf.getChannelData(0), rr = buf.getChannelData(1);
+          var off = 0;
+          for (var i = 0; i < r.chunksL.length; i++) {
+            l.set(r.chunksL[i], off);
+            rr.set(r.chunksR[i], off);
+            off += r.chunksL[i].length;
+          }
+          liveRecBuf = buf;
+          if (liveRecTimeEl) liveRecTimeEl.textContent = liveFmtTime(total / r.sr);
+          showToast(auto ? "10分に達したため録音を停止しました。DOWNLOAD WAV で保存できます。" : "録音を停止しました。DOWNLOAD WAV で保存できます。");
+        } catch (e) {
+          liveRecBuf = null;
+          showToast("録音の保存に失敗しました。");
+        }
+      } else {
+        liveRecBuf = null;
+        showToast("録音データがありませんでした。");
+      }
+      liveRecUiUpdate();
+    }
+    function liveRecStart() {
+      ensureAudio().then(function () {
+        if (!audio) { showToast("オーディオを開始できませんでした。"); return; }
+        if (audio.state === "suspended") { try { audio.resume(); } catch (e) {} }
+        var tap = (typeof tapeShaper !== "undefined" && tapeShaper) ? tapeShaper
+          : ((typeof master !== "undefined" && master) ? master : null);
+        if (!tap || !audio.createScriptProcessor) { showToast("この環境ではライブ録音できません。"); return; }
+        try {
+          var proc = audio.createScriptProcessor(4096, 2, 2);
+          var mute = audio.createGain(); mute.gain.value = 0;
+          var r = {
+            tap: tap, proc: proc, mute: mute,
+            chunksL: [], chunksR: [], len: 0,
+            sr: audio.sampleRate || 44100,
+            timer: null, startedAt: Date.now()
+          };
+          proc.onaudioprocess = function (ev) {
+            var inL = ev.inputBuffer.getChannelData(0);
+            var inR = ev.inputBuffer.numberOfChannels > 1 ? ev.inputBuffer.getChannelData(1) : inL;
+            r.chunksL.push(new Float32Array(inL));
+            r.chunksR.push(new Float32Array(inR));
+            r.len += inL.length;
+            if (r.len / r.sr >= LIVE_REC_MAX_SEC) liveRecStop(true);
+          };
+          tap.connect(proc);
+          proc.connect(mute); mute.connect(audio.destination);
+          liveRec = r;
+          liveRecBuf = null;
+          if (liveRecTimeEl) liveRecTimeEl.textContent = "0:00";
+          r.timer = setInterval(function () {
+            if (liveRecTimeEl) liveRecTimeEl.textContent = liveFmtTime((Date.now() - r.startedAt) / 1000);
+          }, 250);
+          liveRecUiUpdate();
+          showToast("ライブ録音を開始しました。");
+        } catch (e) {
+          showToast("ライブ録音を開始できませんでした。");
+        }
+      });
+    }
+    if (liveRecBtn) {
+      liveRecBtn.addEventListener("click", function () {
+        if (liveRec) liveRecStop(false); else liveRecStart();
+      });
+    }
+    if (liveRecDlBtn) {
+      liveRecDlBtn.addEventListener("click", function () {
+        if (!liveRecBuf) { showToast("先に REC で録音してください。"); return; }
+        var d = new Date();
+        function p2(n) { return (n < 10 ? "0" : "") + n; }
+        var fname = "orbit_live_" + d.getFullYear() + p2(d.getMonth() + 1) + p2(d.getDate()) + "_" + p2(d.getHours()) + p2(d.getMinutes()) + p2(d.getSeconds()) + ".wav";
+        var url = URL.createObjectURL(gBufferToWav(liveRecBuf));
+        var a = document.createElement("a");
+        a.href = url;
+        a.download = fname;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(function () {
+          if (a.parentNode) a.parentNode.removeChild(a);
+          URL.revokeObjectURL(url);
+        }, 600);
+        showToast("WAVを保存しました: " + fname);
+      });
+    }
+    liveRecUiUpdate();
 
     /* ---- 本体の SAVE / LOAD に粒の設定を合流させる ---- */
     var GRAIN_IDS = ["gVolume", "gSpeed", "gBurst", "gTrail", "gPos", "gSize", "gDensity", "gSpray", "gPitch", "gDrift", "gChaos", "gAmbient", "gWow", "gHiss", "gWarmth", "gReverb", "gShimmer", "gDelay", "gDelayTime", "gInputLevel"];
