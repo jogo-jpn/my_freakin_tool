@@ -661,6 +661,18 @@ body.edit-off #overlay{
       background:rgba(255,190,80,.14);
       border-color:rgba(255,190,80,.65)
     }
+    #grainWave.recording{
+      border-color:rgba(255,93,122,.75);
+      background:#170d18
+    }
+    #grainWave.standby{
+      border-color:rgba(255,190,80,.6)
+    }
+    #gLevelTrack{flex:1;height:10px;border:1px solid var(--bd);border-radius:5px;background:rgba(255,255,255,.06);overflow:hidden}
+    #gLevelFill{height:100%;width:0%;background:#7ee2a8}
+    #gLevelFill.hot{background:#ffd479}
+    #gLevelFill.clip{background:#ff5d7a}
+    #gLevelClip{color:#ff5d7a;font-size:10px;font-weight:700;visibility:hidden;min-width:30px}
     #granularBtn.active{
       color:#061018;
       background:var(--ac);
@@ -997,6 +1009,8 @@ body.edit-off #overlay{
           <button id="gFile" type="button">AUDIO</button>
           <input id="gFileInput" type="file" accept="audio/*,.wav,.mp3,.m4a,.aac,.ogg,.flac" hidden>
         </div>
+        <div class="row"><label>Input Level</label><input id="gInputLevel" type="range" min="0" max="1000" step="1" value="100"><span id="gInputLevelV" class="value">100%</span></div>
+        <div class="row"><label>Level</label><div id="gLevelTrack"><div id="gLevelFill"></div></div><span id="gLevelClip">CLIP</span></div>
         <div class="row" style="gap:8px;">
           <select id="gDemoSel" aria-label="Select demo sound"></select>
         </div>
@@ -1032,6 +1046,7 @@ body.edit-off #overlay{
         <div class="row"><label>Volume</label><input id="gVolume" type="range" min="0" max="1" step=".01" value=".9"><span id="gVolumeV" class="value"></span></div>
         <div class="row"><label>Ambient Orbit</label><input id="gAmbient" type="range" min="0" max="1" step=".01" value="0"><span id="gAmbientV" class="value"></span></div>
         <div class="row"><label>Speed</label><input id="gSpeed" type="range" min=".25" max="2" step=".01" value="1"><span id="gSpeedV" class="value"></span></div>
+        <div class="row"><label>Drift Speed</label><input id="gDrift" type="range" min="-1" max="1" step=".01" value="1"><span id="gDriftV" class="value"></span></div>
         <div class="row"><label>Key</label><select id="gKeySel">
           <option value="-1" selected>MAIN (Linked to ORBIT)</option>
           <option value="0">C</option>
@@ -1054,7 +1069,6 @@ body.edit-off #overlay{
         <div class="row"><label>Density</label><input id="gDensity" type="range" min="1" max="60" step="1" value="16"><span id="gDensityV" class="value"></span></div>
         <div class="row"><label>Spray</label><input id="gSpray" type="range" min="0" max="1" step=".01" value=".26"><span id="gSprayV" class="value"></span></div>
         <div class="row"><label>Pitch</label><input id="gPitch" type="range" min="-24" max="24" step="1" value="0"><span id="gPitchV" class="value"></span></div>
-        <div class="row"><label>Drift Speed</label><input id="gDrift" type="range" min="-1" max="1" step=".01" value=".14"><span id="gDriftV" class="value"></span></div>
         <div class="row"><label>Chaos</label><input id="gChaos" type="range" min="0" max="1" step=".01" value=".22"><span id="gChaosV" class="value"></span></div>
         <div class="row"><label>Wow</label><input id="gWow" type="range" min="0" max="1" step=".01" value=".26"><span id="gWowV" class="value"></span></div>
         <div class="row"><label>Hiss</label><input id="gHiss" type="range" min="0" max="1" step=".01" value=".08"><span id="gHissV" class="value"></span></div>
@@ -5587,11 +5601,12 @@ function removeObjectById(type, id) {
       burst: 0.55, trail: 0.30,
       position: 0.30, size: 0.190, density: 16, spray: 0.26, pitch: 0,
       loopStart: 0, loopEnd: 1,
-      drift: 0.14, chaos: 0.22, freeze: false,
+      drift: 1, chaos: 0.22, freeze: false,
       ambient: 0,
       wow: 0.26, hiss: 0.08, warmth: 0.30,
       reverb: 0.55, shimmer: 0, delay: 0.24, delayTime: 0.38,
-      playMode: "forward", pingDir: 1
+      playMode: "forward", pingDir: 1,
+      inputGain: 1
     };
     var gSource = null;
     var gRevSource = null, gRevFor = null;
@@ -6209,6 +6224,9 @@ function removeObjectById(type, id) {
       }
       gWctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       gWctx.clearRect(0, 0, w, h);
+      /* 録音中は録音している音の波形を、スタンバイ中は入力波形をライブ表示する */
+      if (gLiveRec) { gDrawLiveRec(w, h); return; }
+      if (gStandbyScope) { gDrawStandbyScope(w, h); return; }
       if (!gSource) {
         gWctx.fillStyle = "#91a3b7"; gWctx.font = "11px sans-serif";
         gWctx.fillText("Load a source to show its waveform", 10, h / 2 + 4);
@@ -6397,6 +6415,7 @@ function removeObjectById(type, id) {
     }
     gWave.addEventListener("pointerdown", function (e) {
       e.preventDefault();
+      if (gLiveRec || gStandbyScope) return; /* 録音中・スタンバイ中は範囲操作を受け付けない */
       var nx = gWaveNx(e);
       var w = gWave.clientWidth || 300;
       var dS = Math.abs(nx - GP.loopStart) * w;
@@ -7019,6 +7038,191 @@ function removeObjectById(type, id) {
     /* スタンバイ録音：MICを押すと待機状態になり、音が入った瞬間から録音を開始する */
     var gStandby = null;
     var G_MIC_THRESHOLD = 0.035;
+    /* ---- 入力ゲイン：マイク入力 → GainNode → (Analyser / MediaStreamDestination) ----
+       MediaRecorder はゲイン後のストリームを録るので、録れた音そのものが大きくなる。
+       ゲイン後の信号がスタンバイ検出・ライブ波形・レベルメーターのすべてに流れる */
+    var gInputChain = null;
+    var gLevelPeak = 0, gClipUntil = 0;
+    var gLevelFillEl = document.getElementById("gLevelFill");
+    var gLevelClipEl = document.getElementById("gLevelClip");
+    var gInputLevelEl = document.getElementById("gInputLevel");
+    var gInputLevelVEl = document.getElementById("gInputLevelV");
+    function gSyncInputLevel() {
+      var pct = Math.round(GP.inputGain * 100);
+      if (gInputLevelVEl) gInputLevelVEl.textContent = pct + "%";
+      if (gInputLevelEl && parseFloat(gInputLevelEl.value) !== pct) gInputLevelEl.value = pct;
+    }
+    if (gInputLevelEl) {
+      gInputLevelEl.addEventListener("input", function () {
+        GP.inputGain = gClamp(parseFloat(gInputLevelEl.value) / 100 || 0, 0, 10);
+        gSyncInputLevel();
+        if (gInputChain && audio) { try { gInputChain.gain.gain.setTargetAtTime(GP.inputGain, audio.currentTime, 0.03); } catch (e) {} }
+      });
+    }
+    gSyncInputLevel();
+    function gEnsureInputChain() {
+      if (gInputChain && gInputChain.stream === gStream) return gInputChain;
+      gTeardownInputChain();
+      if (!audio || !gStream) return null;
+      try {
+        var isrc = audio.createMediaStreamSource(gStream);
+        var ign = audio.createGain(); ign.gain.value = GP.inputGain;
+        var ian = audio.createAnalyser(); ian.fftSize = 2048;
+        var idest = audio.createMediaStreamDestination();
+        isrc.connect(ign); ign.connect(ian); ign.connect(idest);
+        gInputChain = { stream: gStream, src: isrc, gain: ign, analyser: ian, dest: idest, floatData: new Float32Array(ian.fftSize), byteData: new Uint8Array(ian.fftSize) };
+      } catch (e) { gInputChain = null; }
+      return gInputChain;
+    }
+    function gTeardownInputChain() {
+      if (!gInputChain) { return; }
+      var c = gInputChain; gInputChain = null;
+      try { c.src.disconnect(); } catch (e) {}
+      try { c.gain.disconnect(); } catch (e) {}
+      try { c.analyser.disconnect(); } catch (e) {}
+      gResetLevelMeter();
+    }
+    function gResetLevelMeter() {
+      gLevelPeak = 0;
+      if (gLevelFillEl) { gLevelFillEl.style.width = "0%"; gLevelFillEl.className = ""; }
+      if (gLevelClipEl) gLevelClipEl.style.visibility = "hidden";
+    }
+    function gUpdateLevelMeter(peak) {
+      if (peak > gLevelPeak) gLevelPeak = peak; else gLevelPeak *= 0.92;
+      var p = Math.max(peak, gLevelPeak);
+      if (gLevelFillEl) {
+        gLevelFillEl.style.width = Math.min(100, p * 100).toFixed(1) + "%";
+        gLevelFillEl.className = p >= 0.98 ? "clip" : (p >= 0.7 ? "hot" : "");
+      }
+      if (peak >= 0.98) gClipUntil = performance.now() + 900;
+      if (gLevelClipEl) gLevelClipEl.style.visibility = (performance.now() < gClipUntil) ? "visible" : "hidden";
+    }
+    /* ---- 録音中ライブ波形：録音している音を波形表示エリアにその場で描く ----
+       MediaRecorder とは別にマイク入力を取り込み、最大20秒分をバケット
+       （min/max）へ集計して保持する。描画は gDrawWave から呼ばれる */
+    var gLiveRec = null;      /* 録音中: {min,max,filled,count,sr,src,proc,mute,analyser,data} */
+    var gStandbyScope = null; /* スタンバイ中: {analyser,data} */
+    var G_LIVE_BUCKETS = 720, G_REC_MAX_SEC = 20;
+    function gLiveStartCapture() {
+      gLiveStopCapture();
+      if (!audio || !gStream) return;
+      var sr = audio.sampleRate || 44100;
+      var rec = {
+        min: new Float32Array(G_LIVE_BUCKETS).fill(1),
+        max: new Float32Array(G_LIVE_BUCKETS).fill(-1),
+        filled: 0, count: 0, sr: sr,
+        src: null, proc: null, mute: null, analyser: null, data: null
+      };
+      var chain = gEnsureInputChain();
+      try {
+        if (!audio.createScriptProcessor) throw new Error("no script processor");
+        rec.proc = audio.createScriptProcessor(4096, 1, 1);
+        rec.mute = audio.createGain(); rec.mute.gain.value = 0;
+        var perBucket = Math.max(1, Math.floor(sr * G_REC_MAX_SEC / G_LIVE_BUCKETS));
+        rec.proc.onaudioprocess = function (ev) {
+          var d = ev.inputBuffer.getChannelData(0);
+          var bp = 0;
+          for (var i = 0; i < d.length; i++) {
+            var bi = Math.floor(rec.count / perBucket);
+            if (bi >= G_LIVE_BUCKETS) break;
+            var v = d[i];
+            var av = v < 0 ? -v : v; if (av > bp) bp = av;
+            if (v < rec.min[bi]) rec.min[bi] = v;
+            if (v > rec.max[bi]) rec.max[bi] = v;
+            rec.count++;
+          }
+          gUpdateLevelMeter(bp);
+          rec.filled = Math.min(G_LIVE_BUCKETS, Math.floor(rec.count / perBucket));
+        };
+        /* ゲイン後の信号を拾うので、ライブ波形にも入力レベルが反映される。出力はミュート（監視音は出さない） */
+        if (chain) { chain.gain.connect(rec.proc); rec.fromChain = true; }
+        else { rec.src = audio.createMediaStreamSource(gStream); rec.src.connect(rec.proc); }
+        rec.proc.connect(rec.mute); rec.mute.connect(audio.destination);
+      } catch (e) {
+        /* ScriptProcessor が使えない環境ではアナライザーの波形で代替表示する */
+        try {
+          if (rec.proc) { try { rec.proc.disconnect(); } catch (e2) {} rec.proc = null; }
+          if (rec.mute) { try { rec.mute.disconnect(); } catch (e3) {} rec.mute = null; }
+          if (chain) { rec.analyser = chain.analyser; rec.data = chain.floatData; rec.fromChain = true; }
+          else {
+            if (!rec.src) rec.src = audio.createMediaStreamSource(gStream);
+            rec.analyser = audio.createAnalyser();
+            rec.analyser.fftSize = 2048;
+            rec.data = new Float32Array(rec.analyser.fftSize);
+            rec.src.connect(rec.analyser);
+          }
+        } catch (e4) { return; }
+      }
+      gLiveRec = rec;
+      gWave.classList.add("recording");
+      try { gDrawWave(); } catch (e) {}
+    }
+    function gLiveStopCapture() {
+      if (gLiveRec) {
+        var rec = gLiveRec; gLiveRec = null;
+        if (rec.proc) { rec.proc.onaudioprocess = null; if (rec.fromChain && gInputChain) { try { gInputChain.gain.disconnect(rec.proc); } catch (e) {} } try { rec.proc.disconnect(); } catch (e) {} }
+        if (rec.mute) { try { rec.mute.disconnect(); } catch (e) {} }
+        if (rec.src) { try { rec.src.disconnect(); } catch (e) {} }
+      }
+      gWave.classList.remove("recording");
+    }
+    function gDrawLiveRec(w, h) {
+      var rec = gLiveRec, mid = h / 2;
+      gWctx.fillStyle = "rgba(255,255,255,0.07)";
+      gWctx.fillRect(0, mid - 0.5, w, 1);
+      if (rec.analyser && rec.data) {
+        /* 代替表示：今入ってきている音の波形（オシロスコープ） */
+        rec.analyser.getFloatTimeDomainData(rec.data);
+        var fpk = 0;
+        for (var di = 0; di < rec.data.length; di++) { var dv = rec.data[di] < 0 ? -rec.data[di] : rec.data[di]; if (dv > fpk) fpk = dv; }
+        gUpdateLevelMeter(fpk);
+        gWctx.strokeStyle = "#ff8fab"; gWctx.lineWidth = 1.4;
+        gWctx.beginPath();
+        for (var x = 0; x < w; x++) {
+          var v = rec.data[Math.floor(x / w * rec.data.length)] || 0;
+          var y = mid + v * mid * 0.9;
+          if (x === 0) gWctx.moveTo(x, y); else gWctx.lineTo(x, y);
+        }
+        gWctx.stroke();
+      } else {
+        /* 録れた分だけ左から右へ波形が伸びていく（横軸全体＝最大20秒） */
+        gWctx.fillStyle = "rgba(255,93,122,0.85)";
+        for (var x2 = 0; x2 < w; x2++) {
+          var bk = Math.min(G_LIVE_BUCKETS - 1, Math.floor(x2 / w * G_LIVE_BUCKETS));
+          if (bk > rec.filled) break;
+          var mn = rec.min[bk], mx = rec.max[bk];
+          if (mn > mx) continue;
+          gWctx.fillRect(x2, mid + mn * mid * 0.88, 1, Math.max(1, (mx - mn) * mid * 0.88));
+        }
+        var px = Math.min(w, rec.filled / G_LIVE_BUCKETS * w);
+        gWctx.fillStyle = "#ff5d7a";
+        gWctx.fillRect(px - 1, 0, 2, h);
+      }
+      var secs = (rec.count && rec.sr) ? rec.count / rec.sr : gMicSecs;
+      gWctx.fillStyle = "#ff9aac";
+      gWctx.font = "700 11px sans-serif";
+      gWctx.fillText("\u25CF REC " + secs.toFixed(1) + "s", 8, 15);
+    }
+    function gDrawStandbyScope(w, h) {
+      var sc = gStandbyScope, mid = h / 2;
+      gWctx.fillStyle = "rgba(255,255,255,0.07)";
+      gWctx.fillRect(0, mid - 0.5, w, 1);
+      sc.analyser.getByteTimeDomainData(sc.data);
+      var spk = 0;
+      for (var si = 0; si < sc.data.length; si += 4) { var sv2 = Math.abs((sc.data[si] - 128) / 128); if (sv2 > spk) spk = sv2; }
+      gUpdateLevelMeter(spk);
+      gWctx.strokeStyle = "rgba(255,212,121,0.9)"; gWctx.lineWidth = 1.4;
+      gWctx.beginPath();
+      for (var x = 0; x < w; x++) {
+        var v = ((sc.data[Math.floor(x / w * sc.data.length)] || 128) - 128) / 128;
+        var y = mid + v * mid * 0.9;
+        if (x === 0) gWctx.moveTo(x, y); else gWctx.lineTo(x, y);
+      }
+      gWctx.stroke();
+      gWctx.fillStyle = "#ffd479";
+      gWctx.font = "700 11px sans-serif";
+      gWctx.fillText("STANDBY", 8, 15);
+    }
     function gMicBtnReset() {
       gMicBtn.classList.remove("recording"); gMicBtn.classList.remove("standby");
       gMicBtn.textContent = "MIC";
@@ -7029,18 +7233,26 @@ function removeObjectById(type, id) {
     function gMicCancelStandby(silent) {
       if (!gStandby) return;
       clearInterval(gStandby.timer);
-      if (gStandby.src) { try { gStandby.src.disconnect(); } catch (e) {} }
+      gTeardownInputChain();
       gStandby = null;
+      gStandbyScope = null;
+      gWave.classList.remove("standby");
       gMicStopStream();
       gMicBtnReset();
+      try { gDrawWave(); } catch (e) {}
       if (!silent) gSetStatus("待機を中止しました。");
     }
     function gMicStartRec() {
       gChunks = [];
-      gRec = new MediaRecorder(gStream);
+      /* ゲイン後のストリームを録る（取れない環境では従来どおり元のストリーム） */
+      var chain2 = gEnsureInputChain();
+      var recStream = chain2 ? chain2.dest.stream : gStream;
+      gRec = new MediaRecorder(recStream);
       gRec.ondataavailable = function (e) { if (e.data.size) gChunks.push(e.data); };
       gRec.onstop = function () {
         clearInterval(gMicTimer);
+        gLiveStopCapture();
+        gTeardownInputChain();
         gMicBtnReset();
         gMicStopStream();
         var blob = new Blob(gChunks, { type: gRec.mimeType || "audio/webm" });
@@ -7054,10 +7266,15 @@ function removeObjectById(type, id) {
             var wb = document.getElementById("gSaveWav");
             if (wb) wb.disabled = false;
             gSetSource(buf, "マイク録音 " + gMicName);
+            /* 再生開始位置を一番初め（範囲の先頭）に戻し、録音が終わったらそのまま再生する */
+            GP.position = GP.loopStart; gSyncPos();
+            try { gDrawWave(); } catch (e) {}
+            gSetPlaying(true);
           })
           .catch(function () { gSetStatus("録音の読み込みに失敗しました。"); });
       };
       gRec.start(200);
+      gLiveStartCapture();
       gMicSecs = 0;
       gMicBtn.classList.add("recording"); gMicBtn.textContent = "■ 0s";
       gMicTimer = setInterval(function () {
@@ -7068,32 +7285,35 @@ function removeObjectById(type, id) {
       gSetStatus("録音中…（最大20秒）。もう一度押すと停止します。");
     }
     function gMicEnterStandby(stream) {
-      var srcNode = null, analyser = null;
-      try {
-        srcNode = audio.createMediaStreamSource(stream);
-        analyser = audio.createAnalyser();
-        analyser.fftSize = 1024;
-        srcNode.connect(analyser);
-      } catch (e) {
+      /* スタンバイに入ったら、鳴っているグラニュラーの音をストップする */
+      try { gSetPlaying(false); } catch (e) {}
+      var chain = gEnsureInputChain();
+      if (!chain) {
         /* 入力レベルを解析できない環境では従来どおり即録音 */
         gMicStartRec();
         return;
       }
-      var data = new Uint8Array(analyser.fftSize);
+      var analyser = chain.analyser;
+      var data = chain.floatData;
       var hits = 0, waited = 0;
+      gStandbyScope = { analyser: analyser, data: chain.byteData };
+      gWave.classList.add("standby");
       gMicBtn.classList.add("standby"); gMicBtn.textContent = "STANDBY";
       gSetStatus("STANDBY — 音が入ると録音開始（もう一度押すと中止）");
       var timer = setInterval(function () {
         waited += 50;
-        analyser.getByteTimeDomainData(data);
-        var sum = 0;
-        for (var i = 0; i < data.length; i++) { var v = (data[i] - 128) / 128; sum += v * v; }
+        analyser.getFloatTimeDomainData(data);
+        var sum = 0, pk = 0;
+        for (var i = 0; i < data.length; i++) { var v = data[i]; sum += v * v; var av = v < 0 ? -v : v; if (av > pk) pk = av; }
+        gUpdateLevelMeter(pk);
+        /* 検出はゲイン後の信号で行う（入力レベルを上げるほど小さい音でも録音が始まる） */
         var rms = Math.sqrt(sum / data.length);
         if (rms >= G_MIC_THRESHOLD) { hits++; } else { hits = 0; }
         if (hits >= 2) {
           clearInterval(timer);
-          try { srcNode.disconnect(); } catch (e) {}
           gStandby = null;
+          gStandbyScope = null;
+          gWave.classList.remove("standby");
           gMicBtn.classList.remove("standby");
           gMicStartRec();
           return;
@@ -7103,7 +7323,7 @@ function removeObjectById(type, id) {
           gSetStatus("STANDBY — 音が入らないため待機を終了しました。");
         }
       }, 50);
-      gStandby = { timer: timer, src: srcNode };
+      gStandby = { timer: timer };
     }
     gMicBtn.addEventListener("click", function () {
       if (gRec && gRec.state === "recording") { gRec.stop(); return; }
@@ -7114,7 +7334,8 @@ function removeObjectById(type, id) {
       }
       ensureAudio();
       if (audio && audio.state === "suspended" && audio.resume) { try { audio.resume(); } catch (e) {} }
-      navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+      /* ブラウザ側の自動ゲイン／ノイズ処理を切り、Input Level の効きを一定にする */
+      navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } }).then(function (stream) {
         gStream = stream;
         gMicEnterStandby(stream);
       }).catch(function () {
@@ -7168,7 +7389,7 @@ function removeObjectById(type, id) {
     }
 
     /* ---- 本体の SAVE / LOAD に粒の設定を合流させる ---- */
-    var GRAIN_IDS = ["gVolume", "gSpeed", "gBurst", "gTrail", "gPos", "gSize", "gDensity", "gSpray", "gPitch", "gDrift", "gChaos", "gAmbient", "gWow", "gHiss", "gWarmth", "gReverb", "gShimmer", "gDelay", "gDelayTime"];
+    var GRAIN_IDS = ["gVolume", "gSpeed", "gBurst", "gTrail", "gPos", "gSize", "gDensity", "gSpray", "gPitch", "gDrift", "gChaos", "gAmbient", "gWow", "gHiss", "gWarmth", "gReverb", "gShimmer", "gDelay", "gDelayTime", "gInputLevel"];
     var gOrigSerialize = serializeProject;
     serializeProject = function () {
       var d = gOrigSerialize();
