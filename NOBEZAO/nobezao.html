@@ -631,10 +631,10 @@ var records = [];
 /* 音量設定（効果音／お邪魔ボイス／環境音）：設定画面のスライダーで変え、記録と一緒にブラウザへ保存する。
    初期値は効果音・ボイスが最大、環境音はこれまでの再生音量より小さめ（半分） */
 var volSE = 1, volVoice = 1, volAmb = 0.5;
-/* 環境音は「大きすぎる」という声を受けて、実効音量をスライダー値の約1/3に抑える。
-   係数で下げるので、ブラウザに保存済みの音量設定（例：50%）のままでも、実際の再生は今の約1/3（50%→約17%相当）になる。
+/* 環境音は「大きすぎる」という声を受けて、実効音量をスライダー値の約1/6に抑える（当初1/3→さらに半分）。
+   係数で下げるので、ブラウザに保存済みの音量設定（例：50%）のままでも、実際の再生は従来の半分（50%→約8%相当）になる。
    録音ループ・合成の環境音・残響の全てに、この係数を掛けた値を渡す */
-var AMB_SCALE = 1 / 3;
+var AMB_SCALE = 1 / 6;
 try{
   var raw = localStorage.getItem(LS_KEY);
   if(raw){ var parsed = JSON.parse(raw); if(parsed && parsed.records) records = parsed.records; if(parsed && (parsed.lang==="en" || parsed.lang==="ja")) lang = parsed.lang; if(parsed && parsed.vol){ if(typeof parsed.vol.se==="number") volSE = Math.min(1, Math.max(0, parsed.vol.se)); if(typeof parsed.vol.voice==="number") volVoice = Math.min(1, Math.max(0, parsed.vol.voice)); if(typeof parsed.vol.amb==="number") volAmb = Math.min(1, Math.max(0, parsed.vol.amb)); } }
@@ -748,6 +748,8 @@ function applyVolumes(){
   if(seBus) seBus.gain.value = volSE;
   if(ambBus) ambBus.gain.value = volAmb * AMB_SCALE;
   if(typeof ojamaAudio !== "undefined" && ojamaAudio) ojamaAudio.volume = volVoice;
+  /* 録音環境音（<audio>要素側）は ambTick の定期処理だけが音量を動かすので、スライダー操作の瞬間にも1回呼んで即座に追従を始める */
+  if(typeof ambStarted !== "undefined" && ambStarted && typeof ambTick === "function") ambTick();
 }
 /* 最初のタップ（ユーザー操作）で音声を開始する。ブラウザは操作前の自動再生を許可しないため、
    ここで生成・再開して初めて音が出る。音ONのままなら環境音も同時に始める */
@@ -939,7 +941,10 @@ function ambTick(){
     if(target > 0){
       if(!el) el = ambEl(key);
       if(el.paused){ var p = el.play(); if(p && p.catch) p.catch(function(){}); }
-      if(el.volume < target) el.volume = Math.min(target, el.volume + 0.02);
+      /* 目標音量へは上げる方向だけでなく下げる方向にも近づける。
+         以前は上げる方向しか処理しておらず、設定スライダーを下げても再生中の録音環境音が下がらなかった */
+      var diff = target - el.volume;
+      el.volume = Math.abs(diff) < 0.004 ? target : el.volume + diff * 0.35;
     } else if(el && !el.paused){
       if(el.volume > 0.02) el.volume = Math.max(0, el.volume - 0.02);
       else { el.pause(); el.volume = 0; }
@@ -3396,12 +3401,15 @@ function bindVol(rngId, valId, get, set){
   if(!rng || !val) return;
   rng.value = Math.round(get() * 100);
   val.textContent = Math.round(get() * 100) + "%";
-  rng.addEventListener("input", function(){
+  var onSlide = function(){
     set(rng.value / 100);
     val.textContent = rng.value + "%";
     applyVolumes();
     save();
-  });
+  };
+  /* input が届かない環境でも離した時点で確実に反映されるよう change でも同じ処理を行う（冪等） */
+  rng.addEventListener("input", onSlide);
+  rng.addEventListener("change", onSlide);
 }
 bindVol("rngSE", "rngSEVal", function(){ return volSE; }, function(v){ volSE = v; });
 bindVol("rngVoice", "rngVoiceVal", function(){ return volVoice; }, function(v){ volVoice = v; });
