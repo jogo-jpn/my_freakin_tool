@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="mobile-web-app-capable" content="yes">
 
-  <title>ORBIT ver.0.3 + Granular</title>
+  <title>ORBIT</title>
   <style>
     :root{
       --bg:#042A57;
@@ -6150,16 +6150,20 @@ function removeObjectById(type, id) {
     function gSetPlaying(on) {
       var sec = document.getElementById("sec-granular");
       if (sec) sec.classList.toggle("enabled", !!on);
+      if (on) gDryStop(); /* 粒の再生に切り替わるときはドライ再生を止める */
+      if (!on) gDryHold = true; /* 停止したらドライ再生も止める（停止中は無音がデフォルト） */
       gSyncPlayBtns();
     }
-    /* トップ画面のSTOPボタンからもグラニュラーを止められるよう公開する（開始の同期はしない） */
-    window.gStopPlayback = function () { gSetPlaying(false); };
-    window.gIsPlaying = function () { return gOn(); };
+    /* トップ画面のSTOPボタンからもグラニュラーを止められるよう公開する（開始の同期はしない）。
+       STOP（トップ／パネル内とも）はドライ再生も止め、無音になる */
+    window.gStopPlayback = function () { gDryHold = true; gSetPlaying(false); };
+    window.gIsPlaying = function () { return gOn() || !!gDry; };
     if (gPlayBtn) gPlayBtn.addEventListener("click", function () {
       ensureAudio();
+      gDryHold = false;
       gSetPlaying(true);
     });
-    if (gStopBtn) gStopBtn.addEventListener("click", function () { gSetPlaying(false); });
+    if (gStopBtn) gStopBtn.addEventListener("click", function () { gDryHold = true; gSetPlaying(false); });
     var gModeBtns = document.querySelectorAll(".gModeBtn");
     function gSyncMode() {
       gModeBtns.forEach(function (b) {
@@ -6376,8 +6380,117 @@ function removeObjectById(type, id) {
       g.connect(gIn);
     }
 
+    /* ---- ドライ再生：グラニュラーOFFでも入力した音（音源そのもの）を鳴らす ----
+       デフォルトは停止（gDryHold = true）：音源を取り込んでも自動では鳴らず、
+       グラニュラー停止中は無音。PLAYを押したときだけ粒の再生が始まり、
+       STOP（トップ／パネル内とも）で粒もドライ再生も止まる。 */
+    var gDry = null;      /* {src, gain, buf, mode, dir, pos, lo, hi, lastT, startedAt} */
+    var gDryHold = true;
+    var G_DRY_LEVEL = 0.6;
+    function gDryRate() {
+      return Math.max(0.05, GP.speed * Math.pow(2, GP.pitch / 12) * gKeyMul());
+    }
+    function gDryStop() {
+      if (!gDry) return;
+      var d = gDry; gDry = null;
+      try {
+        var t = audio ? audio.currentTime : 0;
+        d.gain.gain.cancelScheduledValues(t);
+        d.gain.gain.setTargetAtTime(0, t, 0.04);
+        d.src.stop(t + 0.25);
+      } catch (e) {}
+      setTimeout(function () { try { d.src.disconnect(); d.gain.disconnect(); } catch (e) {} }, 350);
+    }
+    function gDryStart(fromPos, dirHint) {
+      if (!gSource || !audio || audio.state !== "running" || !gEnsureChain()) return;
+      gDryStop();
+      var dur = gSource.duration;
+      var lo = GP.loopStart, hi = GP.loopEnd;
+      if (!(hi - lo > 0.001)) { lo = 0; hi = 1; }
+      var mode = GP.playMode;
+      var dir = mode === "reverse" ? -1 : (mode === "pingpong" ? (dirHint || GP.pingDir || 1) : 1);
+      var buf = dir < 0 ? (gRevBuffer() || gSource) : gSource;
+      var pos = gClamp(fromPos != null ? fromPos : GP.position, lo, hi);
+      var rate = gDryRate();
+      var src = audio.createBufferSource();
+      src.buffer = buf;
+      src.playbackRate.value = rate;
+      var gn = audio.createGain();
+      gn.gain.value = 0;
+      gn.gain.setTargetAtTime(G_DRY_LEVEL, audio.currentTime, 0.09);
+      src.connect(gn); gn.connect(gIn);
+      var segLo, segHi, off;
+      if (dir < 0) { segLo = (1 - hi) * dur; segHi = (1 - lo) * dur; off = (1 - pos) * dur; }
+      else { segLo = lo * dur; segHi = hi * dur; off = pos * dur; }
+      if (off < segLo) off = segLo;
+      if (off > segHi - 0.01) off = Math.max(segLo, segHi - 0.01);
+      if (mode === "pingpong") {
+        src.loop = false;
+        src.start(0, off, Math.max(0.02, segHi - off));
+        try { src.stop(audio.currentTime + Math.max(0.03, (segHi - off) / rate) + 0.1); } catch (e) {}
+      } else {
+        src.loop = true;
+        src.loopStart = segLo;
+        src.loopEnd = segHi;
+        src.start(0, off);
+      }
+      gDry = { src: src, gain: gn, buf: buf, mode: mode, dir: dir, pos: pos, lo: lo, hi: hi, lastT: audio.currentTime, startedAt: audio.currentTime };
+      if (mode === "pingpong") {
+        var d = gDry;
+        src.onended = function () {
+          if (gDry !== d) return;
+          gDry = null;
+          if (gOn() || gDryHold || !gSource) return;
+          var nd = d.dir < 0 ? 1 : -1;
+          gDryStart(nd > 0 ? GP.loopStart : GP.loopEnd, nd);
+        };
+      }
+    }
+    function gDryWanted() {
+      return !gDryHold && !gOn() && !!gSource && !!audio && audio.state === "running"
+        && !gLiveRec && !gStandbyScope && !(gRec && gRec.state === "recording");
+    }
+    function gDrySync() {
+      if (!gDryWanted()) { gDryStop(); return; }
+      if (!gEnsureChain()) return;
+      var dur = gSource.duration;
+      var lo = GP.loopStart, hi = GP.loopEnd;
+      if (!(hi - lo > 0.001)) { lo = 0; hi = 1; }
+      var dir = GP.playMode === "reverse" ? -1 : (GP.playMode === "pingpong" ? (gDry ? gDry.dir : (GP.pingDir || 1)) : 1);
+      var buf = dir < 0 ? (gRevBuffer() || gSource) : gSource;
+      if (!gDry || gDry.buf !== buf || gDry.mode !== GP.playMode) { gDryStart(GP.position); return; }
+      /* 再生位置を追跡し、Positionスライダー／ステージタップ／波形操作によるシークを検出する */
+      var now = audio.currentTime;
+      var dt = now - gDry.lastT; gDry.lastT = now;
+      if (dt > 0.5) dt = 0.5;
+      if (dt < 0) dt = 0;
+      var rate = gDryRate();
+      try { gDry.src.playbackRate.setTargetAtTime(rate, now, 0.05); } catch (e) {}
+      var rg = hi - lo;
+      var exp;
+      if (GP.playMode === "pingpong") {
+        exp = gClamp(gDry.pos + gDry.dir * dt * rate / Math.max(0.01, dur), lo, hi);
+      } else {
+        exp = gDry.pos + gDry.dir * dt * rate / Math.max(0.01, dur);
+        exp = lo + (((exp - lo) % rg) + rg) % rg;
+      }
+      var seeked = Math.abs(GP.position - exp) > 0.035 && !gDragMode && (now - gDry.startedAt) > 0.3;
+      if (seeked) { gDryStart(GP.position); return; }
+      gDry.pos = exp;
+      if (Math.abs(GP.position - exp) > 0.0005) { GP.position = exp; gSyncPos(); }
+      /* 範囲（S/E）変更はループ点へライブで追従させる（PING-PONGは次のパスから反映） */
+      if (GP.playMode !== "pingpong" && (Math.abs(gDry.lo - lo) > 0.0005 || Math.abs(gDry.hi - hi) > 0.0005)) {
+        gDry.lo = lo; gDry.hi = hi;
+        try {
+          if (gDry.dir < 0) { gDry.src.loopStart = (1 - hi) * dur; gDry.src.loopEnd = (1 - lo) * dur; }
+          else { gDry.src.loopStart = lo * dur; gDry.src.loopEnd = hi * dur; }
+        } catch (e) {}
+      }
+    }
+
     /* ---- 粒のスケジューラ ---- */
     setInterval(function () {
+      gDrySync();
       if (!gOn()) {
         if (gHissGain && audio && audio.state === "running") {
           gHissGain.gain.setTargetAtTime(0, audio.currentTime, 0.2);
@@ -6940,6 +7053,8 @@ function removeObjectById(type, id) {
     var gStatus = document.getElementById("gSrcStatus");
     function gSetStatus(s) { if (gStatus) gStatus.textContent = s; }
     function gSetSource(buf, name) {
+      gDryHold = true; /* 新しく取り込んだ音も自動では鳴らさない（デフォルト停止） */
+      gDryStop();
       gSource = buf;
       GP.loopStart = 0; GP.loopEnd = 1;
       gSyncRange();
@@ -7504,7 +7619,8 @@ function removeObjectById(type, id) {
        ゲイン後の信号がスタンバイ検出・ライブ波形・レベルメーターのすべてに流れる */
     var gInputChain = null;
     /* ---- モニター：マイク入力（ゲイン後）をスピーカー／ヘッドホンへ返す ----
-       STANDBY中と録音中に自分の音を聞ける。MONITORボタンでON/OFF（初期ON）。
+       MONITOR ON（初期ON）の間は、録音していない時も含めて常時マイク音を出す。
+       MONITORボタンでON/OFF。OFFにすると待機・録音中以外はマイクを解放する。
        スピーカー使用時はハウリングすることがあるので、その場合はOFFにする */
     var gMonitorOn = true;
     var G_MONITOR_LEVEL = 0.8;
@@ -7519,6 +7635,18 @@ function removeObjectById(type, id) {
       gMonitorBtn.addEventListener("click", function () {
         gMonitorOn = !gMonitorOn;
         gApplyMonitor();
+        if (gMonitorOn) {
+          /* ONにしたら録音していなくてもマイク音が出るよう、入力を取り始める */
+          gMonDenied = false;
+          ensureAudio();
+          if (audio && audio.state === "suspended" && audio.resume) { try { audio.resume(); } catch (e) {} }
+          gStartMonitorMic();
+          if (gStream) { gEnsureInputChain(); gApplyMonitor(); }
+        } else if (!gStandby && !(gRec && gRec.state === "recording")) {
+          /* OFFで待機・録音中でなければマイクを解放する */
+          gTeardownInputChain();
+          gMicStopStream();
+        }
       });
     }
     var gLevelPeak = 0, gClipUntil = 0;
@@ -7714,14 +7842,24 @@ function removeObjectById(type, id) {
     function gMicStopStream() {
       if (gStream) { gStream.getTracks().forEach(function (tr) { tr.stop(); }); gStream = null; }
     }
+    /* 録音／スタンバイ終了時：モニターONならストリームと入力チェーンを残してモニターを続ける */
+    function gMicRelease() {
+      if (gMonitorOn && gStream) {
+        gResetLevelMeter();
+        gEnsureInputChain();
+        gApplyMonitor();
+      } else {
+        gTeardownInputChain();
+        gMicStopStream();
+      }
+    }
     function gMicCancelStandby(silent) {
       if (!gStandby) return;
       clearInterval(gStandby.timer);
-      gTeardownInputChain();
       gStandby = null;
       gStandbyScope = null;
       gWave.classList.remove("standby");
-      gMicStopStream();
+      gMicRelease();
       gMicBtnReset();
       try { gDrawWave(); } catch (e) {}
       if (!silent) gSetStatus("待機を中止しました。");
@@ -7736,9 +7874,8 @@ function removeObjectById(type, id) {
       gRec.onstop = function () {
         clearInterval(gMicTimer);
         gLiveStopCapture();
-        gTeardownInputChain();
         gMicBtnReset();
-        gMicStopStream();
+        gMicRelease();
         var blob = new Blob(gChunks, { type: gRec.mimeType || "audio/webm" });
         blob.arrayBuffer().then(function (ab) { return gDecode(ab.slice(0)); })
           .then(function (buf) {
@@ -7750,10 +7887,9 @@ function removeObjectById(type, id) {
             var wb = document.getElementById("gSaveWav");
             if (wb) wb.disabled = false;
             gSetSource(buf, "マイク録音 " + gMicName);
-            /* 再生開始位置を一番初め（範囲の先頭）に戻し、録音が終わったらそのまま再生する */
+            /* 再生開始位置を一番初め（範囲の先頭）に戻す（録音後に自動再生はしない） */
             GP.position = GP.loopStart; gSyncPos();
             try { gDrawWave(); } catch (e) {}
-            gSetPlaying(true);
           })
           .catch(function () { gSetStatus("録音の読み込みに失敗しました。"); });
       };
@@ -7818,6 +7954,8 @@ function removeObjectById(type, id) {
       }
       ensureAudio();
       if (audio && audio.state === "suspended" && audio.resume) { try { audio.resume(); } catch (e) {} }
+      /* モニター用にマイクを掴んでいれば、そのストリームをそのまま録音に使う */
+      if (gStream) { gMicEnterStandby(gStream); return; }
       /* ブラウザ側の自動ゲイン／ノイズ処理を切り、Input Level の効きを一定にする */
       navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } }).then(function (stream) {
         gStream = stream;
@@ -7826,6 +7964,34 @@ function removeObjectById(type, id) {
         gSetStatus("マイクの許可が得られませんでした。ブラウザの設定を確認してください。");
       });
     });
+
+    /* ---- モニター常時化：MONITOR ON の間は録音していなくてもマイク音を出す ----
+       ページを開いた時点で一度マイク許可を求める。許可が取れても AudioContext は
+       初回タップまで開始できないため、その時点で入力チェーンを組んで鳴らし始める。
+       許可リクエストが操作前で弾かれる環境では、初回タップ時に取り直す */
+    var gMonReqPending = false;
+    var gMonDenied = false;
+    function gStartMonitorMic() {
+      if (!gMonitorOn || gStream || gMonReqPending || gMonDenied) return;
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
+      gMonReqPending = true;
+      navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } }).then(function (stream) {
+        gMonReqPending = false;
+        if (!gMonitorOn || gStream) { stream.getTracks().forEach(function (tr) { tr.stop(); }); return; }
+        gStream = stream;
+        if (audio) { gEnsureInputChain(); gApplyMonitor(); }
+      }).catch(function (err) {
+        gMonReqPending = false;
+        /* 許可が拒否されたら自動リクエストは止める（MICボタンからは従来どおり試せる） */
+        if (err && err.name === "NotAllowedError") gMonDenied = true;
+      });
+    }
+    gStartMonitorMic();
+    document.addEventListener("pointerdown", function () {
+      if (!gMonitorOn) return;
+      if (!gStream) gStartMonitorMic();
+      else if (!gInputChain && audio) { gEnsureInputChain(); gApplyMonitor(); }
+    }, { passive: true });
 
     /* ---- マイク録音を WAV（16bit PCM）で保存 ---- */
     function gBufferToWav(buf) {
