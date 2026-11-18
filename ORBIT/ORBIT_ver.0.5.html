@@ -435,6 +435,11 @@ body.view-mode .bottom-wrap{
 body.view-mode .top-actions{
   display:none !important;
 }
+
+/* VIEWモードではBPM表示を隠す */
+body.view-mode #recBpm{
+  display:none !important;
+}
     body.edit-off .top,
 body.edit-off .bottom-wrap,
 body.edit-off .hint,
@@ -771,23 +776,8 @@ body.edit-off #overlay{
     }
     #ivShot.held{background:#ffedb8;border-color:#ffedb8}
 
-    /* ===== VIEWS カウンター（追加）: 固定オーバーレイのみ ===== */
-    #viewCounter{
-      position:fixed;
-      top:calc(54px + env(safe-area-inset-top));
-      right:calc(8px + env(safe-area-inset-right));
-      z-index:31;
-      padding:3px 7px;
-      border:1px solid var(--bd);
-      border-radius:6px;
-      background:rgba(8,12,20,.55);
-      color:var(--sub);
-      font-size:11px;
-      letter-spacing:.08em;
-      font-variant-numeric:tabular-nums;
-      pointer-events:none
-    }
-    #viewCount{color:var(--tx)}
+    /* ===== VIEWS カウンター（追加）: SETパネル内に表示 ===== */
+    #viewCount{color:var(--tx);font-variant-numeric:tabular-nums}
   </style>
 </head>
 <body>
@@ -1034,7 +1024,8 @@ body.edit-off #overlay{
         <div class="row"><label>Stroke Width</label><input id="lineWidth" type="range" min="0.1" max="18" step=".1" value=".5"><span id="lineWidthV" class="value"></span></div>
         <div class="row"><label>Background</label><input id="bgColor" type="color" value="#042A57"><span id="bgColorV" class="value"></span></div>
         <div class="row"><label>Line Color</label><input id="lineColor" type="color" value="#EAE9F1"><span id="lineColorV" class="value"></span></div>
-        
+        <div class="row"><label>Views</label><span id="viewCount" class="value">-</span></div>
+
       </div>
     </div>
 
@@ -7847,8 +7838,7 @@ function removeObjectById(type, id) {
   })();
   </script>
 
-  <!-- VIEWS カウンター（追加） -->
-  <div id="viewCounter">VIEWS <span id="viewCount">-</span></div>
+  <!-- VIEWS カウンター（追加）: 表示はSETパネル内の #viewCount -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script>
