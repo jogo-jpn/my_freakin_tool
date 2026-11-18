@@ -656,6 +656,11 @@ body.edit-off #overlay{
       background:rgba(255,93,122,.16);
       border-color:rgba(255,93,122,.7)
     }
+    #gMic.standby{
+      color:#ffd479;
+      background:rgba(255,190,80,.14);
+      border-color:rgba(255,190,80,.65)
+    }
     #granularBtn.active{
       color:#061018;
       background:var(--ac);
@@ -6861,13 +6866,16 @@ function removeObjectById(type, id) {
         gDemoSel.appendChild(op);
       });
     }
+    /* 現在のソース種別（SAVE/LOADで選択中デモを復元するため） */
+    var gSrcKind = "demo", gSrcDemoIdx = 0;
     var gDemoBusy = false;
     function gLoadDemo(i) {
-      if (gDemoBusy || !GDEMOS[i]) return;
+      if (gDemoBusy || !GDEMOS[i]) return Promise.resolve(false);
       gDemoBusy = true;
       gSetStatus("Source: Generating demo \"" + GDEMOS[i].name + "\"…");
-      GDEMOS[i].gen().then(function (buf) {
+      return GDEMOS[i].gen().then(function (buf) {
         gDemoBusy = false;
+        gSrcKind = "demo"; gSrcDemoIdx = i;
         gSetSource(buf, "Demo: " + GDEMOS[i].name);
       }).catch(function () {
         gDemoBusy = false;
@@ -6981,12 +6989,14 @@ function removeObjectById(type, id) {
         .then(function (ab) { return gDecode(ab.slice(0)); })
         .then(function (buf) {
           if (!buf || !buf.duration) throw new Error("empty");
+          gSrcKind = "file"; gSrcDemoIdx = -1;
           gSetSource(buf, f.name);
           gSetImport("読み込み完了: " + f.name);
         })
         .catch(function () {
           gSetStatus("直接デコードできない形式のため、再生しながら取り込みます… " + f.name);
           return gExtractViaMedia(f, false).then(function (buf) {
+            gSrcKind = "file"; gSrcDemoIdx = -1;
             gSetSource(buf, f.name);
             gSetImport("読み込み完了: " + f.name);
           });
@@ -7006,43 +7016,107 @@ function removeObjectById(type, id) {
     var gMicBtn = document.getElementById("gMic");
     var gRec = null, gChunks = [], gStream = null, gMicTimer = null, gMicSecs = 0;
     var gMicBuf = null, gMicName = "";
+    /* スタンバイ録音：MICを押すと待機状態になり、音が入った瞬間から録音を開始する */
+    var gStandby = null;
+    var G_MIC_THRESHOLD = 0.035;
+    function gMicBtnReset() {
+      gMicBtn.classList.remove("recording"); gMicBtn.classList.remove("standby");
+      gMicBtn.textContent = "MIC";
+    }
+    function gMicStopStream() {
+      if (gStream) { gStream.getTracks().forEach(function (tr) { tr.stop(); }); gStream = null; }
+    }
+    function gMicCancelStandby(silent) {
+      if (!gStandby) return;
+      clearInterval(gStandby.timer);
+      if (gStandby.src) { try { gStandby.src.disconnect(); } catch (e) {} }
+      gStandby = null;
+      gMicStopStream();
+      gMicBtnReset();
+      if (!silent) gSetStatus("待機を中止しました。");
+    }
+    function gMicStartRec() {
+      gChunks = [];
+      gRec = new MediaRecorder(gStream);
+      gRec.ondataavailable = function (e) { if (e.data.size) gChunks.push(e.data); };
+      gRec.onstop = function () {
+        clearInterval(gMicTimer);
+        gMicBtnReset();
+        gMicStopStream();
+        var blob = new Blob(gChunks, { type: gRec.mimeType || "audio/webm" });
+        blob.arrayBuffer().then(function (ab) { return gDecode(ab.slice(0)); })
+          .then(function (buf) {
+            var d = new Date();
+            function p2(n) { return (n < 10 ? "0" : "") + n; }
+            gMicName = "mic-" + d.getFullYear() + p2(d.getMonth() + 1) + p2(d.getDate()) + "-" + p2(d.getHours()) + p2(d.getMinutes()) + p2(d.getSeconds());
+            gMicBuf = buf;
+            gSrcKind = "mic"; gSrcDemoIdx = -1;
+            var wb = document.getElementById("gSaveWav");
+            if (wb) wb.disabled = false;
+            gSetSource(buf, "マイク録音 " + gMicName);
+          })
+          .catch(function () { gSetStatus("録音の読み込みに失敗しました。"); });
+      };
+      gRec.start(200);
+      gMicSecs = 0;
+      gMicBtn.classList.add("recording"); gMicBtn.textContent = "■ 0s";
+      gMicTimer = setInterval(function () {
+        gMicSecs++;
+        gMicBtn.textContent = "■ " + gMicSecs + "s";
+        if (gMicSecs >= 20 && gRec.state === "recording") gRec.stop();
+      }, 1000);
+      gSetStatus("録音中…（最大20秒）。もう一度押すと停止します。");
+    }
+    function gMicEnterStandby(stream) {
+      var srcNode = null, analyser = null;
+      try {
+        srcNode = audio.createMediaStreamSource(stream);
+        analyser = audio.createAnalyser();
+        analyser.fftSize = 1024;
+        srcNode.connect(analyser);
+      } catch (e) {
+        /* 入力レベルを解析できない環境では従来どおり即録音 */
+        gMicStartRec();
+        return;
+      }
+      var data = new Uint8Array(analyser.fftSize);
+      var hits = 0, waited = 0;
+      gMicBtn.classList.add("standby"); gMicBtn.textContent = "STANDBY";
+      gSetStatus("STANDBY — 音が入ると録音開始（もう一度押すと中止）");
+      var timer = setInterval(function () {
+        waited += 50;
+        analyser.getByteTimeDomainData(data);
+        var sum = 0;
+        for (var i = 0; i < data.length; i++) { var v = (data[i] - 128) / 128; sum += v * v; }
+        var rms = Math.sqrt(sum / data.length);
+        if (rms >= G_MIC_THRESHOLD) { hits++; } else { hits = 0; }
+        if (hits >= 2) {
+          clearInterval(timer);
+          try { srcNode.disconnect(); } catch (e) {}
+          gStandby = null;
+          gMicBtn.classList.remove("standby");
+          gMicStartRec();
+          return;
+        }
+        if (waited >= 30000) {
+          gMicCancelStandby(true);
+          gSetStatus("STANDBY — 音が入らないため待機を終了しました。");
+        }
+      }, 50);
+      gStandby = { timer: timer, src: srcNode };
+    }
     gMicBtn.addEventListener("click", function () {
       if (gRec && gRec.state === "recording") { gRec.stop(); return; }
+      if (gStandby) { gMicCancelStandby(false); return; }
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || typeof MediaRecorder === "undefined") {
         gSetStatus("このブラウザではマイク録音が使えません。ファイル読み込みをお試しください。");
         return;
       }
       ensureAudio();
+      if (audio && audio.state === "suspended" && audio.resume) { try { audio.resume(); } catch (e) {} }
       navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
-        gStream = stream; gChunks = [];
-        gRec = new MediaRecorder(stream);
-        gRec.ondataavailable = function (e) { if (e.data.size) gChunks.push(e.data); };
-        gRec.onstop = function () {
-          clearInterval(gMicTimer);
-          gMicBtn.classList.remove("recording"); gMicBtn.textContent = "MIC";
-          if (gStream) { gStream.getTracks().forEach(function (tr) { tr.stop(); }); gStream = null; }
-          var blob = new Blob(gChunks, { type: gRec.mimeType || "audio/webm" });
-          blob.arrayBuffer().then(function (ab) { return gDecode(ab.slice(0)); })
-            .then(function (buf) {
-              var d = new Date();
-              function p2(n) { return (n < 10 ? "0" : "") + n; }
-              gMicName = "mic-" + d.getFullYear() + p2(d.getMonth() + 1) + p2(d.getDate()) + "-" + p2(d.getHours()) + p2(d.getMinutes()) + p2(d.getSeconds());
-              gMicBuf = buf;
-              var wb = document.getElementById("gSaveWav");
-              if (wb) wb.disabled = false;
-              gSetSource(buf, "マイク録音 " + gMicName);
-            })
-            .catch(function () { gSetStatus("録音の読み込みに失敗しました。"); });
-        };
-        gRec.start(200);
-        gMicSecs = 0;
-        gMicBtn.classList.add("recording"); gMicBtn.textContent = "■ 0s";
-        gMicTimer = setInterval(function () {
-          gMicSecs++;
-          gMicBtn.textContent = "■ " + gMicSecs + "s";
-          if (gMicSecs >= 20 && gRec.state === "recording") gRec.stop();
-        }, 1000);
-        gSetStatus("録音中… 声や身の回りの音を録ってください（最大20秒）。もう一度押すと停止します。");
+        gStream = stream;
+        gMicEnterStandby(stream);
       }).catch(function () {
         gSetStatus("マイクの許可が得られませんでした。ブラウザの設定を確認してください。");
       });
@@ -7103,7 +7177,8 @@ function removeObjectById(type, id) {
         var el = document.getElementById(id);
         if (el) sliders[id] = el.value;
       });
-      d.grain = { on: gOn(), freeze: GP.freeze, key: GP.key, sliders: sliders, loopStart: GP.loopStart, loopEnd: GP.loopEnd, mode: GP.playMode };
+      var srcNameEl = document.getElementById("gSrcName");
+      d.grain = { on: gOn(), freeze: GP.freeze, key: GP.key, sliders: sliders, loopStart: GP.loopStart, loopEnd: GP.loopEnd, mode: GP.playMode, srcKind: gSrcKind, demoIdx: gSrcDemoIdx, srcName: srcNameEl ? srcNameEl.textContent : "" };
       return d;
     };
     var gOrigApply = applyProject;
@@ -7136,6 +7211,23 @@ function removeObjectById(type, id) {
           GP.playMode = p.grain.mode; gSyncMode();
         }
         gSetPlaying(!!p.grain.on);
+        /* 選択していたデモ音源を復元する（デモは合成し直せるので再生成して読み込む。
+           マイク録音・ファイルの音そのものはJSONに残せないため、その場合は現在のソースのまま） */
+        if (p.grain.srcKind === "demo") {
+          var di = parseInt(p.grain.demoIdx, 10);
+          if (isFinite(di) && GDEMOS[di]) {
+            if (gDemoSel) gDemoSel.value = String(di);
+            /* gSetSource は範囲を全域へ戻すため、復元済みの S/E 範囲を読み込み後に戻す */
+            var keepS = GP.loopStart, keepE = GP.loopEnd;
+            var dp = gLoadDemo(di);
+            if (dp && typeof dp.then === "function") {
+              dp.then(function () {
+                GP.loopStart = keepS; GP.loopEnd = keepE;
+                gSyncRange(); gDrawWave();
+              });
+            }
+          }
+        }
       }
     };
 
