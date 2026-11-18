@@ -728,7 +728,55 @@ body.edit-off #edit{
       border-color:var(--ac);
       font-weight:700
     }
-    #gDemoSel{flex:1;min-width:0}
+    /* DEMOボタンで開くデモ選択メニュー（常時表示のドロップダウンの代わり） */
+    #gDemo.open{
+      color:#061018;
+      background:var(--ac);
+      border-color:var(--ac);
+      font-weight:700
+    }
+    #gDemoMenu{
+      margin-top:8px;
+      border:1px solid var(--bd);
+      border-radius:10px;
+      background:rgba(6,10,18,.97);
+      max-height:264px;
+      overflow-y:auto;
+      overflow-x:hidden;
+      -webkit-overflow-scrolling:touch;
+      overscroll-behavior:contain;
+      touch-action:pan-y
+    }
+    #gDemoMenu[hidden]{display:none}
+    .gDemoItem{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      width:100%;
+      text-align:left;
+      padding:9px 10px;
+      border:none;
+      border-bottom:1px solid rgba(255,255,255,.06);
+      border-radius:0;
+      background:transparent;
+      font-size:12px;
+      color:var(--tx);
+      cursor:pointer
+    }
+    .gDemoItem:last-child{border-bottom:none}
+    .gDemoItem .gDemoNo{
+      color:var(--sub);
+      font-size:10px;
+      min-width:22px;
+      text-align:right;
+      font-variant-numeric:tabular-nums
+    }
+    .gDemoItem.active{
+      color:#061018;
+      background:var(--ac);
+      font-weight:700
+    }
+    .gDemoItem.active .gDemoNo{color:#061018}
     #projectJsonText{
       width:100%;
       color:var(--tx);
@@ -1078,18 +1126,16 @@ body.edit-off #edit{
       </div>
       <div class="fx-content" style="display:flex;">
         <div class="row" id="gSrcBtns" style="gap:6px;flex-wrap:nowrap;">
-          <button id="gDemo" type="button">DEMO</button>
+          <button id="gDemo" type="button" aria-haspopup="true" aria-expanded="false">DEMO</button>
           <button id="gMic" type="button">MIC</button>
           <button id="gMonitor" type="button" class="active">MONITOR</button>
           <button id="gFile" type="button">AUDIO</button>
           <input id="gFileInput" type="file" accept="audio/*,.wav,.mp3,.m4a,.aac,.ogg,.flac" hidden>
         </div>
+        <div id="gDemoMenu" hidden role="menu" aria-label="Demo sounds"><div id="gDemoList"></div></div>
         <div class="row"><label>Input Level</label><input id="gInputLevel" type="range" min="0" max="1000" step="1" value="100"><span id="gInputLevelV" class="value">100%</span></div>
         <div class="row" style="gap:8px;"><label>Stereo</label><button id="gWide" type="button" class="active" style="flex:1;">STEREO WIDE</button></div>
         <div class="row"><label>Level</label><div id="gLevelTrack"><div id="gLevelFill"></div></div><span id="gLevelClip">CLIP</span></div>
-        <div class="row" style="gap:8px;">
-          <select id="gDemoSel" aria-label="Select demo sound"></select>
-        </div>
         <div class="row" style="gap:8px;">
           <label>Source</label>
           <span id="gSrcName" class="value" style="flex:1;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">—</span>
@@ -7518,15 +7564,60 @@ function removeObjectById(type, id) {
         gPadChordAt(off, 5.2, [38, 45, 50, 57], 5.8, 0.11, "triangle");
       }); } }
     ];
-    var gDemoSel = document.getElementById("gDemoSel");
-    if (gDemoSel) {
+    /* デモ選択は常時表示のドロップダウンではなく、DEMOボタンで開くメニューから選ぶ */
+    var gDemoBtn = document.getElementById("gDemo");
+    var gDemoMenu = document.getElementById("gDemoMenu");
+    var gDemoList = document.getElementById("gDemoList");
+    var gDemoItems = [];
+    if (gDemoList) {
       GDEMOS.forEach(function (d, i) {
-        var op = document.createElement("option");
-        op.value = String(i);
-        op.textContent = (i + 1) + ". " + d.name;
-        gDemoSel.appendChild(op);
+        var b = document.createElement("button");
+        b.type = "button";
+        b.className = "gDemoItem";
+        b.setAttribute("role", "menuitem");
+        var no = document.createElement("span");
+        no.className = "gDemoNo";
+        no.textContent = String(i + 1);
+        var nm = document.createElement("span");
+        nm.textContent = d.name;
+        b.appendChild(no);
+        b.appendChild(nm);
+        b.addEventListener("click", function () {
+          gCloseDemoMenu();
+          gLoadDemo(i);
+        });
+        gDemoList.appendChild(b);
+        gDemoItems.push(b);
       });
     }
+    function gSyncDemoMenu() {
+      gDemoItems.forEach(function (b, i) {
+        if (i === gSrcDemoIdx) b.classList.add("active"); else b.classList.remove("active");
+      });
+    }
+    function gOpenDemoMenu() {
+      if (!gDemoMenu) return;
+      gSyncDemoMenu();
+      gDemoMenu.hidden = false;
+      if (gDemoBtn) { gDemoBtn.classList.add("open"); gDemoBtn.setAttribute("aria-expanded", "true"); }
+      var act = gDemoItems[gSrcDemoIdx];
+      if (act && act.scrollIntoView) { try { act.scrollIntoView({ block: "nearest" }); } catch (e) {} }
+    }
+    function gCloseDemoMenu() {
+      if (!gDemoMenu || gDemoMenu.hidden) return;
+      gDemoMenu.hidden = true;
+      if (gDemoBtn) { gDemoBtn.classList.remove("open"); gDemoBtn.setAttribute("aria-expanded", "false"); }
+    }
+    function gToggleDemoMenu() {
+      if (!gDemoMenu) return;
+      if (gDemoMenu.hidden) gOpenDemoMenu(); else gCloseDemoMenu();
+    }
+    document.addEventListener("click", function (e) {
+      if (!gDemoMenu || gDemoMenu.hidden) return;
+      if (gDemoMenu.contains(e.target)) return;
+      if (gDemoBtn && (e.target === gDemoBtn || gDemoBtn.contains(e.target))) return;
+      gCloseDemoMenu();
+    });
     /* 現在のソース種別（SAVE/LOADで選択中デモを復元するため） */
     var gSrcKind = "demo", gSrcDemoIdx = 0;
     var gDemoBusy = false;
@@ -7537,6 +7628,7 @@ function removeObjectById(type, id) {
       return GDEMOS[i].gen().then(function (buf) {
         gDemoBusy = false;
         gSrcKind = "demo"; gSrcDemoIdx = i;
+        gSyncDemoMenu();
         gSetSource(buf, "Demo: " + GDEMOS[i].name);
       }).catch(function () {
         gDemoBusy = false;
@@ -7544,12 +7636,9 @@ function removeObjectById(type, id) {
       });
     }
     GDEMOS[0].gen().then(function (buf) { if (!gSource) gSetSource(buf, "Demo: " + GDEMOS[0].name); });
-    document.getElementById("gDemo").addEventListener("click", function () {
-      gLoadDemo(gDemoSel ? (parseInt(gDemoSel.value, 10) || 0) : 0);
-    });
-    if (gDemoSel) {
-      gDemoSel.addEventListener("change", function () {
-        gLoadDemo(parseInt(gDemoSel.value, 10) || 0);
+    if (gDemoBtn) {
+      gDemoBtn.addEventListener("click", function () {
+        gToggleDemoMenu();
       });
     }
     var gImportStatus = document.getElementById("gImportStatus");
@@ -8399,7 +8488,6 @@ function removeObjectById(type, id) {
         if (p.grain.srcKind === "demo") {
           var di = parseInt(p.grain.demoIdx, 10);
           if (isFinite(di) && GDEMOS[di]) {
-            if (gDemoSel) gDemoSel.value = String(di);
             /* gSetSource は範囲を全域へ戻すため、復元済みの S/E 範囲を読み込み後に戻す */
             var keepS = GP.loopStart, keepE = GP.loopEnd;
             var dp = gLoadDemo(di);
