@@ -4357,17 +4357,45 @@ clearBtn.addEventListener("click", function(){
 
 /* ================= 池の描画 ================= */
 var cv = document.getElementById("pond");
-var ctx = cv.getContext("2d");
+var ctx = cv.getContext("2d", { alpha:false });
 var CW = 800, CH = 640, perfNow = 0, canvasScale = 1;
+/* ================= 描画負荷の自動調整 =================
+   Instagram等のアプリ内ブラウザ（WKWebView）はGPU・メモリが絞られていて、
+   解像度そのままだと毎フレームの描画が詰まってカクつく。
+   アプリ内ブラウザでは最初から一段軽くし、実測のフレーム時間が悪い端末では
+   さらに段階的に軽くする（描画解像度・水面の密度・竿の分割数を落とす）。
+   速い端末では従来どおりの画質のまま */
+var UA_STR = navigator.userAgent || "";
+var IN_APP_BROWSER = /Instagram|FBAN|FBAV|FB_IAB|\bLine\//i.test(UA_STR);
+var perfLevel = IN_APP_BROWSER ? 1 : 0; // 0=通常, 1=軽量, 2=最軽量
+var perfSlowStreak = 0, perfGoodStreak = 0, perfLastLevelChange = 0;
+var drawFrameCount = 0, uiCovered = false, uiCoverCheckTs = 0;
+function perfDprCap(){
+  if(perfLevel >= 2) return 1.1;
+  if(perfLevel >= 1) return IN_APP_BROWSER ? 1.3 : 1.5;
+  return 2;
+}
 function fitCanvas(){
   var r = cv.getBoundingClientRect();
-  var dpr = Math.min(2, window.devicePixelRatio || 1);
-  CW = Math.max(300, r.width); CH = Math.max(200, r.height);
-  cv.width = Math.round(CW*dpr); cv.height = Math.round(CH*dpr);
+  if(r.width < 10 || r.height < 10) return;
+  var dpr = Math.min(perfDprCap(), window.devicePixelRatio || 1);
+  var nw = Math.max(300, r.width), nh = Math.max(200, r.height);
+  var pw = Math.round(nw*dpr), ph = Math.round(nh*dpr);
+  CW = nw; CH = nh;
+  if(cv.width === pw && cv.height === ph && canvasScale === dpr){ ctx.setTransform(dpr,0,0,dpr,0,0); return; }
+  cv.width = pw; cv.height = ph;
   canvasScale = dpr; maskKey = "";
   ctx.setTransform(dpr,0,0,dpr,0,0);
 }
-window.addEventListener("resize", fitCanvas);
+/* アプリ内ブラウザはツールバーの出入りで resize が頻発し、そのたびに
+   Canvasを作り直すと一瞬固まる。落ち着いてから一度だけ合わせ直す */
+var fitTimer = 0;
+function fitCanvasSoon(){
+  if(fitTimer) return;
+  fitTimer = setTimeout(function(){ fitTimer = 0; fitCanvas(); }, 160);
+}
+window.addEventListener("resize", fitCanvasSoon);
+window.addEventListener("orientationchange", fitCanvasSoon);
 window.addEventListener("load", fitCanvas);
 
 var ripples = [], splashes = [], bubbles = [], motes = [], bird = null, birdT = 8;
@@ -4482,25 +4510,35 @@ var imgGeom = {ox:0, oy:0, sw:1, sh:1};
 var scenePhotoOk = false;
 var currentPhoto = null; // 今選ばれている背景写真（SCENE_PHOTOSの要素）
 var drawnPhoto = null;   // 直近のフレームで実際に描いた写真（水面マスクはこちらに合わせる）
+/* 水面ポリゴンは1フレームに何度も参照される。ジオメトリが変わらない間は
+   計算結果（頂点配列とPath2D）を使い回し、毎フレームの再構築を避ける */
+var wpCachePts = null, wpCacheKey = "", wp2Cache = null;
 function waterPoints(){
+  var key = CW + "x" + CH + "|" + imgGeom.ox + "," + imgGeom.oy + "," + imgGeom.sw + "," + imgGeom.sh + "|" + (drawnPhoto ? drawnPhoto.id : "-") + "|" + (currentPhoto ? currentPhoto.id : "-") + "|" + sel.time + "|" + (sceneVariant && sceneVariant.flip ? 1 : 0) + "|" + (scenePhotoOk ? 1 : 0);
+  if(wpCachePts && key === wpCacheKey) return wpCachePts;
+  var pts;
   if(!scenePhotoOk){
-    return [{x:0,y:CH*0.40},{x:CW,y:CH*0.40},{x:CW,y:CH},{x:0,y:CH}];
+    pts = [{x:0,y:CH*0.40},{x:CW,y:CH*0.40},{x:CW,y:CH},{x:0,y:CH}];
+  } else {
+    var poly = (drawnPhoto && drawnPhoto.poly) || (currentPhoto && currentPhoto.poly) || WATER_POLYS[sel.time] || WATER_POLYS.day;
+    pts = [];
+    for(var i=0;i<poly.length;i++){
+      var wpx = imgGeom.ox + poly[i][0]*imgGeom.sw;
+      if(sceneVariant && sceneVariant.flip) wpx = CW - wpx;
+      pts.push({x: wpx, y: imgGeom.oy + poly[i][1]*imgGeom.sh});
+    }
   }
-  var poly = (drawnPhoto && drawnPhoto.poly) || (currentPhoto && currentPhoto.poly) || WATER_POLYS[sel.time] || WATER_POLYS.day;
-  var pts = [];
-  for(var i=0;i<poly.length;i++){
-    var wpx = imgGeom.ox + poly[i][0]*imgGeom.sw;
-    if(sceneVariant && sceneVariant.flip) wpx = CW - wpx;
-    pts.push({x: wpx, y: imgGeom.oy + poly[i][1]*imgGeom.sh});
-  }
+  wpCachePts = pts; wpCacheKey = key; wp2Cache = null;
   return pts;
 }
 function waterPath2D(){
   var pts = waterPoints(); if(!pts.length) return null;
+  if(wp2Cache) return wp2Cache;
   var p = new Path2D();
   p.moveTo(pts[0].x, pts[0].y);
   for(var i=1;i<pts.length;i++) p.lineTo(pts[i].x, pts[i].y);
   p.closePath();
+  wp2Cache = p;
   return p;
 }
 function hash01(n){ var s = Math.sin(n*127.1 + 311.7)*43758.5453; return s - Math.floor(s); }
@@ -4524,7 +4562,8 @@ function buildWaterMask(){
   maskCtx.globalCompositeOperation = "destination-out";
   maskCtx.strokeStyle = "rgba(0,0,0,0.085)";
   maskCtx.lineJoin = "round";
-  for(var k = 0; k < 11; k++){ maskCtx.lineWidth = 1.5 + k*2.3; maskCtx.stroke(wp); }
+  var featherSteps = perfLevel >= 1 ? 7 : 11;
+  for(var k = 0; k < featherSteps; k++){ maskCtx.lineWidth = 1.5 + k*2.3; maskCtx.stroke(wp); }
   maskCtx.globalCompositeOperation = "source-over";
   maskKey = key;
   return true;
@@ -4596,7 +4635,7 @@ function drawWaterSurface(t){
   }
   // さざ波：沖では短く細かく、手前では長く大きく。風で流れる速さと量が変わる
   ctx.lineCap = "round";
-  var rows = 17;
+  var rows = perfLevel >= 1 ? 11 : 17;
   for(var r=0;r<rows;r++){
     var fr = r/(rows-1); // 0=沖, 1=手前
     var ry = minY + 5 + Math.pow(fr, 1.35)*(maxY - minY - 9);
@@ -4626,7 +4665,8 @@ function drawWaterSurface(t){
     var sunX = imgGeom.ox + sunNx*imgGeom.sw;
     if(sceneVariant && sceneVariant.flip) sunX = CW - sunX;
     var wob = weather==="曇り" ? 0.35 : 1;
-    for(var s2=0;s2<30;s2++){
+    var glitterN = perfLevel >= 1 ? 14 : 30;
+    for(var s2=0;s2<glitterN;s2++){
       var f2 = hash01(s2*71 + 13);
       var sy2 = minY + 4 + f2*(maxY - minY - 8);
       var spread = 14 + f2*f2*(CW*0.16);
@@ -4760,7 +4800,8 @@ function drawSceneVariant(t){
     ctx.fillStyle = gg2; ctx.fillRect(0, 0, W, H);
   }
   if(v.mist){
-    for(var b=0;b<3;b++){
+    var mistBands = perfLevel >= 1 ? 2 : 3;
+    for(var b=0;b<mistBands;b++){
       var my3 = H*(0.365 + b*0.048), mx3 = W*(0.5 + 0.15*Math.sin(t*0.05 + b*2.1));
       ctx.save(); ctx.translate(mx3, my3); ctx.scale(1, 0.085);
       var mg = ctx.createRadialGradient(0, 0, 0, 0, 0, W*0.55);
@@ -4790,7 +4831,8 @@ function drawSeasonScene(t){
     ctx.restore();
     // 光の粉がきらめく
     ctx.fillStyle = "#fffbe8";
-    for(i=0;i<22;i++){
+    var moteN = perfLevel >= 1 ? 10 : 22;
+    for(i=0;i<moteN;i++){
       var dx = hash01(i*31 + 7)*W, dy = H*0.10 + hash01(i*47 + 3)*H*0.5;
       ctx.globalAlpha = 0.10 + 0.22*Math.max(0, Math.sin(t*1.6 + i*2.3));
       ctx.beginPath(); ctx.arc(dx, dy, 1 + hash01(i*53)*1.4, 0, Math.PI*2); ctx.fill();
@@ -4817,6 +4859,43 @@ function drawSeasonScene(t){
     }
     ctx.globalAlpha = 1;
   }
+}
+/* 水中の魚の描画パラメータ（ファイト中は魚の影、待ち時間は静かに通り過ぎる姿） */
+function computeFishDraw(t){
+  var shadowSp = {body:"#33413a", belly:"#4a5a50", fin:"#2a352e"};
+  if(state==="fight" && fight && enc && enc.kind==="fish"){
+    return {
+      sp: shadowSp, size: 42,
+      x: floatX() + (fight.fishX || 0),
+      y: floatY() + 26 + Math.sin(t*3.0)*3 - (fight.running>0 ? 7 : 0),
+      a: 0.38, wag: fight.running>0 ? 15 : 5, flip: (fight.fishVX || 0) < -15 ? -1 : ((fight.fishVX || 0) > 15 ? 1 : (fight.dir || 1))
+    };
+  }
+  if((state==="wait" || state==="mae" || state==="hon") && enc && enc.kind==="fish"){
+    return {
+      sp: shadowSp, size: 42,
+      x: ((t*16) % (CW+220)) - 110,
+      y: CH*0.74 + Math.sin(t*0.6)*10,
+      a: 0.16, wag: 2.2, flip: 1
+    };
+  }
+  return null;
+}
+/* 水面まわりの演出（さざ波・波紋・泡・水中の魚）は、以前は別々のオフスクリーン
+   合成を1フレームに3回行っていて、アプリ内ブラウザではここが一番重かった。
+   1回の合成にまとめて描く（描く順序は従来どおり：水面→波紋・泡→魚） */
+function drawWaterFxAll(t){
+  drawWaterSurface(t);
+  ripples.forEach(function(r){
+    ctx.beginPath(); ctx.ellipse(r.x, r.y, r.r, r.r*0.32, 0, 0, Math.PI*2);
+    ctx.strokeStyle = "rgba(255,255,255,"+r.a+")"; ctx.lineWidth = 1.6; ctx.stroke();
+  });
+  bubbles.forEach(function(b){
+    ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI*2);
+    ctx.strokeStyle = "rgba(255,255,255,0.75)"; ctx.lineWidth = 1; ctx.stroke();
+  });
+  var fd = computeFishDraw(t);
+  if(fd) drawWaterFish(fd, t);
 }
 function draw(){
   var pal = PALETTES[sel.time] || PALETTES.day;
@@ -4935,7 +5014,7 @@ function draw(){
   }
   // 水面の実写感（さざ波・風の通り道・陽のきらめき）は「開けた水面」の範囲内だけに描く。
   // マスクの縁はフェザーでぼかして写真の水面へ自然に溶け込ませる（手前の草・葦には被せない）
-  clipWaterDraw(function(){ drawWaterSurface(t); });
+  clipWaterDraw(function(){ drawWaterFxAll(t); });
   // 雨
   if(weather==="小雨"){
     ctx.strokeStyle = "rgba(255,255,255,0.4)"; ctx.lineWidth = 1;
@@ -4977,41 +5056,8 @@ function draw(){
     ctx.restore();
   });
   ctx.globalAlpha = 1;
-  // 波紋と泡付けも水面の範囲内だけ（岸の草に波紋が被らないように）
-  clipWaterDraw(function(){
-    ripples.forEach(function(r){
-      ctx.beginPath(); ctx.ellipse(r.x, r.y, r.r, r.r*0.32, 0, 0, Math.PI*2);
-      ctx.strokeStyle = "rgba(255,255,255,"+r.a+")"; ctx.lineWidth = 1.6; ctx.stroke();
-    });
-    // 泡付け
-    bubbles.forEach(function(b){
-      ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI*2);
-      ctx.strokeStyle = "rgba(255,255,255,0.75)"; ctx.lineWidth = 1; ctx.stroke();
-    });
-  });
-  // 水中の魚（ファイト中は魚種の色・形で、待ち時間は静かに通り過ぎる姿）
-  var fishDraw = null;
-  var shadowSp = {body:"#33413a", belly:"#4a5a50", fin:"#2a352e"};
-  if(state==="fight" && fight && enc && enc.kind==="fish"){
-    fishDraw = {
-      sp: shadowSp, size: 42,
-      x: floatX() + (fight.fishX || 0),
-      y: floatY() + 26 + Math.sin(t*3.0)*3 - (fight.running>0 ? 7 : 0),
-      a: 0.38, wag: fight.running>0 ? 15 : 5, flip: (fight.fishVX || 0) < -15 ? -1 : ((fight.fishVX || 0) > 15 ? 1 : (fight.dir || 1))
-    };
-  } else if((state==="wait" || state==="mae" || state==="hon") && enc && enc.kind==="fish"){
-    fishDraw = {
-      sp: shadowSp, size: 42,
-      x: ((t*16) % (W+220)) - 110,
-      y: H*0.74 + Math.sin(t*0.6)*10,
-      a: 0.16, wag: 2.2, flip: 1
-    };
-  }
-  if(fishDraw){
-    // 水中の魚の影も水面の範囲内だけ：手前の草の前を横切らず、葦の陰に隠れるように見える
-    var fd = fishDraw;
-    clipWaterDraw(function(){ drawWaterFish(fd, t); });
-  }
+  /* 波紋・泡・水中の魚は上の drawWaterFxAll で水面と一緒に描き済み
+     （水面の範囲内だけに描かれ、手前の草・葦には被らない） */
   // 跳ねる魚：水面から放物線を描いて跳び上がり、頭から角度を変えて落ちていく
   if(jumpFish){
     var jp = Math.max(0, Math.min(1, jumpFish.t / jumpFish.dur));
@@ -5176,7 +5222,7 @@ function drawRodReal(tipX, tipY){
   var p1 = {x: W*0.93, y: H*0.66};
   var p2 = {x: W*0.78, y: tipY + (H*0.30 - tipY)*0.55};
   var p3 = {x: tipX, y: tipY};
-  var N = 44, pts = [], i, u, pt;
+  var N = perfLevel >= 1 ? 26 : 44, pts = [], i, u, pt;
   for(i=0;i<=N;i++){ u = i/N; pts.push(cubicPt(p0,p1,p2,p3,u)); }
   function strip(offsetX, offsetY, widthScale, fillFn){
     for(var j=0;j<N;j++){
@@ -5195,8 +5241,9 @@ function drawRodReal(tipX, tipY){
       ctx.fill();
     }
   }
-  // 水面・写真への落ち影（柔らかく3重）
-  for(var s=0;s<3;s++){
+  // 水面・写真への落ち影（柔らかく3重。軽量モードでは1重にして描画量を減らす）
+  var shadowPasses = perfLevel >= 1 ? 1 : 3;
+  for(var s=0;s<shadowPasses;s++){
     strip(12 + s*3, 15 + s*4, 1, function(){ return "rgba(18,28,20,0.05)"; });
   }
   // 本体
@@ -5501,22 +5548,27 @@ function drawRodAndFloat(pal, t){
   // 水面のメニスカスと浮きの影
   ctx.beginPath(); ctx.ellipse(fx, wy + 1.5, 13*FLOAT_SCALE, 3.1*FLOAT_SCALE, 0, 0, Math.PI*2);
   ctx.fillStyle = "rgba(16,30,22,0.20)"; ctx.fill();
-  // 水面への映り込み（上下反転・低透明度・ゆらぎ）
-  ctx.save();
-  ctx.beginPath(); ctx.rect(0, wy + 1, W, H - wy);
-  ctx.clip();
-  ctx.translate(fx, wy); ctx.scale(FLOAT_SCALE, -0.92*FLOAT_SCALE); ctx.rotate(-tilt);
-  ctx.translate(0, -yOff);
-  ctx.translate(Math.sin(t*2.1)*0.8, 0);
-  paintHeraFloat(0.10);
-  ctx.restore();
-  // 水中の部分はほとんど見えない：ごく薄く（0.07）だけ描き、その上から水の色を厚く被せる
-  ctx.save();
-  ctx.beginPath(); ctx.rect(0, wy, W, H - wy);
-  ctx.clip();
-  ctx.translate(fx, wy); ctx.scale(FLOAT_SCALE, FLOAT_SCALE); ctx.rotate(tilt); ctx.translate(0, yOff);
-  paintHeraFloat(0.07);
-  ctx.restore();
+  // 水面への映り込み（上下反転・低透明度・ゆらぎ）。最軽量モードでは省略する
+  if(perfLevel < 2){
+    ctx.save();
+    ctx.beginPath(); ctx.rect(0, wy + 1, W, H - wy);
+    ctx.clip();
+    ctx.translate(fx, wy); ctx.scale(FLOAT_SCALE, -0.92*FLOAT_SCALE); ctx.rotate(-tilt);
+    ctx.translate(0, -yOff);
+    ctx.translate(Math.sin(t*2.1)*0.8, 0);
+    paintHeraFloat(0.10);
+    ctx.restore();
+  }
+  // 水中の部分はほとんど見えない：ごく薄く（0.07）だけ描き、その上から水の色を厚く被せる。
+  // 軽量モードでは、この薄い水中描画は省略する（水の色被せだけで水中感は保たれる）
+  if(perfLevel < 1){
+    ctx.save();
+    ctx.beginPath(); ctx.rect(0, wy, W, H - wy);
+    ctx.clip();
+    ctx.translate(fx, wy); ctx.scale(FLOAT_SCALE, FLOAT_SCALE); ctx.rotate(tilt); ctx.translate(0, yOff);
+    paintHeraFloat(0.07);
+    ctx.restore();
+  }
   // 水中の色被せはウキの周りだけ・放射状にふっと消える形で（矩形の帯にすると水面に四角い継ぎ目が見えてしまう）
   ctx.save();
   var wpWash = waterPath2D(); if(wpWash) ctx.clip(wpWash);
@@ -5574,6 +5626,20 @@ var lastTs = 0, chirpT = 5, frogT = 7, insectT = 9, windT = 13, leafT = 19, cooT
    画面が固まって動かなくなる事態を防ぐための保険 */
 function loop(ts){
   requestAnimationFrame(loop);
+  /* フレーム間隔の実測で描画負荷を自動調整する：遅いフレームが続く端末では
+     段階的に軽くし（解像度・密度を落とす）、速い状態が続く端末では元に戻す。
+     Instagram等のアプリ内ブラウザは最初から一段軽い状態で始める */
+  if(lastTs > 0 && ts > lastTs){
+    var frameMs = ts - lastTs;
+    if(frameMs > 30){ perfSlowStreak++; perfGoodStreak = 0; }
+    else if(frameMs < 19){ perfGoodStreak++; perfSlowStreak = 0; }
+    else { perfSlowStreak = 0; perfGoodStreak = 0; }
+    if(perfSlowStreak >= 40 && perfLevel < 2 && ts - perfLastLevelChange > 2500){
+      perfLevel++; perfSlowStreak = 0; perfLastLevelChange = ts; maskKey = ""; fitCanvas();
+    } else if(perfGoodStreak >= 900 && perfLevel > (IN_APP_BROWSER ? 1 : 0) && ts - perfLastLevelChange > 8000){
+      perfLevel--; perfGoodStreak = 0; perfLastLevelChange = ts; maskKey = ""; fitCanvas();
+    }
+  }
   try{
     loopFrame(ts);
   }catch(e){
@@ -5584,6 +5650,11 @@ function loopFrame(ts){
   var dt = Math.min(0.05, (ts - lastTs)/1000 || 0.016);
   lastTs = ts; perfNow = ts/1000;
   var t = perfNow;
+  // ダイアログ等が開いているかは0.5秒に1回だけ調べる（毎フレームのDOM検索を避ける）
+  if(ts - uiCoverCheckTs > 500){
+    uiCoverCheckTs = ts;
+    uiCovered = !!document.querySelector("dialog[open], .result.on");
+  }
   // ルアーの飛行
   if(lureAnim){ lureAnim.t += dt; if(lureAnim.t >= lureAnim.dur + 0.25) lureAnim = null; }
   // 投げる・回収するアニメーションの進行（着水したら波紋と音、回収しきったら付け替えへ）
@@ -5881,7 +5952,15 @@ function loopFrame(ts){
   /* 竿を持っている最中にお邪魔が始まったり、待ち・アタリ以外の状態へ移ったら、握りは静かに解く（合わせにはしない） */
   if(rodGrip && (ojamaActive || !(state==="wait" || state==="mae" || state==="hon"))) gripCancel();
   if(rebaitBtn && rebaitBtn.disabled !== ojamaLock) rebaitBtn.disabled = ojamaLock;
-  draw();
+  /* 最軽量モードでは描画を1フレームおきにする（状態更新は毎フレーム行うので、
+     アタリやファイトの判定タイミングは変わらない）。
+     設定・図鑑などのダイアログや釣果パネルが開いている間も、裏の池は
+     ゆっくり更新で十分なため描画頻度を落としてカクつきと発熱を抑える */
+  drawFrameCount++;
+  var skipDraw = false;
+  if(perfLevel >= 2 && !rigAnim && !rodFly && state !== "fight" && (drawFrameCount % 2 === 1)) skipDraw = true;
+  if(uiCovered && (drawFrameCount % 4 !== 0)) skipDraw = true;
+  if(!skipDraw) draw();
 }
 
 
