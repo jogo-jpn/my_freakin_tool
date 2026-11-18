@@ -942,10 +942,10 @@ body.edit-off #edit{
       </div>
     </div>
 
-    <div class="section" id="sec-rev">
+    <div class="section enabled" id="sec-rev">
       <div class="section-header">
         <span class="section-title">SHIMMER REVERB</span>
-        <button class="fx-toggle" data-target="sec-rev">OFF</button>
+        <button class="fx-toggle active" data-target="sec-rev">ON</button>
       </div>
       <div class="fx-content">
         <div class="row"><label>Reverb Mix</label><input id="reverbMix" type="range" min="0" max="1" step=".01" value=".10">
@@ -958,10 +958,10 @@ body.edit-off #edit{
       </div>
     </div>
 
-    <div class="section" id="sec-delay">
+    <div class="section enabled" id="sec-delay">
       <div class="section-header">
         <span class="section-title">TAPE & GRANULAR DELAY</span>
-        <button class="fx-toggle" data-target="sec-delay">OFF</button>
+        <button class="fx-toggle active" data-target="sec-delay">ON</button>
       </div>
       <div class="fx-content">
         <div class="row"><label>Delay Mix</label><input id="delayMix" type="range" min="0" max="1" step=".01" value=".10"><span id="delayMixV" class="value"></span></div>
@@ -1106,7 +1106,7 @@ body.edit-off #edit{
         <div class="row"><label>Pitch</label><input id="gPitch" type="range" min="-24" max="24" step="1" value="0"><span id="gPitchV" class="value"></span></div>
         <div class="row"><label>Chaos</label><input id="gChaos" type="range" min="0" max="1" step=".01" value=".22"><span id="gChaosV" class="value"></span></div>
         <div class="row"><label>Wow</label><input id="gWow" type="range" min="0" max="1" step=".01" value=".26"><span id="gWowV" class="value"></span></div>
-        <div class="row"><label>Hiss</label><input id="gHiss" type="range" min="0" max="1" step=".01" value=".08"><span id="gHissV" class="value"></span></div>
+        <div class="row"><label>Hiss</label><input id="gHiss" type="range" min="0" max="1" step=".01" value="0"><span id="gHissV" class="value"></span></div>
         <div class="row"><label>Warmth</label><input id="gWarmth" type="range" min="0" max="1" step=".01" value=".30"><span id="gWarmthV" class="value"></span></div>
         <div class="row"><label>Grain Reverb</label><input id="gReverb" type="range" min="0" max="1" step=".01" value=".55"><span id="gReverbV" class="value"></span></div>
         <div class="row"><label>Grain Shimmer</label><input id="gShimmer" type="range" min="0" max="1" step=".01" value="0"><span id="gShimmerV" class="value"></span></div>
@@ -1137,7 +1137,6 @@ body.edit-off #edit{
       </div>
       <div class="row"><label>Volume</label><input id="ambVolume" type="range" min="0" max="100" step="1" value="15"><span id="ambVolumeV" class="value">15%</span></div>
       <div class="row"><label>Pitch</label><input id="ambPitch" type="range" min="-12" max="12" step="1" value="0"><span id="ambPitchV" class="value">±0</span></div>
-      <p class="note">Field recordings: vinyl — 1902 shellac crackle, softened lo-fi style · dawn birds · stream by jackthemurray (Wikimedia Commons) · rain, ocean waves, fireplace, night crickets &amp; wind — SoundBible.com (CC BY 3.0 / Public Domain). Beds are crossfade-looped; fire pops, birdsong and cricket phrases are scattered at random intervals.</p>
     </div>
   </div>
 
@@ -1648,12 +1647,13 @@ const panels = [
     lpfEnabled:false,
     lpfFreq:6500,
     lpfQ:1.1,
-    revEnabled:false,
+    revEnabled:true,
   reverbMix:.10,
 shimmerMix:0,
 reverbRoomSize:.16,
 reverbDecay:.62,
 
+delayEnabled:true,
 delayMix:.10,
 delayTime:.34,
 
@@ -5774,7 +5774,7 @@ function removeObjectById(type, id) {
       loopStart: 0, loopEnd: 1,
       drift: 0.2, chaos: 0.22, freeze: false,
       ambient: 0,
-      wow: 0.26, hiss: 0.08, warmth: 0.30,
+      wow: 0.26, hiss: 0, warmth: 0.30,
       reverb: 0.55, shimmer: 0, delay: 0.24, delayTime: 0.38,
       playMode: "forward", pingDir: 1,
       inputGain: 1
