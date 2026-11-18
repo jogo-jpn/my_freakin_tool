@@ -674,6 +674,12 @@ body.edit-off #edit{
       background:rgba(255,190,80,.14);
       border-color:rgba(255,190,80,.65)
     }
+    #gMonitor.active{
+      color:#061018;
+      background:var(--ac);
+      border-color:var(--ac);
+      font-weight:700
+    }
     #grainWave.recording{
       border-color:rgba(255,93,122,.75);
       background:#170d18
@@ -1040,6 +1046,7 @@ body.edit-off #edit{
           <button id="gDemo" type="button">DEMO</button>
           <button id="gMic" type="button">MIC</button>
           <button id="gFile" type="button">AUDIO</button>
+          <button id="gMonitor" type="button" class="active">MONITOR</button>
           <input id="gFileInput" type="file" accept="audio/*,.wav,.mp3,.m4a,.aac,.ogg,.flac" hidden>
         </div>
         <div class="row"><label>Input Level</label><input id="gInputLevel" type="range" min="0" max="1000" step="1" value="100"><span id="gInputLevelV" class="value">100%</span></div>
@@ -7488,6 +7495,24 @@ function removeObjectById(type, id) {
        MediaRecorder はゲイン後のストリームを録るので、録れた音そのものが大きくなる。
        ゲイン後の信号がスタンバイ検出・ライブ波形・レベルメーターのすべてに流れる */
     var gInputChain = null;
+    /* ---- モニター：マイク入力（ゲイン後）をスピーカー／ヘッドホンへ返す ----
+       STANDBY中と録音中に自分の音を聞ける。MONITORボタンでON/OFF（初期ON）。
+       スピーカー使用時はハウリングすることがあるので、その場合はOFFにする */
+    var gMonitorOn = true;
+    var G_MONITOR_LEVEL = 0.8;
+    var gMonitorBtn = document.getElementById("gMonitor");
+    function gApplyMonitor() {
+      if (gMonitorBtn) gMonitorBtn.classList.toggle("active", gMonitorOn);
+      if (gInputChain && gInputChain.mon && audio) {
+        try { gInputChain.mon.gain.setTargetAtTime(gMonitorOn ? G_MONITOR_LEVEL : 0, audio.currentTime, 0.03); } catch (e) {}
+      }
+    }
+    if (gMonitorBtn) {
+      gMonitorBtn.addEventListener("click", function () {
+        gMonitorOn = !gMonitorOn;
+        gApplyMonitor();
+      });
+    }
     var gLevelPeak = 0, gClipUntil = 0;
     var gLevelFillEl = document.getElementById("gLevelFill");
     var gLevelClipEl = document.getElementById("gLevelClip");
@@ -7516,7 +7541,11 @@ function removeObjectById(type, id) {
         var ian = audio.createAnalyser(); ian.fftSize = 2048;
         var idest = audio.createMediaStreamDestination();
         isrc.connect(ign); ign.connect(ian); ign.connect(idest);
-        gInputChain = { stream: gStream, src: isrc, gain: ign, analyser: ian, dest: idest, floatData: new Float32Array(ian.fftSize), byteData: new Uint8Array(ian.fftSize) };
+        /* モニター経路：ゲイン後 → モニターゲイン → master（無ければ destination 直） */
+        var imon = audio.createGain(); imon.gain.value = gMonitorOn ? G_MONITOR_LEVEL : 0;
+        ign.connect(imon);
+        if (typeof master !== "undefined" && master) imon.connect(master); else imon.connect(audio.destination);
+        gInputChain = { stream: gStream, src: isrc, gain: ign, analyser: ian, dest: idest, mon: imon, floatData: new Float32Array(ian.fftSize), byteData: new Uint8Array(ian.fftSize) };
       } catch (e) { gInputChain = null; }
       return gInputChain;
     }
@@ -7526,6 +7555,7 @@ function removeObjectById(type, id) {
       try { c.src.disconnect(); } catch (e) {}
       try { c.gain.disconnect(); } catch (e) {}
       try { c.analyser.disconnect(); } catch (e) {}
+      if (c.mon) { try { c.mon.disconnect(); } catch (e) {} }
       gResetLevelMeter();
     }
     function gResetLevelMeter() {
@@ -7580,7 +7610,7 @@ function removeObjectById(type, id) {
           gUpdateLevelMeter(bp);
           rec.filled = Math.min(G_LIVE_BUCKETS, Math.floor(rec.count / perBucket));
         };
-        /* ゲイン後の信号を拾うので、ライブ波形にも入力レベルが反映される。出力はミュート（監視音は出さない） */
+        /* ゲイン後の信号を拾うので、ライブ波形にも入力レベルが反映される。このキャプチャ経路の出力はミュート（モニター音は入力チェーン側の専用経路から出す） */
         if (chain) { chain.gain.connect(rec.proc); rec.fromChain = true; }
         else { rec.src = audio.createMediaStreamSource(gStream); rec.src.connect(rec.proc); }
         rec.proc.connect(rec.mute); rec.mute.connect(audio.destination);
