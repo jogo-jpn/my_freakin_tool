@@ -634,7 +634,7 @@ var TIMES = [
   {id:"evening", name:"夕方", nameEn:"Evening", adj:0}
 ];
 var SPECIES = [
-  {id:"magoi",   name:"マゴイ", nameEn:"Common Carp",     min:28, max:92, peak:50, w:22, wf:1.75e-5, ts:0.85, b:{neri:1.5,corn:2.8,pan:0.7,mimizu:0.5}, body:"#8a744a", belly:"#c9b586", fin:"#6d5a38",
+  {id:"magoi",   name:"マゴイ", nameEn:"Common Carp",     min:28, max:105, peak:50, w:22, wf:1.75e-5, ts:0.85, b:{neri:1.5,corn:2.8,pan:0.7,mimizu:0.5}, body:"#8a744a", belly:"#c9b586", fin:"#6d5a38",
    desc:"日本の川と池の主役。底のエサを泥ごと吸い込んで食べる。50cm超が最初の感動ライン、80cm超は記録級。糸の張りは魚の中で最もシビアで、大型ほど適正範囲が狭く、張りの上下も速い。", descEn:"The star of Japan's rivers and ponds. It sucks bait in with the mud from the bottom. Over 50cm is the first thrill, over 80cm is record class. Tension control is the strictest of all fish, and bigger fish allow a narrower range that moves faster."},
   {id:"nishiki", name:"ニシキゴイ", nameEn:"Koi Carp", min:30, max:72, peak:48, w:4,  wf:1.75e-5, ts:0.75, b:{neri:1.2,corn:1.6,pan:3.2,mimizu:0.15}, body:"#e8e2d2", belly:"#f4efe0", fin:"#c8bfa8", patch:"#b23c2e",
    desc:"池に放たれた色鯉が野生化したもの。紅白の模様が水面に映えると、思わず見とれる。パンやコーンに浮いて出やすく、張りの判定は鯉らしく厳しめ。", descEn:"A coloured carp gone wild in the pond. Its red-and-white pattern on the surface is hard to look away from. Rises readily to bread and corn; tension judgement is properly carp-like and strict."},
@@ -894,6 +894,14 @@ function rollEncounter(){
   var pos = Math.max(0, Math.min(1, f + (u-0.5)*0.9));
   var size = sp2.min + (sp2.max-sp2.min)*pos;
   size = Math.round(size*10)/10;
+  /* マゴイ限定の大物抽選：通常の三角分布は上限近くまで届かないため、別枠で引く。
+     約3%で80cm級以上になり、その中でも大きいほど急激に稀になる
+     （90cm級は全体の約0.8%、100cm超は約0.2%、最大105cm） */
+  if(sp2.id==="magoi" && Math.random()<0.03){
+    var bt = Math.random();
+    size = Math.round((80 + 25*bt*bt*bt)*10)/10;
+    if(size>105) size = 105;
+  }
   /* おおよその重量：体長と魚種ごとの肥満度（wf）から推定する。同じ体長でも
      個体差で重かったり軽かったりするよう、肥満度に±15%ほどのばらつきを持たせる */
   var cond = 0.85 + ((Math.random()+Math.random()+Math.random())/3) * 0.32; // 0.85〜1.17（中央寄りの分布）
