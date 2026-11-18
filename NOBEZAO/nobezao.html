@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="ja">
-  <head><script src="gd1.js"></script><script src="gd2.js"></script><script src="gd3.js"></script><script src="gd4.js"></script><script src="gd5.js"></script><script src="gd6.js"></script><script src="gd7.js"></script><script>window.__SCENE_DATA={morning:__GD[159],day:__GD[160],evening:__GD[161]};</script>
+  <head><script src="gd1.js"></script><script src="gd2.js"></script><script src="gd3.js"></script><script src="gd4.js"></script><script src="gd5.js"></script><script src="gd6.js"></script><script>window.__SCENE_DATA={morning:__GD[99],day:__GD[100],evening:__GD[101]};</script>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="color-scheme" content="light dark" />
@@ -91,7 +91,7 @@
       }
       .stage-card{ padding:0; flex:1; min-height:0; position:relative; display:block; background:transparent; border:none; box-shadow:none; border-radius:0; }
       .stage-box{ position:absolute; inset:0; border-radius:0; overflow:hidden; border:none; }
-      canvas#pond{ display:block; width:100%; height:100%; }
+      canvas#pond{ display:block; width:100%; height:100%; touch-action:none; }
       .toolbar{ display:flex; gap:8px; position:absolute; left:0; right:0; top:0; z-index:9; height:calc(50px + env(safe-area-inset-top)); padding:calc(6px + env(safe-area-inset-top)) 8px 6px; background:linear-gradient(180deg, rgba(10,17,12,.78), rgba(10,17,12,.60)); }
       .btn.tool{ flex:1; min-height:38px; font-size:.9rem; padding:5px 4px; background:rgba(255,255,255,.14); color:#fff; border-color:rgba(255,255,255,.35); }
       dialog{
@@ -107,7 +107,10 @@
         padding:12px 16px 10px; border-bottom:1px solid var(--line);
       }
       .dlg-head h2{ font-size:1.12rem; margin:0; }
-      .dlg-body{ padding:14px 16px 18px; font-size:.92rem; }
+      /* 下部に大きな余白を確保する：アプリ内ブラウザでは画面下端にホスト側のバーが重なるため、
+         最後の項目（環境音スライダー）が下端ギリギリだと最大スクロールでもバーの裏に隠れて触れない。
+         余白分だけ余分にスクロールでき、最後の項目を画面の下端から十分上に持ち上げられるようにする */
+      .dlg-body{ padding:14px 16px calc(128px + env(safe-area-inset-bottom)); font-size:.92rem; }
       .dlg-body .body{ font-size:.92rem; }
       .msg{
         min-height:2.7em; display:flex; align-items:center; gap:8px;
@@ -198,7 +201,8 @@
       .ctl .lab{ font-size:.82rem; font-weight:900; color:var(--ink-soft); margin-bottom:6px; letter-spacing:.06em; }
       .chips{ display:flex; flex-wrap:wrap; gap:8px; }
       .volrow{ display:flex; align-items:center; gap:10px; }
-      .volrow input[type="range"]{ flex:1; min-width:0; height:30px; accent-color:var(--accent); }
+      /* スライダーの当たり判定を縦44pxに広げ、touch-action:none でドラッグをダイアログの縦スクロールに奪われないようにする */
+      .volrow input[type="range"]{ flex:1; min-width:0; height:44px; accent-color:var(--accent); touch-action:none; }
       .volval{ font-size:.85rem; color:var(--ink-soft); min-width:44px; text-align:right; font-variant-numeric:tabular-nums; }
       .chip{
         font-family:inherit; cursor:pointer; border-radius:999px; min-height:40px;
@@ -362,11 +366,11 @@
         </div>
         <div class="ctl">
           <div class="lab" id="labVolSE">効果音の音量</div>
-          <div class="volrow"><input type="range" id="rngSE" min="0" max="100" step="1" value="100" aria-label="効果音の音量"><span class="volval" id="rngSEVal">100%</span></div>
+          <div class="volrow"><input type="range" id="rngSE" min="0" max="100" step="1" value="50" aria-label="効果音の音量"><span class="volval" id="rngSEVal">50%</span></div>
         </div>
         <div class="ctl">
           <div class="lab" id="labVolVoice">お邪魔ボイスの音量</div>
-          <div class="volrow"><input type="range" id="rngVoice" min="0" max="100" step="1" value="100" aria-label="お邪魔ボイスの音量"><span class="volval" id="rngVoiceVal">100%</span></div>
+          <div class="volrow"><input type="range" id="rngVoice" min="0" max="100" step="1" value="50" aria-label="お邪魔ボイスの音量"><span class="volval" id="rngVoiceVal">50%</span></div>
         </div>
         <div class="ctl">
           <div class="lab" id="labVolAmb">環境音の音量</div>
@@ -540,7 +544,7 @@ var ITEMS = [
   {id:"glass", name:"ガラス玉", nameEn:"Glass Marble", descEn:"A small glass marble glinting on the riverbed — perhaps a shard of an old glass float. Today's treasure.", w:0.8, desc:"川底で光る小さなガラス玉。昔の浮き玉の欠片かもしれない。今日のお宝。"},
   {id:"wood",  name:"流木", nameEn:"Driftwood", descEn:"Smooth, corner-less driftwood. It would look good in an aquarium layout.",     w:1.5, desc:"角の取れた、つるつるの流木。水槽のレイアウトに良さそうな形。"}
 ];
-var FISH_PHOTOS = { magoi:__GD[127], nishiki:__GD[128], sougyo:__GD[129], hera:__GD[130], gengoro:__GD[131], ginbuna:__GD[132], nigoro:__GD[133], namazu:__GD[134], unagi:__GD[135], raigyo:__GD[136], bass:__GD[137], bluegill:__GD[138], ugui:__GD[139], oikawa:__GD[140], kawamutsu:__GD[141], hasu:__GD[142], tanago:__GD[143], aburabote:__GD[144], motsugo:__GD[145], tamoroko:__GD[146], honmoroko:__GD[147], dojou:__GD[148], wakasagi:__GD[149], ayu:__GD[150], yamame:__GD[151], nijimasu:__GD[152], gigi:__GD[153], donko:__GD[154], yoshinobori:__GD[155], medaka:__GD[156], kusagame:__GD[157] };
+var FISH_PHOTOS = { magoi:__GD[67], nishiki:__GD[68], sougyo:__GD[69], hera:__GD[70], gengoro:__GD[71], ginbuna:__GD[72], nigoro:__GD[73], namazu:__GD[74], unagi:__GD[75], raigyo:__GD[76], bass:__GD[77], bluegill:__GD[78], ugui:__GD[79], oikawa:__GD[80], kawamutsu:__GD[81], hasu:__GD[82], tanago:__GD[83], aburabote:__GD[84], motsugo:__GD[85], tamoroko:__GD[86], honmoroko:__GD[87], dojou:__GD[88], wakasagi:__GD[89], ayu:__GD[90], yamame:__GD[91], nijimasu:__GD[92], gigi:__GD[93], donko:__GD[94], yoshinobori:__GD[95], medaka:__GD[96], kusagame:__GD[97] };
 SPECIES.forEach(function(sp){ if(FISH_PHOTOS[sp.id]) sp.photo = FISH_PHOTOS[sp.id]; });
 function speciesById(id){ for(var i=0;i<SPECIES.length;i++) if(SPECIES[i].id===id) return SPECIES[i]; return null; }
 function itemById(id){ for(var i=0;i<ITEMS.length;i++) if(ITEMS[i].id===id) return ITEMS[i]; return null; }
@@ -629,18 +633,21 @@ var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: r
 var LS_KEY = "nobezao-koi-game-v1";
 var records = [];
 /* 音量設定（効果音／お邪魔ボイス／環境音）：設定画面のスライダーで変え、記録と一緒にブラウザへ保存する。
-   初期値は効果音・ボイスが最大、環境音はこれまでの再生音量より小さめ（半分） */
-var volSE = 1, volVoice = 1, volAmb = 0.5;
-/* 環境音は「大きすぎる」という声を受けて、実効音量をスライダー値の約1/6に抑える（当初1/3→さらに半分）。
-   係数で下げるので、ブラウザに保存済みの音量設定（例：50%）のままでも、実際の再生は従来の半分（50%→約8%相当）になる。
-   録音ループ・合成の環境音・残響の全てに、この係数を掛けた値を渡す */
-var AMB_SCALE = 1 / 6;
+   2026-11-18、ユーザーが実機で見つけたベスト音量（旧スケールで 効果音57%／お邪魔ボイス18%／環境音100%）を
+   「スライダー50%」に再校正した。初期値は3つとも50%＝ベスト音量。
+   再生ゲインは スライダー値 × 下の校正係数 で決まるので、50%で旧ベストとまったく同じ大きさになり、
+   100%ではベストの2倍、0%で無音まで、スライダー全域がそのまま使える */
+var volSE = 0.5, volVoice = 0.5, volAmb = 0.5;
+/* 校正係数：旧ベスト値の2倍（50%で旧ベストと一致させるため）。
+   効果音 0.57×2=1.14／お邪魔ボイス 0.18×2=0.36／環境音は旧実効係数 1/4 × 旧ベスト1.0 の2倍で 1/2 */
+var SE_SCALE = 1.14, VOICE_SCALE = 0.36;
+var AMB_SCALE = 1 / 2;
 try{
   var raw = localStorage.getItem(LS_KEY);
-  if(raw){ var parsed = JSON.parse(raw); if(parsed && parsed.records) records = parsed.records; if(parsed && (parsed.lang==="en" || parsed.lang==="ja")) lang = parsed.lang; if(parsed && parsed.vol){ if(typeof parsed.vol.se==="number") volSE = Math.min(1, Math.max(0, parsed.vol.se)); if(typeof parsed.vol.voice==="number") volVoice = Math.min(1, Math.max(0, parsed.vol.voice)); if(typeof parsed.vol.amb==="number") volAmb = Math.min(1, Math.max(0, parsed.vol.amb)); } }
+  if(raw){ var parsed = JSON.parse(raw); if(parsed && parsed.records) records = parsed.records; if(parsed && (parsed.lang==="en" || parsed.lang==="ja")) lang = parsed.lang; if(parsed && parsed.vol){ if(typeof parsed.vol.se==="number") volSE = Math.min(1, Math.max(0, parsed.vol.se)); if(typeof parsed.vol.voice==="number") volVoice = Math.min(1, Math.max(0, parsed.vol.voice)); if(typeof parsed.vol.amb==="number") volAmb = Math.min(1, Math.max(0, parsed.vol.amb)); if(parsed.volVer !== 2){ /* 旧スケールで保存された値を新スケール（ベスト＝50%）へ一度だけ換算し、聞こえる大きさを変えない */ volSE = Math.min(1, Math.max(0, volSE * 0.5 / 0.57)); volVoice = Math.min(1, Math.max(0, volVoice * 0.5 / 0.18)); volAmb = Math.min(1, Math.max(0, volAmb * 0.5)); } } }
 }catch(e){ records = []; }
 function save(){
-  try{ localStorage.setItem(LS_KEY, JSON.stringify({records:records, lang:lang, vol:{se:volSE, voice:volVoice, amb:volAmb}})); }catch(e){}
+  try{ localStorage.setItem(LS_KEY, JSON.stringify({records:records, lang:lang, vol:{se:volSE, voice:volVoice, amb:volAmb}, volVer:2})); }catch(e){}
 }
 
 /* ================= 条件 ================= */
@@ -739,15 +746,15 @@ function audioInit(){
     AC = new (window.AudioContext||window.webkitAudioContext)();
     master = AC.createGain(); master.gain.value = 0.9; master.connect(AC.destination);
     /* 効果音と環境音（合成側）は別々のバスを通し、設定の音量スライダーで個別に調整できるようにする */
-    seBus = AC.createGain(); seBus.gain.value = volSE; seBus.connect(master);
+    seBus = AC.createGain(); seBus.gain.value = volSE * SE_SCALE; seBus.connect(master);
     ambBus = AC.createGain(); ambBus.gain.value = volAmb * AMB_SCALE; ambBus.connect(master);
   }catch(e){ AC=null; }
 }
 /* 音量スライダーの値を、再生中の音へ即座に反映する */
 function applyVolumes(){
-  if(seBus) seBus.gain.value = volSE;
+  if(seBus) seBus.gain.value = volSE * SE_SCALE;
   if(ambBus) ambBus.gain.value = volAmb * AMB_SCALE;
-  if(typeof ojamaAudio !== "undefined" && ojamaAudio) ojamaAudio.volume = volVoice;
+  if(typeof ojamaAudio !== "undefined" && ojamaAudio) ojamaAudio.volume = volVoice * VOICE_SCALE;
   /* 録音環境音（<audio>要素側）は ambTick の定期処理だけが音量を動かすので、スライダー操作の瞬間にも1回呼んで即座に追従を始める */
   if(typeof ambStarted !== "undefined" && ambStarted && typeof ambTick === "function") ambTick();
 }
@@ -779,129 +786,69 @@ var EMB_AUDIO = {
 "amb-frogs":__GD[3],
 "amb-crickets":__GD[4],
 "amb-cicadas":__GD[5],
-"ojama-baasan-0-en":__GD[6],
-"ojama-baasan-0-ja":__GD[7],
-"ojama-baasan-1-en":__GD[8],
-"ojama-baasan-1-ja":__GD[9],
-"ojama-baasan-2-en":__GD[10],
-"ojama-baasan-2-ja":__GD[11],
-"ojama-baasan-3-en":__GD[12],
-"ojama-baasan-3-ja":__GD[13],
-"ojama-baasan-4-en":__GD[14],
-"ojama-baasan-4-ja":__GD[15],
-"ojama-baasan-5-en":__GD[16],
-"ojama-baasan-5-ja":__GD[17],
-"ojama-crow-0-en":__GD[18],
-"ojama-crow-0-ja":__GD[19],
-"ojama-crow-1-en":__GD[20],
-"ojama-crow-1-ja":__GD[21],
-"ojama-crow-2-en":__GD[22],
-"ojama-crow-2-ja":__GD[23],
-"ojama-crow-3-en":__GD[24],
-"ojama-crow-3-ja":__GD[25],
-"ojama-dogwalker-0-en":__GD[26],
-"ojama-dogwalker-0-ja":__GD[27],
-"ojama-dogwalker-1-en":__GD[28],
-"ojama-dogwalker-1-ja":__GD[29],
-"ojama-dogwalker-2-en":__GD[30],
-"ojama-dogwalker-2-ja":__GD[31],
-"ojama-dogwalker-3-en":__GD[32],
-"ojama-dogwalker-3-ja":__GD[33],
-"ojama-gakki-0-en":__GD[34],
-"ojama-gakki-0-ja":__GD[35],
-"ojama-gakki-1-en":__GD[36],
-"ojama-gakki-1-ja":__GD[37],
-"ojama-gakki-2-en":__GD[38],
-"ojama-gakki-2-ja":__GD[39],
-"ojama-gakki-3-en":__GD[40],
-"ojama-gakki-3-ja":__GD[41],
-"ojama-gakki-4-en":__GD[42],
-"ojama-gakki-4-ja":__GD[43],
-"ojama-gakki-5-en":__GD[44],
-"ojama-gakki-5-ja":__GD[45],
-"ojama-inemuri-0-en":__GD[46],
-"ojama-inemuri-0-ja":__GD[47],
-"ojama-inemuri-1-en":__GD[48],
-"ojama-inemuri-1-ja":__GD[49],
-"ojama-inemuri-2-en":__GD[50],
-"ojama-inemuri-2-ja":__GD[51],
-"ojama-inemuri-3-en":__GD[52],
-"ojama-inemuri-3-ja":__GD[53],
-"ojama-inemuri-4-en":__GD[54],
-"ojama-inemuri-4-ja":__GD[55],
-"ojama-inemuri-5-en":__GD[56],
-"ojama-inemuri-5-ja":__GD[57],
-"ojama-jiisan-0-en":__GD[58],
-"ojama-jiisan-0-ja":__GD[59],
-"ojama-jiisan-1-en":__GD[60],
-"ojama-jiisan-1-ja":__GD[61],
-"ojama-jiisan-2-en":__GD[62],
-"ojama-jiisan-2-ja":__GD[63],
-"ojama-jiisan-3-en":__GD[64],
-"ojama-jiisan-3-ja":__GD[65],
-"ojama-jiisan-4-en":__GD[66],
-"ojama-jiisan-4-ja":__GD[67],
-"ojama-jiisan-5-en":__GD[68],
-"ojama-jiisan-5-ja":__GD[69],
-"ojama-neighbor-0-en":__GD[70],
-"ojama-neighbor-0-ja":__GD[71],
-"ojama-neighbor-1-en":__GD[72],
-"ojama-neighbor-1-ja":__GD[73],
-"ojama-neighbor-2-en":__GD[74],
-"ojama-neighbor-2-ja":__GD[75],
-"ojama-neighbor-3-en":__GD[76],
-"ojama-neighbor-3-ja":__GD[77],
-"ojama-neko-0-en":__GD[78],
-"ojama-neko-0-ja":__GD[79],
-"ojama-neko-1-en":__GD[80],
-"ojama-neko-1-ja":__GD[81],
-"ojama-neko-2-en":__GD[82],
-"ojama-neko-2-ja":__GD[83],
-"ojama-neko-3-en":__GD[84],
-"ojama-neko-3-ja":__GD[85],
-"ojama-salesman-0-en":__GD[86],
-"ojama-salesman-0-ja":__GD[87],
-"ojama-salesman-1-en":__GD[88],
-"ojama-salesman-1-ja":__GD[89],
-"ojama-salesman-2-en":__GD[90],
-"ojama-salesman-2-ja":__GD[91],
-"ojama-salesman-3-en":__GD[92],
-"ojama-salesman-3-ja":__GD[93],
-"ojama-senpai-0-en":__GD[94],
-"ojama-senpai-0-ja":__GD[95],
-"ojama-senpai-1-en":__GD[96],
-"ojama-senpai-1-ja":__GD[97],
-"ojama-senpai-2-en":__GD[98],
-"ojama-senpai-2-ja":__GD[99],
-"ojama-senpai-3-en":__GD[100],
-"ojama-senpai-3-ja":__GD[101],
-"ojama-tourist-0-en":__GD[102],
-"ojama-tourist-0-ja":__GD[103],
-"ojama-tourist-1-en":__GD[104],
-"ojama-tourist-1-ja":__GD[105],
-"ojama-tourist-2-en":__GD[106],
-"ojama-tourist-2-ja":__GD[107],
-"ojama-tourist-3-en":__GD[108],
-"ojama-tourist-3-ja":__GD[109],
-"ojama-tvcrew-0-en":__GD[110],
-"ojama-tvcrew-0-ja":__GD[111],
-"ojama-tvcrew-1-en":__GD[112],
-"ojama-tvcrew-1-ja":__GD[113],
-"ojama-tvcrew-2-en":__GD[114],
-"ojama-tvcrew-2-ja":__GD[115],
-"ojama-tvcrew-3-en":__GD[116],
-"ojama-tvcrew-3-ja":__GD[117],
-"ojama-youtuber-0-en":__GD[118],
-"ojama-youtuber-0-ja":__GD[119],
-"ojama-youtuber-1-en":__GD[120],
-"ojama-youtuber-1-ja":__GD[121],
-"ojama-youtuber-2-en":__GD[122],
-"ojama-youtuber-2-ja":__GD[123],
-"ojama-youtuber-3-en":__GD[124],
-"ojama-youtuber-3-ja":__GD[125],
-"silence":__GD[126]
+"ojama-baasan-0-ja":__GD[6],
+"ojama-baasan-1-ja":__GD[7],
+"ojama-baasan-2-ja":__GD[8],
+"ojama-baasan-3-ja":__GD[9],
+"ojama-baasan-4-ja":__GD[10],
+"ojama-baasan-5-ja":__GD[11],
+"ojama-crow-0-ja":__GD[12],
+"ojama-crow-1-ja":__GD[13],
+"ojama-crow-2-ja":__GD[14],
+"ojama-crow-3-ja":__GD[15],
+"ojama-dogwalker-0-ja":__GD[16],
+"ojama-dogwalker-1-ja":__GD[17],
+"ojama-dogwalker-2-ja":__GD[18],
+"ojama-dogwalker-3-ja":__GD[19],
+"ojama-gakki-0-ja":__GD[20],
+"ojama-gakki-1-ja":__GD[21],
+"ojama-gakki-2-ja":__GD[22],
+"ojama-gakki-3-ja":__GD[23],
+"ojama-gakki-4-ja":__GD[24],
+"ojama-gakki-5-ja":__GD[25],
+"ojama-inemuri-0-ja":__GD[26],
+"ojama-inemuri-1-ja":__GD[27],
+"ojama-inemuri-2-ja":__GD[28],
+"ojama-inemuri-3-ja":__GD[29],
+"ojama-inemuri-4-ja":__GD[30],
+"ojama-inemuri-5-ja":__GD[31],
+"ojama-jiisan-0-ja":__GD[32],
+"ojama-jiisan-1-ja":__GD[33],
+"ojama-jiisan-2-ja":__GD[34],
+"ojama-jiisan-3-ja":__GD[35],
+"ojama-jiisan-4-ja":__GD[36],
+"ojama-jiisan-5-ja":__GD[37],
+"ojama-neighbor-0-ja":__GD[38],
+"ojama-neighbor-1-ja":__GD[39],
+"ojama-neighbor-2-ja":__GD[40],
+"ojama-neighbor-3-ja":__GD[41],
+"ojama-neko-0-ja":__GD[42],
+"ojama-neko-1-ja":__GD[43],
+"ojama-neko-2-ja":__GD[44],
+"ojama-neko-3-ja":__GD[45],
+"ojama-salesman-0-ja":__GD[46],
+"ojama-salesman-1-ja":__GD[47],
+"ojama-salesman-2-ja":__GD[48],
+"ojama-salesman-3-ja":__GD[49],
+"ojama-senpai-0-ja":__GD[50],
+"ojama-senpai-1-ja":__GD[51],
+"ojama-senpai-2-ja":__GD[52],
+"ojama-senpai-3-ja":__GD[53],
+"ojama-tourist-0-ja":__GD[54],
+"ojama-tourist-1-ja":__GD[55],
+"ojama-tourist-2-ja":__GD[56],
+"ojama-tourist-3-ja":__GD[57],
+"ojama-tvcrew-0-ja":__GD[58],
+"ojama-tvcrew-1-ja":__GD[59],
+"ojama-tvcrew-2-ja":__GD[60],
+"ojama-tvcrew-3-ja":__GD[61],
+"ojama-youtuber-0-ja":__GD[62],
+"ojama-youtuber-1-ja":__GD[63],
+"ojama-youtuber-2-ja":__GD[64],
+"ojama-youtuber-3-ja":__GD[65],
+"silence":__GD[66]
 };
-var ambEls = {}, ambTargetsCache = null, ambStarted = false, ambTimer = null;
+var ambEls = {}, ambTargetsCache = null, ambStarted = false, ambTimer = null, ambVarTargets = null, ambVarNext = 0;
 function ambTargets(){
   var t = { water:0.14 };
   if(sel.time==="morning"){
@@ -918,41 +865,199 @@ function ambTargets(){
   }
   return t;
 }
-function ambRecActive(key){ return !!(ambTargetsCache && ambTargetsCache[key] > 0); }
-function ambEl(key){
+/* 環境音のバリエーション：録音層の組み合わせと音量を、数十秒ごとにゆるやかに組み替える。
+   同じ層の並びがずっと続かず、鳥がときどき休んだり、別の層がそっと重なったりして、野外らしく表情が変わる。
+   鳥の層が休んでいる間は、合成の鳥の声（chirp）が代わりに顔を出す */
+function refreshAmbVar(){
+  var base = ambTargets(), t = {}, k;
+  for(k in base) t[k] = base[k] * (0.72 + Math.random()*0.5); // 層ごとの音量ゆらぎ
+  if(t.birds && Math.random() < 0.22) t.birds = 0; // 鳥はときどき休む
+  if(sel.time === "morning" && !t.pond && Math.random() < 0.45) t.pond = 0.16 + Math.random()*0.08;
+  if(sel.time === "day" && !t.birds && Math.random() < 0.5) t.birds = 0.20 + Math.random()*0.10;
+  if(sel.time === "evening" && !t.pond && Math.random() < 0.35) t.pond = 0.10 + Math.random()*0.06;
+  if(sel.time === "evening" && sel.season === "spring" && !t.crickets && Math.random() < 0.3) t.crickets = 0.14;
+  ambVarTargets = t;
+  ambVarNext = performance.now() + 22000 + Math.random()*20000;
+}
+function ambRecActive(key){
+  var t = ambVarTargets || ambTargetsCache;
+  return !!(t && t[key] > 0);
+}
+/* 録音環境音の1層ぶんの再生状態。
+   【重要】<audio> 要素の volume プロパティは iPhone の Safari ではハードウェア音量が優先され、
+   JavaScript で書き換えても無視される（＝スライダーを動かしても環境音の大きさが変わらない）。
+   そこで要素の音を Web Audio の MediaElementSource で取り込み、音量は ambBus 側の
+   GainNode で制御する。ゲインノードなら iPhone でも確実に効く。
+   assets/ が読めない環境（GitHub 単体公開など）では、埋め込みコピーをデコードして
+   バッファ再生に切り替え、同じゲインを通すので、そちらでも音量が効く */
+function ambLayer(key){
   if(ambEls[key]) return ambEls[key];
+  var layer = { el:null, el2:null, cur:0, xf:false, gain:null, routed:false, buf:null, bufReady:false, bufLoading:false, bufSrc:null, bufSrc2:null, bufStart:0, bufNextStart:0 };
   var el = new Audio();
-  el.src = AMB_FILES[key]; el.loop = true; el.preload = "auto"; el.volume = 0;
-  /* assets/ のファイルが読めない環境（GitHub に HTML 単体で公開した場合など）では、
-     HTML に埋め込んだ圧縮コピーへ自動で切り替える。loop と volume は要素側に残るので、
-     切り替え後は ambTick がそのまま再生を再開する */
+  el.src = AMB_FILES[key]; el.loop = false; el.preload = "auto"; el.volume = 0;
   el.addEventListener("error", function(){
-    var emb = (typeof EMB_AUDIO !== "undefined") ? EMB_AUDIO["amb-" + key] : null;
-    if(emb && el.src.indexOf("data:") !== 0) el.src = emb;
+    if(AC) ambLoadEmbedded(key, layer);
+    else {
+      var emb = (typeof EMB_AUDIO !== "undefined") ? EMB_AUDIO["amb-" + key] : null;
+      if(emb && el.src.indexOf("data:") !== 0) el.src = emb;
+    }
   });
-  ambEls[key] = el;
-  return el;
+  layer.el = el;
+  /* ループの継ぎ目専用の2つ目の要素。録音音源は頭に約2秒のフェードイン、尻に約2秒の
+     フェードアウトが入っている。素の loop=true では「フェードアウト→無音→フェードイン」の
+     谷間ができて、ループのたびに音が途切れて聞こえる。そこで終わり際にもう一方の要素を
+     頭から重ね、フェード同士を補い合わせて継ぎ目を消す（切り替えは ambTick が行う） */
+  var el2 = new Audio();
+  el2.src = AMB_FILES[key]; el2.loop = false; el2.preload = "auto"; el2.volume = 0;
+  layer.el2 = el2;
+  ambEls[key] = layer;
+  return layer;
+}
+/* 要素の出力を Web Audio のゲインへ接続する（要素ごとに1回だけ）。
+   接続後は要素側の volume は最大に固定し、音量はすべてゲイン側で決める。
+   ゲインは層で共有し、継ぎ目クロスフェード用の2つの要素をまとめて制御する */
+function ambRoute(layer){
+  if(!AC) return;
+  ambRouteEl(layer, layer.el);
+  ambRouteEl(layer, layer.el2);
+  if(layer.el && layer.el._ambRouted) layer.routed = true;
+}
+function ambRouteEl(layer, el){
+  if(!el || el._ambRouted || !AC) return;
+  try{
+    if(!layer.gain){
+      layer.gain = AC.createGain(); layer.gain.gain.value = 0;
+      layer.gain.connect(ambBus || master);
+    }
+    var srcNode = AC.createMediaElementSource(el);
+    srcNode.connect(layer.gain);
+    el._ambRouted = true;
+    el.volume = 1;
+  }catch(e){}
+}
+/* 埋め込みコピー（Base64 の data URI）をデコードしてバッファ再生の準備をする */
+function ambLoadEmbedded(key, layer){
+  if(layer.bufReady || layer.bufLoading || !AC) return;
+  var emb = (typeof EMB_AUDIO !== "undefined") ? EMB_AUDIO["amb-" + key] : null;
+  if(!emb) return;
+  layer.bufLoading = true;
+  try{
+    var bin = atob(emb.slice(emb.indexOf(",") + 1));
+    var bytes = new Uint8Array(bin.length);
+    for(var i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
+    AC.decodeAudioData(bytes.buffer, function(buf){
+      layer.buf = buf; layer.bufReady = true; layer.bufLoading = false;
+      try{ layer.el.pause(); }catch(e){}
+      try{ if(layer.el2) layer.el2.pause(); }catch(e){}
+    }, function(){ layer.bufLoading = false; });
+  }catch(e){ layer.bufLoading = false; }
+}
+/* その層の現在の出力音量（ゲイン優先、作れない環境では要素の volume） */
+function ambCur(layer){
+  return layer.gain ? layer.gain.gain.value : (layer.el ? layer.el.volume : 0);
+}
+function ambSet(layer, v){
+  if(layer.gain) layer.gain.gain.value = v;
+  else if(layer.el) layer.el.volume = v;
+}
+/* ループ継ぎ目のクロスフェード長（秒）。録音音源の頭・尻のフェード（約2秒）と
+   重なるよう、終了の少し前から次の頭を重ね始める */
+var AMB_XF = 2.4;
+function ambPlayEl(el){
+  if(!el) return;
+  try{ var p = el.play(); if(p && p.catch) p.catch(function(){}); }catch(e){}
+}
+function ambMkBufSrc(layer){
+  var bs = AC.createBufferSource(); bs.buffer = layer.buf; bs.loop = false;
+  bs.connect(layer.gain);
+  try{ bs.start(0); }catch(e){}
+  return bs;
 }
 function ambTick(){
   if(!ambTargetsCache) ambTargetsCache = ambTargets();
+  if(!ambVarTargets || performance.now() > ambVarNext) refreshAmbVar();
+  updateRain();
   for(var key in AMB_FILES){
-    var target = (ambientOn && ambStarted) ? (ambTargetsCache[key] || 0) * volAmb * AMB_SCALE : 0;
-    var el = ambEls[key];
+    var target = (ambientOn && ambStarted) ? (ambVarTargets[key] || 0) * volAmb * AMB_SCALE : 0;
+    var layer = ambEls[key];
     if(target > 0){
-      if(!el) el = ambEl(key);
-      if(el.paused){ var p = el.play(); if(p && p.catch) p.catch(function(){}); }
-      /* 目標音量へは上げる方向だけでなく下げる方向にも近づける。
-         以前は上げる方向しか処理しておらず、設定スライダーを下げても再生中の録音環境音が下がらなかった */
-      var diff = target - el.volume;
-      el.volume = Math.abs(diff) < 0.004 ? target : el.volume + diff * 0.35;
-    } else if(el && !el.paused){
-      if(el.volume > 0.02) el.volume = Math.max(0, el.volume - 0.02);
-      else { el.pause(); el.volume = 0; }
+      if(!layer) layer = ambLayer(key);
+      ambRoute(layer);
+      if(layer.bufReady){
+        /* 埋め込みコピーのバッファ再生（要素が読めなかった環境用）。同じゲインを通し、
+           継ぎ目は要素側と同じ考え方で、終わり際にもう1本を頭から重ねてつなぐ */
+        if(!layer.gain){
+          var bg = AC.createGain(); bg.gain.value = 0; bg.connect(ambBus || master);
+          layer.gain = bg;
+        }
+        if(!layer.bufSrc){
+          layer.bufSrc = ambMkBufSrc(layer);
+          layer.bufStart = AC.currentTime;
+          layer.xf = false;
+        } else if(layer.buf.duration > AMB_XF + 1){
+          var remB = layer.buf.duration - (AC.currentTime - layer.bufStart);
+          if(!layer.xf && remB <= AMB_XF + 0.3){
+            layer.bufSrc2 = ambMkBufSrc(layer);
+            layer.bufNextStart = AC.currentTime;
+            layer.xf = true;
+          } else if(layer.xf && remB <= 0.05){
+            layer.bufSrc = layer.bufSrc2; layer.bufSrc2 = null;
+            layer.bufStart = layer.bufNextStart;
+            layer.xf = false;
+          }
+        }
+      } else if(!layer.bufLoading){
+        /* 要素再生。再生中の要素が終わり際になったら、もう一方を頭から重ねて
+           フェード同士を補い合わせ、継ぎ目で音が途切れないようにする */
+        var curEl = (layer.cur === 1 && layer.el2) ? layer.el2 : layer.el;
+        if(curEl.paused && !layer.xf) ambPlayEl(curEl);
+        var durE = curEl.duration;
+        if(isFinite(durE) && durE > AMB_XF + 1 && curEl.currentTime > 0){
+          var remE = durE - curEl.currentTime;
+          if(!layer.xf && remE <= AMB_XF + 0.3){
+            var nxtEl = (curEl === layer.el) ? layer.el2 : layer.el;
+            if(nxtEl){
+              ambRouteEl(layer, nxtEl);
+              try{ nxtEl.currentTime = 0; }catch(e){}
+              ambPlayEl(nxtEl);
+              layer.xf = true;
+            }
+          } else if(layer.xf && remE <= 0.12){
+            try{ curEl.pause(); curEl.currentTime = 0; }catch(e){}
+            layer.cur = (curEl === layer.el) ? 1 : 0;
+            layer.xf = false;
+          }
+        }
+        /* 万一クロスフェードが間に合わず要素が終わっていたら、頭から再生し直して無音を防ぐ。
+           判定は入れ替え後の現在の要素でし直す（入れ替えた直後の古い要素は ended が
+           立ったままなので、そちらを見ると二重再生になってしまう） */
+        var nowEl = (layer.cur === 1 && layer.el2) ? layer.el2 : layer.el;
+        if(nowEl.ended){
+          try{ nowEl.currentTime = 0; }catch(e){}
+          ambPlayEl(nowEl);
+        }
+      }
+      /* 目標音量へ上下両方向に近づける。制御先は Web Audio のゲインなので、
+         iPhone でもスライダーの上げ下げがそのまま再生中の環境音に効く */
+      var cur = ambCur(layer), diff = target - cur;
+      ambSet(layer, Math.abs(diff) < 0.004 ? target : cur + diff * 0.35);
+    } else if(layer){
+      var cur2 = ambCur(layer);
+      if(cur2 > 0.02) ambSet(layer, Math.max(0, cur2 - 0.02));
+      else {
+        ambSet(layer, 0);
+        if(layer.bufSrc){ try{ layer.bufSrc.stop(); }catch(e){} layer.bufSrc = null; }
+        if(layer.bufSrc2){ try{ layer.bufSrc2.stop(); }catch(e){} layer.bufSrc2 = null; }
+        layer.xf = false;
+        if(layer.el && !layer.el.paused) layer.el.pause();
+        if(layer.el2 && !layer.el2.paused) layer.el2.pause();
+      }
     }
   }
 }
 function updateAmbience(){
   ambTargetsCache = ambTargets();
+  ambVarTargets = null; ambVarNext = 0; // 季節・時間帯が変わったら組み合わせを引き直す
   if(!ambStarted) return;
   if(!ambTimer) ambTimer = setInterval(ambTick, 200);
   ambTick();
@@ -1283,9 +1388,143 @@ function mosquitoWhine(){
     o.connect(g); g.connect(ambBus||master); o.start(t); o.stop(t+0.9);
   }catch(e){}
 }
+/* 風のうなり：低くうねるノイズのうねり。強さ・長さ・左右の位置は毎回変わる。
+   関数名は windHowl：「突風の強さ」を表す数値変数 windGust と同名だと、ループの代入で
+   関数が数値に上書きされ、呼び出し時に例外となって描画ごと止まってしまうため */
+function windHowl(){
+  if(!AC || !ambientOn) return;
+  try{
+    var t = AC.currentTime;
+    var dur = 2.8 + Math.random()*2.2;
+    var len = Math.floor(AC.sampleRate * dur);
+    var buf = AC.createBuffer(1, len, AC.sampleRate);
+    var d = buf.getChannelData(0), lpv = 0;
+    for(var i=0;i<len;i++){ var w = Math.random()*2-1; lpv += 0.04*(w-lpv); d[i] = lpv*2.4; }
+    var src = AC.createBufferSource(); src.buffer = buf;
+    var bp = AC.createBiquadFilter(); bp.type = "bandpass"; bp.Q.value = 0.7;
+    bp.frequency.setValueAtTime(320 + Math.random()*160, t);
+    bp.frequency.linearRampToValueAtTime(520 + Math.random()*260, t + dur*0.5);
+    bp.frequency.linearRampToValueAtTime(300, t + dur);
+    var out = ambOut((Math.random()*2-1)*0.5, 0.15);
+    var g = AC.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.05 + Math.random()*0.03, t + dur*0.45);
+    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    src.connect(bp); bp.connect(g); g.connect(out);
+    src.start(t); src.stop(t + dur + 0.05);
+  }catch(e){}
+}
+/* 葉ずれ：木の葉が風に擦れる、短い乾いた音の集まり。秋は少し頻繁に */
+function leafRustle(){
+  if(!AC || !ambientOn) return;
+  try{
+    var t = AC.currentTime + 0.02;
+    var out = ambOut((Math.random()*2-1)*0.6, 0.2);
+    var n = 3 + Math.floor(Math.random()*4);
+    for(var i=0;i<n;i++){
+      var t0 = t + i*(0.09 + Math.random()*0.07);
+      var dur = 0.05 + Math.random()*0.05;
+      var len = Math.max(1, Math.floor(AC.sampleRate * dur));
+      var buf = AC.createBuffer(1, len, AC.sampleRate);
+      var d = buf.getChannelData(0);
+      for(var j=0;j<len;j++) d[j] = (Math.random()*2-1) * Math.sin(Math.PI * j / len);
+      var src = AC.createBufferSource(); src.buffer = buf;
+      var hp = AC.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 2600 + Math.random()*1400;
+      var g = AC.createGain(); g.gain.value = 0.028 + Math.random()*0.02;
+      src.connect(hp); hp.connect(g); g.connect(out);
+      src.start(t0);
+    }
+  }catch(e){}
+}
+/* ハトの声：低く丸い二声「クゥ、クゥー」。朝と昼に、遠くからときどき聞こえる */
+function doveCoo(){
+  if(!AC || !ambientOn) return;
+  try{
+    var out = ambOut((Math.random()*2-1)*0.5, 0.5);
+    var t = AC.currentTime + 0.02;
+    var base = 520 + Math.random()*90;
+    [{dt:0, dur:0.15, f:base, v:0.020}, {dt:0.26, dur:0.34, f:base*0.88, v:0.028}].forEach(function(nt){
+      var t0 = t + nt.dt;
+      var o = AC.createOscillator(), g = AC.createGain(), f = AC.createBiquadFilter();
+      o.type = "sine";
+      o.frequency.setValueAtTime(nt.f * 1.06, t0);
+      o.frequency.exponentialRampToValueAtTime(nt.f, t0 + nt.dur);
+      f.type = "lowpass"; f.frequency.value = 1100;
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(nt.v, t0 + 0.04);
+      g.gain.exponentialRampToValueAtTime(0.001, t0 + nt.dur);
+      o.connect(f); f.connect(g); g.connect(out);
+      o.start(t0); o.stop(t0 + nt.dur + 0.05);
+    });
+  }catch(e){}
+}
+/* 岸の水音：小さな波が寄せては返す、ゆっくりした繰り返し */
+function waterLap(){
+  if(!AC || !ambientOn) return;
+  try{
+    var out = ambOut((Math.random()*2-1)*0.3, 0.1);
+    var t = AC.currentTime + 0.02;
+    var n = 3 + Math.floor(Math.random()*2);
+    for(var i=0;i<n;i++){
+      var t0 = t + i*(0.55 + Math.random()*0.15);
+      var dur = 0.42;
+      var len = Math.floor(AC.sampleRate * dur);
+      var buf = AC.createBuffer(1, len, AC.sampleRate);
+      var d = buf.getChannelData(0), lpv = 0;
+      for(var j=0;j<len;j++){ var w = Math.random()*2-1; lpv += 0.18*(w-lpv); d[j] = lpv * Math.sin(Math.PI * j / len) * 2.2; }
+      var src = AC.createBufferSource(); src.buffer = buf;
+      var lp = AC.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 750;
+      var g = AC.createGain(); g.gain.value = 0.05 + Math.random()*0.02;
+      src.connect(lp); lp.connect(g); g.connect(out);
+      src.start(t0);
+    }
+  }catch(e){}
+}
+/* 小雨の日の雨音：天気が「小雨」の間だけ、細かい雨粒のパターンをループで重ねる。
+   出口は ambBus（スライダー×係数のゲイン）なので、設定の環境音スライダーがそのまま効く。
+   ループ素材は10秒ぶんのノイズを「末尾の続きを頭へ折り返す」クロスフェードで作り、
+   継ぎ目で音量が落ちない完全なループにする（旧版は2秒ループの両端を無音へフェードして
+   いたため、2秒ごとに音が途切れて聞こえた）。ゆっくりした音量のうねりも周期内に焼き込む */
+var rainSrc = null, rainGain = null, rainOn = false;
+function updateRain(){
+  if(!AC) return;
+  var want = !!(ambientOn && ambStarted && weather === "小雨");
+  if(want === rainOn && (want || !rainSrc)) return;
+  rainOn = want;
+  if(want && !rainSrc){
+    var sr = AC.sampleRate;
+    var len = Math.floor(sr * 10), xf = Math.floor(sr * 2.5), total = len + xf;
+    var raw = new Float32Array(total), lpv = 0;
+    var ph1 = Math.random()*6.2832, ph2 = Math.random()*6.2832;
+    for(var i=0;i<total;i++){
+      var w = Math.random()*2-1; lpv += 0.3*(w-lpv);
+      var swell = 0.86 + 0.14 * Math.sin(6.2832 * (2*i/len) + ph1) * Math.sin(6.2832 * (3*i/len) + ph2);
+      raw[i] = (w*0.30 + lpv*0.85) * swell;
+    }
+    var buf = AC.createBuffer(1, len, sr);
+    var d = buf.getChannelData(0);
+    for(var j=0;j<len;j++) d[j] = raw[j];
+    for(var k=0;k<xf;k++){
+      var t = k / xf;
+      d[k] = raw[k] * t + raw[len + k] * (1 - t); // 頭は「末尾の続き」から始まるので継ぎ目が消える
+    }
+    rainSrc = AC.createBufferSource(); rainSrc.buffer = buf; rainSrc.loop = true;
+    var hp = AC.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 850;
+    rainGain = AC.createGain(); rainGain.gain.value = 0;
+    rainSrc.connect(hp); hp.connect(rainGain); rainGain.connect(ambBus || master);
+    try{ rainSrc.start(); }catch(e){}
+  }
+  if(rainGain) rainGain.gain.setTargetAtTime(want ? 0.14 : 0, AC.currentTime, 1.4);
+  if(!want && rainSrc){
+    var rs = rainSrc;
+    rainSrc = null; rainGain = null;
+    setTimeout(function(){ try{ rs.stop(); }catch(e){} }, 5000);
+  }
+}
 /* 環境音の主役は実録音ループ（上の「環境音：実録音ループ」）に移った。
-   以下の合成の鳥・カエル・虫は、対応する録音が鳴っていない場面だけの補助で、
-   フレーズのランダムな変化、倍音、喉や羽の震えの変調、左右の定位と生成残響で作る */
+   合成の鳥・カエル・虫は、対応する録音が鳴っていない場面だけの補助で、
+   フレーズのランダムな変化、倍音、喉や羽の震えの変調、左右の定位と生成残響で作る。
+   風・葉ずれ・ハト・水の寄せ・小雨の雨音は、録音層の合間に表情を足す脇役 */
 
 /* ================= メッセージ ================= */
 
@@ -2865,7 +3104,7 @@ var OJAMA_ART = {
 /* お邪魔キャラの声：セリフは表示と同時に、キャラごとに録音済みの声で読み上げる。
    以前は端末の音声合成（speechSynthesis）で喋らせていたが、アプリ内ブラウザ（特に iPhone）では
    音声合成が無言で破棄され「喋らない」状態になるため、全セリフを録音音声に切り替えた。
-   音声ファイルは assets/voice/ojama-<キャラ>-<行番号>-<ja|en>.mp3。
+   音声ファイルは assets/voice/ojama-<キャラ>-<行番号>-ja.mp3（英語版の音声は廃止し、英語表示では声なし）。
    鍵括弧のセリフがある行はセリフ部分だけ、地の文だけの行（猫・カラス等）は全文を録音してある。
    再生は環境音と同じ <audio> 方式（専用要素を1つ共有）なので、タイマー発火でも鳴らせる */
 var ojamaAudio = null;      // お邪魔の声専用の共有 <audio> 要素（同時に喋るのは一人だけ）
@@ -2900,17 +3139,19 @@ function primeOjamaSpeech(){
   try{
     var el = ojamaVoiceEl();
     ojamaVoiceName = "silence";
-    el.src = __GD[158];
+    el.src = __GD[98];
     var p = el.play();
     if(p && p.catch) p.catch(function(){});
   }catch(e){}
 }
 function speakOjama(kind, lineIdx){
+  /* 英語版の音声は廃止：英語表示のときは声を出さず、セリフのテキスト表示だけにする */
+  if(lang === "en") return;
   try{
     var el = ojamaVoiceEl();
-    ojamaVoiceName = "ojama-" + kind + "-" + lineIdx + "-" + (lang === "en" ? "en" : "ja");
+    ojamaVoiceName = "ojama-" + kind + "-" + lineIdx + "-ja";
     el.src = "assets/voice/" + ojamaVoiceName + ".mp3";
-    el.volume = volVoice;
+    el.volume = volVoice * VOICE_SCALE;
     try{ el.currentTime = 0; }catch(e){}
     var p = el.play();
     if(p && p.catch) p.catch(function(){});
@@ -3454,6 +3695,8 @@ if(rebaitBtn) rebaitBtn.addEventListener("click", function(){ ensureAudio(); reb
    打ち直した仕掛けが入るのは、この水面タップのときだけ（ボタンでは入らない）。
    待ち・アタリ中は、水面タップが従来どおり合わせになる */
 document.getElementById("pond").addEventListener("pointerdown", function(e){
+  /* 水面の長押し（竿を持つ）でブラウザがスクロール判定に入り、描画が止まってウキが固まるのを防ぐ */
+  e.preventDefault();
   ensureAudio();
   if(resultOpen) return;
   if(rigAnim || rigHidden || rebaiting) return;
@@ -3476,6 +3719,19 @@ document.getElementById("pond").addEventListener("pointerdown", function(e){
     gripStart(e.pointerId);
   }
 });
+/* 長押し中にウキ（画面全体の描画）が固まる対策：iOS（アプリ内ブラウザ含む）は、指を押し続けている間、
+   そのタッチをスクロールの候補として追跡し、追跡中は requestAnimationFrame の配信を止めることがある。
+   押し続ける操作面（水面・「竿を持つ」ボタン・ファイトの「立てる」ボタン）ではスクロールもズームも
+   一切使わないので、タッチの既定動作を止めて追跡自体を起こさせない（canvas の touch-action:none と併用）。
+   「竿を持つ」ボタンの touchstart 抑止は合わせ待ちの状態だけに限る：待機中の通常タップは
+   click 経由の「仕掛けを入れる」を使うため、そちらの既定動作は壊さない */
+var pondEl = document.getElementById("pond");
+pondEl.addEventListener("touchstart", function(e){ e.preventDefault(); }, {passive:false});
+pondEl.addEventListener("touchmove", function(e){ e.preventDefault(); }, {passive:false});
+mainBtn.addEventListener("touchstart", function(e){ if(state==="wait" || state==="mae" || state==="hon") e.preventDefault(); }, {passive:false});
+mainBtn.addEventListener("touchmove", function(e){ if(rodGrip) e.preventDefault(); }, {passive:false});
+holdBtn.addEventListener("touchstart", function(e){ e.preventDefault(); }, {passive:false});
+holdBtn.addEventListener("touchmove", function(e){ e.preventDefault(); }, {passive:false});
 function holdStart(e){ if(e) e.preventDefault(); holding = true; holdBtn.className = "btn hold pressing"; }
 function holdEnd(){ holding = false; holdBtn.className = "btn hold"; }
 holdBtn.addEventListener("pointerdown", holdStart);
@@ -3768,7 +4024,9 @@ function endWaterFx(){
   ctx.restore();
 }
 function clipWaterDraw(fn){
-  if(beginWaterFx()){ fn(); endWaterFx(); return; }
+  /* fn の途中で例外が出ても、描画先（ctx）の差し替えは必ず元に戻す。
+     戻し忘れると以降の全描画がオフスクリーン側へ流れ続け、画面が固まってしまう */
+  if(beginWaterFx()){ try{ fn(); } finally { endWaterFx(); } return; }
   var wp = waterPath2D(); if(!wp) return;
   ctx.save(); ctx.clip(wp); fn(); ctx.restore();
 }
@@ -3878,20 +4136,20 @@ var SCENE_IMGS = {};
    実際に描くときは、ウキの真下の水際（poly の上端）がウキの水面位置へ来るよう
    縦位置を計算し直すので、どの写真でもウキは必ず写真の水面に浮く */
 var SCENE_PHOTOS = [
-  {id:"morning", src:__GD[159], times:["morning"], seasons:null, sun:0.335, dy:0, poly:[[0.205,0.385],[0.615,0.378],[0.635,0.43],[0.575,0.56],[0.545,0.70],[0.50,0.80],[0.40,0.845],[0.285,0.83],[0.225,0.68],[0.20,0.52]]},
-  {id:"day", src:__GD[160], times:["day"], seasons:null, sun:null, dy:0, poly:[[0.135,0.412],[1,0.405],[1,1],[0.315,1],[0.325,0.82],[0.365,0.63],[0.315,0.52],[0.20,0.45]]},
-  {id:"evening", src:__GD[161], times:["evening"], seasons:null, sun:0.515, dy:0, poly:[[0.45,0.372],[1,0.362],[1,1],[0,1],[0,0.735],[0.20,0.715],[0.44,0.695],[0.452,0.55],[0.448,0.44]]},
-  {id:"mist", src:__GD[162], times:["morning","evening"], seasons:null, sun:0.50, dy:-0.03, poly:[[0,0.44],[1,0.44],[1,1],[0.66,1],[0.635,0.90],[0.60,0.865],[0.38,0.865],[0.335,0.92],[0.30,1],[0,1]]},
-  {id:"sunrise", src:__GD[163], times:["morning"], seasons:["spring","summer","autumn"], sun:0.315, dy:-0.10, poly:[[0,0.505],[1,0.505],[1,1],[0,1]]},
-  {id:"forest", src:__GD[164], times:["day"], seasons:["spring","summer","autumn"], sun:null, dy:-0.145, poly:[[0,0.545],[1,0.545],[1,1],[0,1]]},
-  {id:"sunset", src:__GD[165], times:["evening"], seasons:null, sun:0.505, dy:-0.10, poly:[[0,0.505],[1,0.505],[1,1],[0,1]]},
-  {id:"sunset2", src:__GD[166], times:["morning","evening"], seasons:["spring","summer","autumn"], sun:0.71, dy:-0.17, poly:[[0.315,0.595],[0.99,0.585],[0.99,0.82],[0.66,0.85],[0.615,0.71],[0.34,0.685],[0.315,0.63]]},
-  {id:"winter2", src:__GD[167], times:["morning","day"], seasons:["winter"], sun:null, dy:-0.07, poly:[[0,0.495],[0.31,0.48],[0.42,0.465],[1,0.455],[1,1],[0,1]]},
-  {id:"winter3", src:__GD[168], times:["day"], seasons:["winter"], sun:null, dy:-0.13, poly:[[0.35,0.51],[0.55,0.585],[1,0.60],[1,1],[0.14,1],[0.15,0.79],[0.35,0.615]]},
-  {id:"autumn", src:__GD[169], times:["day"], seasons:["autumn"], sun:null, dy:-0.02, poly:[[0,0.525],[1,0.525],[1,1],[0,1]]},
-  {id:"autumn2", src:__GD[170], times:["day","evening"], seasons:["autumn"], sun:null, dy:-0.02, poly:[[0,0.53],[1,0.53],[1,1],[0,1]]},
-  {id:"mist2", src:__GD[171], times:["morning"], seasons:["spring","summer","autumn"], sun:0.50, dy:-0.04, poly:[[0,0.49],[1,0.49],[1,1],[0,1]]},
-  {id:"spring", src:__GD[172], times:["morning","day"], seasons:["spring","summer"], sun:null, dy:-0.05, poly:[[0,0.535],[1,0.535],[1,1],[0,1]]}
+  {id:"morning", src:__GD[99], times:["morning"], seasons:null, sun:0.335, dy:0, poly:[[0.205,0.385],[0.615,0.378],[0.635,0.43],[0.575,0.56],[0.545,0.70],[0.50,0.80],[0.40,0.845],[0.285,0.83],[0.225,0.68],[0.20,0.52]]},
+  {id:"day", src:__GD[100], times:["day"], seasons:null, sun:null, dy:0, poly:[[0.135,0.412],[1,0.405],[1,1],[0.315,1],[0.325,0.82],[0.365,0.63],[0.315,0.52],[0.20,0.45]]},
+  {id:"evening", src:__GD[101], times:["evening"], seasons:null, sun:0.515, dy:0, poly:[[0.45,0.372],[1,0.362],[1,1],[0,1],[0,0.735],[0.20,0.715],[0.44,0.695],[0.452,0.55],[0.448,0.44]]},
+  {id:"mist", src:__GD[102], times:["morning","evening"], seasons:null, sun:0.50, dy:-0.03, poly:[[0,0.44],[1,0.44],[1,1],[0.66,1],[0.635,0.90],[0.60,0.865],[0.38,0.865],[0.335,0.92],[0.30,1],[0,1]]},
+  {id:"sunrise", src:__GD[103], times:["morning"], seasons:["spring","summer","autumn"], sun:0.315, dy:-0.10, poly:[[0,0.505],[1,0.505],[1,1],[0,1]]},
+  {id:"forest", src:__GD[104], times:["day"], seasons:["spring","summer","autumn"], sun:null, dy:-0.145, poly:[[0,0.545],[1,0.545],[1,1],[0,1]]},
+  {id:"sunset", src:__GD[105], times:["evening"], seasons:null, sun:0.505, dy:-0.10, poly:[[0,0.505],[1,0.505],[1,1],[0,1]]},
+  {id:"sunset2", src:__GD[106], times:["morning","evening"], seasons:["spring","summer","autumn"], sun:0.71, dy:-0.17, poly:[[0.315,0.595],[0.99,0.585],[0.99,0.82],[0.66,0.85],[0.615,0.71],[0.34,0.685],[0.315,0.63]]},
+  {id:"winter2", src:__GD[107], times:["morning","day"], seasons:["winter"], sun:null, dy:-0.07, poly:[[0,0.495],[0.31,0.48],[0.42,0.465],[1,0.455],[1,1],[0,1]]},
+  {id:"winter3", src:__GD[108], times:["day"], seasons:["winter"], sun:null, dy:-0.13, poly:[[0.35,0.51],[0.55,0.585],[1,0.60],[1,1],[0.14,1],[0.15,0.79],[0.35,0.615]]},
+  {id:"autumn", src:__GD[109], times:["day"], seasons:["autumn"], sun:null, dy:-0.02, poly:[[0,0.525],[1,0.525],[1,1],[0,1]]},
+  {id:"autumn2", src:__GD[110], times:["day","evening"], seasons:["autumn"], sun:null, dy:-0.02, poly:[[0,0.53],[1,0.53],[1,1],[0,1]]},
+  {id:"mist2", src:__GD[111], times:["morning"], seasons:["spring","summer","autumn"], sun:0.50, dy:-0.04, poly:[[0,0.49],[1,0.49],[1,1],[0,1]]},
+  {id:"spring", src:__GD[112], times:["morning","day"], seasons:["spring","summer"], sun:null, dy:-0.05, poly:[[0,0.535],[1,0.535],[1,1],[0,1]]}
 ];
 SCENE_PHOTOS.forEach(function(ph){ ph.img = new Image(); ph.img.src = ph.src; });
 function photoById(id){ for(var i=0;i<SCENE_PHOTOS.length;i++) if(SCENE_PHOTOS[i].id===id) return SCENE_PHOTOS[i]; return null; }
@@ -4781,7 +5039,7 @@ function drawRodAndFloat(pal, t){
 }
 
 /* ================= メインループ ================= */
-var lastTs = 0, chirpT = 5, frogT = 7, insectT = 9;
+var lastTs = 0, chirpT = 5, frogT = 7, insectT = 9, windT = 13, leafT = 19, cooT = 15, lapT = 9;
 function loop(ts){
   requestAnimationFrame(loop);
   var dt = Math.min(0.05, (ts - lastTs)/1000 || 0.016);
@@ -5041,17 +5299,32 @@ function loop(ts){
   // 鳥の声（合成）：実録音の鳥・池の音が鳴っている間は重ねない
   if(ambientOn && AC && sel.time!=="evening" && !ambRecActive("birds") && !ambRecActive("pond")){
     chirpT -= dt;
-    if(chirpT<=0){ chirp(); chirpT = 4 + Math.random()*7; }
+    if(chirpT<=0){ chirpT = 4 + Math.random()*7; chirp(); }
   }
   // 風景の音：カエル（春・夏）／虫（夏・秋の夕方）。対応する実録音が鳴っている間は合成を重ねない
   if(ambientOn && AC){
     if((sel.season==="spring" || sel.season==="summer") && sel.time!=="day" && !ambRecActive("frogs")){
       frogT -= dt;
-      if(frogT<=0){ frogCroak(); frogT = 6 + Math.random()*9; }
+      if(frogT<=0){ frogT = 6 + Math.random()*9; frogCroak(); }
     }
     if((sel.season==="summer" || sel.season==="autumn") && sel.time==="evening" && !ambRecActive("crickets")){
       insectT -= dt;
-      if(insectT<=0){ insectSound(); insectT = 5 + Math.random()*7; }
+      if(insectT<=0){ insectT = 5 + Math.random()*7; insectSound(); }
+    }
+  }
+  // 風景の音のバリエーション：風のうなり・葉ずれ・ハトの声・岸の水音を、間隔も置き場所もばらつかせて重ねる。
+  // 各タイマーは「音を鳴らす前」に次回分へ戻しておく：鳴らす処理で万一例外が出ても、タイマーが
+  // 満了したまま毎フレーム例外を繰り返し、この後ろにある draw() に二度と届かなくなる事態を防ぐ
+  if(ambientOn && AC){
+    windT -= dt;
+    if(windT<=0){ windT = 16 + Math.random()*22; windHowl(); }
+    leafT -= dt;
+    if(leafT<=0){ leafT = (sel.season==="autumn" ? 10 : 22) + Math.random()*18; leafRustle(); }
+    lapT -= dt;
+    if(lapT<=0){ lapT = 13 + Math.random()*16; waterLap(); }
+    if(sel.time!=="evening"){
+      cooT -= dt;
+      if(cooT<=0){ cooT = 18 + Math.random()*22; doveCoo(); }
     }
   }
   // 付け替えボタンの表示同期（餌の状態はウキの沈み具合・目盛りの色で表すので、バー表示はなし）
