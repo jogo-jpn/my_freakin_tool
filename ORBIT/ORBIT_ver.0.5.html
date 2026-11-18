@@ -993,7 +993,7 @@ body.edit-off #overlay{
           <input id="gFileInput" type="file" accept="audio/*,.wav,.mp3,.m4a,.aac,.ogg,.flac" hidden>
         </div>
         <div class="row" style="gap:8px;">
-          <select id="gDemoSel" aria-label="デモ音源を選ぶ"></select>
+          <select id="gDemoSel" aria-label="Select demo sound"></select>
         </div>
         <div class="row" style="gap:8px;">
           <label>Source</label>
@@ -1012,7 +1012,7 @@ body.edit-off #overlay{
           <button class="gModeBtn" data-gmode="pingpong" type="button" style="flex:1;">PING-PONG</button>
         </div>
         <p class="note" id="gSrcStatus">
-          ソース: デモ音源を生成中…
+          Source: Generating demo…
         </p>
         <p class="note" id="gImportStatus"></p>
       </div>
@@ -1028,7 +1028,7 @@ body.edit-off #overlay{
         <div class="row"><label>Ambient Orbit</label><input id="gAmbient" type="range" min="0" max="1" step=".01" value="0"><span id="gAmbientV" class="value"></span></div>
         <div class="row"><label>Speed</label><input id="gSpeed" type="range" min=".25" max="2" step=".01" value="1"><span id="gSpeedV" class="value"></span></div>
         <div class="row"><label>Key</label><select id="gKeySel">
-          <option value="-1" selected>MAIN（ORBITと連動）</option>
+          <option value="-1" selected>MAIN (Linked to ORBIT)</option>
           <option value="0">C</option>
           <option value="1">C#</option>
           <option value="2">D</option>
@@ -1059,7 +1059,6 @@ body.edit-off #overlay{
         <div class="row"><label>Grain Delay</label><input id="gDelay" type="range" min="0" max="1" step=".01" value=".24"><span id="gDelayV" class="value"></span></div>
         <div class="row"><label>Delay Time</label><input id="gDelayTime" type="range" min=".08" max=".9" step=".01" value=".38"><span id="gDelayTimeV" class="value"></span></div>
         <div class="row"><label>Freeze</label><button id="gFreeze" type="button">FREEZE</button></div>
-        <p class="note" id="gCount">衝突 0 回 ／ 粒 0 個</p>
       </div>
     </div>
     </div><!-- /#gScroll -->
@@ -5608,7 +5607,6 @@ function removeObjectById(type, id) {
     var gIn = null, gWarm = null, gVerb = null, gVerbGain = null, gShim = null;
     var gDelay = null, gDelayGain = null, gHissGain = null;
     var gNext = 0, gNextOrbit = 0;
-    var gHits = 0, gGrains = 0;
     /* ---- 波形上の粒の可視化（音の出し方を点で表す） ---- */
     var gParticles = [];   /* {x:0-1, y:-1..1, vx, vy, r, life, ttl, kind, alpha, wob} */
     var gRings = [];       /* {x, y, r, maxR, life, ttl, alpha, warm} */
@@ -5787,11 +5785,6 @@ function removeObjectById(type, id) {
     });
     function gClamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
     function gPct(v) { return Math.round(v * 100) + "%"; }
-    function gUpdateCount() {
-      var el = document.getElementById("gCount");
-      if (el) el.textContent = "衝突 " + gHits + " 回 ／ 粒 " + gGrains + " 個";
-    }
-
     /* ---- 本体の master へつながる粒専用チェーン（初回だけ生成） ---- */
     function gMakeIR(sec, decay) {
       var rate = audio.sampleRate, len = Math.floor(rate * sec);
@@ -5911,15 +5904,12 @@ function removeObjectById(type, id) {
           gEmitAt(visPos, "echo", 1, { dx: GP.delayTime * 0.14, ttl: 1.2 });
         }
       } catch (e) {}
-      gGrains++;
-      if ((gGrains & 15) === 0) gUpdateCount();
     }
 
     /* ---- 衝突バースト：衝突位置＝Position、衝突音程＝粒ピッチ ---- */
     var gLastFreq = 0, gLastFreqAt = 0;
     function gBurst(xPx, ball) {
       if (!gOn() || !gEnsureChain()) return;
-      gHits++; gUpdateCount();
       var xN = gClamp(xPx / Math.max(1, W), 0, 1);
       var ref = (notes && notes.length) ? notes[Math.floor(notes.length / 2)] : 440;
       var mul = 1;
@@ -6216,7 +6206,7 @@ function removeObjectById(type, id) {
       gWctx.clearRect(0, 0, w, h);
       if (!gSource) {
         gWctx.fillStyle = "#91a3b7"; gWctx.font = "11px sans-serif";
-        gWctx.fillText("音源を読み込むと波形が表示されます", 10, h / 2 + 4);
+        gWctx.fillText("Load a source to show its waveform", 10, h / 2 + 4);
         return;
       }
       var mid = h / 2;
@@ -6470,7 +6460,7 @@ function removeObjectById(type, id) {
       gSyncRange();
       var nm = document.getElementById("gSrcName");
       if (nm) nm.textContent = name;
-      gSetStatus("ソース: " + name + "（" + buf.duration.toFixed(1) + "秒）");
+      gSetStatus("Source: " + name + " (" + buf.duration.toFixed(1) + "s)");
       gDrawWave();
     }
     function gDemoBuffer() {
@@ -6593,36 +6583,36 @@ function removeObjectById(type, id) {
       });
     }
     var GDEMOS = [
-      { name: "シンセパッド＋ベル", gen: function () { return gDemoBuffer(); } },
-      { name: "ピアノパッド", gen: function () { return gRender(11, function (off) {
+      { name: "Synth Pad + Bell", gen: function () { return gDemoBuffer(); } },
+      { name: "Piano Pad", gen: function () { return gRender(11, function (off) {
         var progs = [[48, 52, 55, 59], [45, 48, 52, 57], [41, 45, 48, 53], [43, 47, 50, 55]];
         progs.forEach(function (ch, ci) { gPadChordAt(off, ci * 2.75, ch, 3.2, 0.10, "triangle"); });
         gPadAt(off, 0, gF(36), "sine", 0.08, 11);
       }); } },
-      { name: "ドリームパッド", gen: function () { return gRender(11, function (off) {
+      { name: "Dream Pad", gen: function () { return gRender(11, function (off) {
         gPadChordAt(off, 0, [60, 64, 67, 71, 76], 5.8, 0.07, "sine");
         gPadChordAt(off, 5.2, [57, 60, 64, 69, 72], 5.8, 0.07, "sine");
       }); } },
-      { name: "ムーンパッド", gen: function () { return gRender(11, function (off) {
+      { name: "Moon Pad", gen: function () { return gRender(11, function (off) {
         gPadChordAt(off, 0, [50, 57, 60, 65, 69], 5.8, 0.08, "sine");
         gPadChordAt(off, 5.2, [48, 55, 59, 64, 67], 5.8, 0.08, "sine");
         gPadAt(off, 0, gF(38), "sine", 0.07, 11);
       }); } },
-      { name: "ブルーム・ストリングス", gen: function () { return gRender(11, function (off) {
+      { name: "Bloom Strings", gen: function () { return gRender(11, function (off) {
         gStringsAt(off, 0, [48, 55, 60, 64], 5.8, 0.13, 1500);
         gStringsAt(off, 5.2, [46, 53, 58, 62], 5.8, 0.13, 1500);
       }); } },
-      { name: "ベルベットパッド", gen: function () { return gRender(11, function (off) {
+      { name: "Velvet Pad", gen: function () { return gRender(11, function (off) {
         var progs = [[45, 52, 57, 60], [43, 50, 55, 59], [41, 48, 53, 57], [43, 50, 55, 59]];
         progs.forEach(function (ch, ci) { gPadChordAt(off, ci * 2.75, ch, 3.4, 0.10, "triangle"); });
         gPadAt(off, 0, gF(33), "sine", 0.08, 11);
       }); } },
-      { name: "エアリーパッド", gen: function () { return gRender(11, function (off) {
+      { name: "Airy Pad", gen: function () { return gRender(11, function (off) {
         gPadChordAt(off, 0, [62, 66, 69, 73, 78], 5.8, 0.06, "sawtooth");
         gPadChordAt(off, 5.2, [60, 64, 68, 71, 76], 5.8, 0.06, "sawtooth");
         gPadAt(off, 0, gF(50), "sine", 0.05, 11);
       }); } },
-      { name: "弦ドローン", gen: function () { return gRender(10, function (off) {
+      { name: "String Drone", gen: function () { return gRender(10, function (off) {
         var f = off.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = 850; f.Q.value = 0.4;
         f.connect(off.destination);
         [45, 52, 57, 60, 64, 71].forEach(function (m, i) {
@@ -6638,40 +6628,40 @@ function removeObjectById(type, id) {
           });
         });
       }); } },
-      { name: "深海ドローン", gen: function () { return gRender(10, function (off) {
+      { name: "Deep Sea Drone", gen: function () { return gRender(10, function (off) {
         [[55, 0.20], [55.4, 0.10], [82.41, 0.12], [110, 0.10], [164.81, 0.05], [220, 0.03]].forEach(function (p) {
           gPadAt(off, 0, p[0], "sine", p[1], 10);
         });
         gPadAt(off, 0, 27.5, "sine", 0.08, 10);
       }); } },
-      { name: "ガラスパッド", gen: function () { return gRender(11, function (off) {
+      { name: "Glass Pad", gen: function () { return gRender(11, function (off) {
         var ch = [64, 67, 71, 74];
         gPadChordAt(off, 0, ch, 11, 0.06, "sine");
         ch.forEach(function (m) { gPadAt(off, 0, gF(m) * 2, "sine", 0.015, 11); });
       }); } },
-      { name: "ハープパッド", gen: function () { return gRender(11, function (off) {
+      { name: "Harp Pad", gen: function () { return gRender(11, function (off) {
         var progs = [[57, 60, 64, 69], [55, 59, 62, 67], [53, 57, 60, 65], [55, 59, 62, 67]];
         progs.forEach(function (ch, ci) { gPadChordAt(off, ci * 2.75, ch, 3.2, 0.09, "triangle"); });
       }); } },
-      { name: "テンプルパッド", gen: function () { return gRender(11, function (off) {
+      { name: "Temple Pad", gen: function () { return gRender(11, function (off) {
         gPadAt(off, 0, 98, "sine", 0.16, 11);
         gPadAt(off, 0, 98 * 2.02, "sine", 0.05, 11);
         gPadAt(off, 0, 98 * 2.74, "sine", 0.03, 11);
         gPadChordAt(off, 0, [50, 57, 62], 11, 0.05, "sine");
       }); } },
-      { name: "スカイパッド", gen: function () { return gRender(11, function (off) {
+      { name: "Sky Pad", gen: function () { return gRender(11, function (off) {
         var progs = [[62, 66, 69, 74], [60, 64, 67, 72], [59, 62, 66, 71], [60, 64, 67, 72]];
         progs.forEach(function (ch, ci) { gPadChordAt(off, ci * 2.75, ch, 3.2, 0.08, "triangle"); });
       }); } },
-      { name: "ノクターン・ストリングス", gen: function () { return gRender(11, function (off) {
+      { name: "Nocturne Strings", gen: function () { return gRender(11, function (off) {
         gStringsAt(off, 0, [45, 52, 57, 64], 5.8, 0.13, 1200);
         gStringsAt(off, 5.2, [43, 50, 55, 62], 5.8, 0.13, 1200);
       }); } },
-      { name: "アクアパッド", gen: function () { return gRender(11, function (off) {
+      { name: "Aqua Pad", gen: function () { return gRender(11, function (off) {
         gPadChordAt(off, 0, [48, 55, 60, 67], 5.8, 0.09, "sine");
         gPadChordAt(off, 5.2, [46, 53, 58, 65], 5.8, 0.09, "sine");
       }); } },
-      { name: "声パッド", gen: function () { return gRender(10, function (off) {
+      { name: "Voice Pad", gen: function () { return gRender(10, function (off) {
         var bp1 = off.createBiquadFilter(); bp1.type = "bandpass"; bp1.frequency.value = 730; bp1.Q.value = 3.5;
         var bp2 = off.createBiquadFilter(); bp2.type = "bandpass"; bp2.frequency.value = 1090; bp2.Q.value = 4;
         var mix = off.createGain(); mix.gain.value = 0.5;
@@ -6690,75 +6680,75 @@ function removeObjectById(type, id) {
           o.start(0); o.stop(10.1); vib.start(0); vib.stop(10.1);
         });
       }); } },
-      { name: "テープパッド", gen: function () { return gRender(11, function (off) {
+      { name: "Tape Pad", gen: function () { return gRender(11, function (off) {
         var progs = [[48, 52, 55, 59], [45, 48, 52, 57], [41, 45, 48, 53], [43, 47, 50, 55]];
         progs.forEach(function (ch, ci) { gPadChordAt(off, ci * 2.75, ch, 3.2, 0.09, "triangle"); });
         gNoiseAt(off, 0, 11, "highpass", 5200, 0.5, 0.005);
       }); } },
-      { name: "サブパッド", gen: function () { return gRender(11, function (off) {
+      { name: "Sub Pad", gen: function () { return gRender(11, function (off) {
         gPadChordAt(off, 0, [29, 36, 41, 48], 11, 0.14, "sine");
         gPadAt(off, 0, gF(24), "sine", 0.10, 11);
       }); } },
-      { name: "スターダストパッド", gen: function () { return gRender(11, function (off) {
+      { name: "Stardust Pad", gen: function () { return gRender(11, function (off) {
         gPadChordAt(off, 0, [57, 61, 64, 69], 11, 0.07, "triangle");
         [81, 84, 88, 93].forEach(function (m) { gPadAt(off, 0, gF(m), "sine", 0.015, 11); });
       }); } },
-      { name: "アンバーパッド", gen: function () { return gRender(11, function (off) {
+      { name: "Amber Pad", gen: function () { return gRender(11, function (off) {
         var progs = [[40, 47, 52, 56], [38, 45, 50, 55], [36, 43, 48, 52], [38, 45, 50, 55]];
         progs.forEach(function (ch, ci) { gPadChordAt(off, ci * 2.75, ch, 3.4, 0.11, "triangle"); });
         gPadAt(off, 0, gF(28), "sine", 0.10, 11);
       }); } },
-      { name: "木漏れ日パッド", gen: function () { return gRender(11, function (off) {
+      { name: "Sunlight Pad", gen: function () { return gRender(11, function (off) {
         var progs = [[50, 54, 57, 62], [48, 52, 55, 60], [47, 50, 55, 59], [48, 52, 55, 60]];
         progs.forEach(function (ch, ci) { gPadChordAt(off, ci * 2.75, ch, 3.2, 0.09, "triangle"); });
       }); } },
-      { name: "シネマティック・ストリングス", gen: function () { return gRender(12, function (off) {
+      { name: "Cinematic Strings", gen: function () { return gRender(12, function (off) {
         var progs = [[45, 52, 57, 60, 64], [41, 48, 53, 57, 60], [43, 50, 55, 59, 62], [40, 47, 52, 55, 59]];
         progs.forEach(function (ch, ci) { gStringsAt(off, ci * 3, ch, 3.4, 0.20, 1500); });
       }); } },
-      { name: "ウォームアナログパッド", gen: function () { return gRender(12, function (off) {
+      { name: "Warm Analog Pad", gen: function () { return gRender(12, function (off) {
         var progs = [[57, 60, 64, 69], [53, 57, 60, 65], [48, 52, 55, 60], [55, 59, 62, 67]];
         progs.forEach(function (ch, ci) { gPadChordAt(off, ci * 3, ch, 3.4, 0.10, "triangle"); });
       }); } },
-      { name: "霧のストリングス", gen: function () { return gRender(11, function (off) {
+      { name: "Mist Strings", gen: function () { return gRender(11, function (off) {
         gStringsAt(off, 0, [69, 72, 76, 79], 5.8, 0.12, 2100);
         gStringsAt(off, 5, [67, 71, 74, 79], 5.8, 0.12, 2100);
       }); } },
-      { name: "チェロ・ドローン", gen: function () { return gRender(11, function (off) {
+      { name: "Cello Drone", gen: function () { return gRender(11, function (off) {
         gStringsAt(off, 0, [36, 43, 48], 11, 0.22, 700);
         gPadAt(off, 0, gF(24), "sine", 0.10, 11);
       }); } },
-      { name: "シマーパッド", gen: function () { return gRender(11, function (off) {
+      { name: "Shimmer Pad", gen: function () { return gRender(11, function (off) {
         var ch = [57, 60, 64, 71];
         gPadChordAt(off, 0, ch, 11, 0.09, "triangle");
         ch.forEach(function (m) { gPadAt(off, 0, gF(m + 12), "sine", 0.02, 11); });
       }); } },
-      { name: "テープ・ストリングス", gen: function () { return gRender(11, function (off) {
+      { name: "Tape Strings", gen: function () { return gRender(11, function (off) {
         gStringsAt(off, 0, [45, 52, 57, 60], 5.6, 0.16, 1100);
         gStringsAt(off, 5.2, [43, 50, 55, 59], 5.6, 0.16, 1100);
         gNoiseAt(off, 0, 11, "highpass", 5200, 0.5, 0.006);
       }); } },
-      { name: "オーロラパッド", gen: function () { return gRender(12, function (off) {
+      { name: "Aurora Pad", gen: function () { return gRender(12, function (off) {
         var progs = [[62, 66, 69, 73], [59, 62, 66, 71], [57, 61, 64, 69], [64, 68, 71, 76]];
         progs.forEach(function (ch, ci) { gPadChordAt(off, ci * 3, ch, 3.4, 0.08, "triangle"); });
       }); } },
-      { name: "深海パッド", gen: function () { return gRender(11, function (off) {
+      { name: "Deep Sea Pad", gen: function () { return gRender(11, function (off) {
         gPadChordAt(off, 0, [33, 40, 45, 52], 11, 0.16, "sine");
         gPadAt(off, 0, gF(28), "sine", 0.08, 11);
       }); } },
-      { name: "コーラス・ストリングス", gen: function () { return gRender(11, function (off) {
+      { name: "Chorus Strings", gen: function () { return gRender(11, function (off) {
         gStringsAt(off, 0, [48, 55, 60, 64], 5.6, 0.15, 1600);
         gStringsAt(off, 5.2, [46, 53, 58, 62], 5.6, 0.15, 1600);
       }); } },
-      { name: "朝霧パッド", gen: function () { return gRender(12, function (off) {
+      { name: "Morning Mist Pad", gen: function () { return gRender(12, function (off) {
         var progs = [[60, 64, 67, 71], [57, 60, 64, 69], [53, 57, 60, 65], [55, 59, 62, 67]];
         progs.forEach(function (ch, ci) { gPadChordAt(off, ci * 3, ch, 3.4, 0.09, "triangle"); });
       }); } },
-      { name: "夕映えパッド", gen: function () { return gRender(12, function (off) {
+      { name: "Sunset Glow Pad", gen: function () { return gRender(12, function (off) {
         var progs = [[57, 60, 64], [55, 58, 62], [53, 57, 60], [52, 55, 59]];
         progs.forEach(function (ch, ci) { gPadChordAt(off, ci * 3, ch, 3.4, 0.11, "triangle"); });
       }); } },
-      { name: "星空パッド", gen: function () { return gRender(11, function (off) {
+      { name: "Starry Sky Pad", gen: function () { return gRender(11, function (off) {
         gPadChordAt(off, 0, [57, 64, 69, 76], 11, 0.07, "sine");
         var scale = [81, 84, 88, 91, 93];
         for (var i = 0; i < 7; i++) {
@@ -6766,12 +6756,12 @@ function removeObjectById(type, id) {
           gToneAt(off, 0.8 + Math.random() * 9.5, gF(m), "sine", 0.05, 0.004, 2.8);
         }
       }); } },
-      { name: "ヴィオラの波", gen: function () { return gRender(11, function (off) {
+      { name: "Viola Waves", gen: function () { return gRender(11, function (off) {
         gStringsAt(off, 0, [53, 57, 60, 65], 4.2, 0.14, 1300);
         gStringsAt(off, 3.6, [50, 55, 58, 63], 4.2, 0.14, 1300);
         gStringsAt(off, 7.2, [52, 56, 60, 64], 4.2, 0.14, 1300);
       }); } },
-      { name: "ストリングス・トレモロ", gen: function () { return gRender(10, function (off) {
+      { name: "Strings Tremolo", gen: function () { return gRender(10, function (off) {
         var f = off.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = 1500; f.Q.value = 0.4;
         var g = off.createGain(); g.gain.value = 0.5;
         var lfo = off.createOscillator(); lfo.frequency.value = 7.5;
@@ -6792,31 +6782,31 @@ function removeObjectById(type, id) {
         });
         lfo.start(0); lfo.stop(10.1);
       }); } },
-      { name: "パッド Am9", gen: function () { return gRender(10, function (off) {
+      { name: "Pad Am9", gen: function () { return gRender(10, function (off) {
         gPadChordAt(off, 0, [45, 52, 57, 59, 64], 10, 0.10, "triangle");
         gPadAt(off, 0, gF(33), "sine", 0.10, 10);
       }); } },
-      { name: "パッド Fmaj7", gen: function () { return gRender(10, function (off) {
+      { name: "Pad Fmaj7", gen: function () { return gRender(10, function (off) {
         gPadChordAt(off, 0, [41, 48, 53, 57, 60], 10, 0.10, "triangle");
         gPadAt(off, 0, gF(29), "sine", 0.10, 10);
       }); } },
-      { name: "パッド Cmaj9", gen: function () { return gRender(10, function (off) {
+      { name: "Pad Cmaj9", gen: function () { return gRender(10, function (off) {
         gPadChordAt(off, 0, [48, 52, 55, 59, 62], 10, 0.10, "triangle");
         gPadAt(off, 0, gF(36), "sine", 0.10, 10);
       }); } },
-      { name: "パッド Gadd9", gen: function () { return gRender(10, function (off) {
+      { name: "Pad Gadd9", gen: function () { return gRender(10, function (off) {
         gPadChordAt(off, 0, [43, 50, 55, 57, 62], 10, 0.10, "triangle");
         gPadAt(off, 0, gF(31), "sine", 0.10, 10);
       }); } },
-      { name: "雲海パッド", gen: function () { return gRender(11, function (off) {
+      { name: "Sea of Clouds Pad", gen: function () { return gRender(11, function (off) {
         gPadChordAt(off, 0, [45, 52, 59, 66, 69], 11, 0.08, "triangle");
       }); } },
-      { name: "月光ストリングス", gen: function () { return gRender(11, function (off) {
+      { name: "Moonlight Strings", gen: function () { return gRender(11, function (off) {
         gStringsAt(off, 0, [45, 52, 57, 60], 11, 0.10, 1200);
         var mel = [76, 74, 72, 74, 76, 79, 76];
         mel.forEach(function (m, i) { gToneAt(off, 1 + i * 1.3, gF(m), "triangle", 0.07, 0.08, 1.6); });
       }); } },
-      { name: "弦楽四重奏", gen: function () { return gRender(10, function (off) {
+      { name: "String Quartet", gen: function () { return gRender(10, function (off) {
         var chords = [[48, 52, 55, 60], [45, 48, 52, 57], [41, 45, 48, 53], [43, 47, 50, 55]];
         chords.forEach(function (ch, ci) {
           ch.forEach(function (m, ni) {
@@ -6826,38 +6816,38 @@ function removeObjectById(type, id) {
           });
         });
       }); } },
-      { name: "ハルモニア・パッド", gen: function () { return gRender(11, function (off) {
+      { name: "Harmonia Pad", gen: function () { return gRender(11, function (off) {
         [45, 57, 60, 64].forEach(function (m) {
           gPadAt(off, 0, gF(m), "sine", 0.09, 11);
           gPadAt(off, 0, gF(m) * 2, "sine", 0.03, 11);
           gPadAt(off, 0, gF(m) * 3, "sine", 0.012, 11);
         });
       }); } },
-      { name: "暁のパッド", gen: function () { return gRender(12, function (off) {
+      { name: "Dawn Pad", gen: function () { return gRender(12, function (off) {
         var progs = [[45, 52, 57, 64], [47, 52, 55, 62], [48, 53, 57, 64], [50, 55, 59, 66]];
         progs.forEach(function (ch, ci) { gPadChordAt(off, ci * 3, ch, 3.6, 0.09, "triangle"); });
       }); } },
-      { name: "サマーパッド", gen: function () { return gRender(11, function (off) {
+      { name: "Summer Pad", gen: function () { return gRender(11, function (off) {
         var progs = [[60, 64, 67, 72], [57, 60, 65, 69], [55, 59, 62, 67], [57, 60, 64, 69]];
         progs.forEach(function (ch, ci) { gPadChordAt(off, ci * 2.75, ch, 3.2, 0.08, "triangle"); });
       }); } },
-      { name: "カリンバパッド", gen: function () { return gRender(11, function (off) {
+      { name: "Kalimba Pad", gen: function () { return gRender(11, function (off) {
         gPadChordAt(off, 0, [48, 52, 55, 60], 5.8, 0.09, "triangle");
         gPadChordAt(off, 5.2, [50, 53, 57, 62], 5.8, 0.09, "triangle");
       }); } },
-      { name: "グリッサンド・ストリングス", gen: function () { return gRender(11, function (off) {
+      { name: "Glissando Strings", gen: function () { return gRender(11, function (off) {
         gStringsAt(off, 0, [48, 52, 55, 60], 5.8, 0.14, 1500);
         gStringsAt(off, 5.2, [50, 54, 57, 62], 5.8, 0.14, 1500);
       }); } },
-      { name: "ホーンパッド", gen: function () { return gRender(11, function (off) {
+      { name: "Horn Pad", gen: function () { return gRender(11, function (off) {
         gPadChordAt(off, 0, [46, 53, 58, 62], 5.8, 0.09, "triangle");
         gPadChordAt(off, 5.2, [44, 51, 56, 60], 5.8, 0.09, "triangle");
       }); } },
-      { name: "スノーパッド", gen: function () { return gRender(11, function (off) {
+      { name: "Snow Pad", gen: function () { return gRender(11, function (off) {
         gPadChordAt(off, 0, [57, 60, 64, 69], 11, 0.08, "sine");
         gNoiseAt(off, 0, 11, "lowpass", 800, 0.4, 0.02);
       }); } },
-      { name: "ナイトパッド", gen: function () { return gRender(11, function (off) {
+      { name: "Night Pad", gen: function () { return gRender(11, function (off) {
         gPadChordAt(off, 0, [40, 47, 52, 59], 5.8, 0.11, "triangle");
         gPadChordAt(off, 5.2, [38, 45, 50, 57], 5.8, 0.11, "triangle");
       }); } }
@@ -6875,16 +6865,16 @@ function removeObjectById(type, id) {
     function gLoadDemo(i) {
       if (gDemoBusy || !GDEMOS[i]) return;
       gDemoBusy = true;
-      gSetStatus("ソース: デモ「" + GDEMOS[i].name + "」を生成中…");
+      gSetStatus("Source: Generating demo \"" + GDEMOS[i].name + "\"…");
       GDEMOS[i].gen().then(function (buf) {
         gDemoBusy = false;
-        gSetSource(buf, "デモ: " + GDEMOS[i].name);
+        gSetSource(buf, "Demo: " + GDEMOS[i].name);
       }).catch(function () {
         gDemoBusy = false;
-        gSetStatus("デモの生成に失敗しました。もう一度お試しください。");
+        gSetStatus("Failed to generate the demo. Please try again.");
       });
     }
-    GDEMOS[0].gen().then(function (buf) { if (!gSource) gSetSource(buf, "デモ: " + GDEMOS[0].name); });
+    GDEMOS[0].gen().then(function (buf) { if (!gSource) gSetSource(buf, "Demo: " + GDEMOS[0].name); });
     document.getElementById("gDemo").addEventListener("click", function () {
       gLoadDemo(gDemoSel ? (parseInt(gDemoSel.value, 10) || 0) : 0);
     });
@@ -7213,7 +7203,6 @@ function removeObjectById(type, id) {
 
     gSyncPlayBtns();
     gSyncMode();
-    gUpdateCount();
   })();
   </script>
 
