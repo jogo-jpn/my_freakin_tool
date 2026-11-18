@@ -9,6 +9,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@600;800&family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet" />
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
     <style>
       button, [role="button"], select, summary, input:not([type="checkbox"], [type="radio"]) { min-height: 2.25rem; }
       * { box-sizing: border-box; }
@@ -196,6 +198,35 @@
       .badge{ font-size:.78rem; font-weight:900; border-radius:999px; padding:3px 10px; border:1px solid var(--gold); color:var(--gold); }
       .badge.new{ background:var(--accent); border-color:var(--accent); color:#fff; }
       .result-inner .desc{ font-size:.88rem; color:var(--ink-soft); margin:8px 0 4px; text-align:left; }
+      .rank-box{ margin-top:12px; padding-top:10px; border-top:1px solid var(--line); text-align:left; }
+      .rank-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:4px; }
+      .rank-title{ font-weight:900; font-size:.95rem; }
+      .rank-tabs{ display:flex; gap:6px; }
+      .rank-tab{ font-family:inherit; cursor:pointer; border:1px solid var(--line); background:var(--card2); color:var(--ink-soft); border-radius:999px; padding:4px 12px; font-size:.8rem; font-weight:700; min-height:32px; }
+      .rank-tab[aria-pressed="true"]{ background:var(--ink); color:var(--card); border-color:var(--ink); }
+      .rank-list{ list-style:none; margin:0; padding:0; }
+      .rank-row{ display:flex; align-items:baseline; gap:8px; padding:6px 4px; border-bottom:1px solid var(--line); font-size:.9rem; }
+      .rank-row:last-child{ border-bottom:none; }
+      .rank-row .rk{ flex:0 0 1.4em; font-weight:900; color:var(--ink-soft); text-align:center; }
+      .rank-row.top1 .rk{ color:var(--gold); }
+      .rank-row .rn{ flex:1; min-width:0; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+      .rank-row .rn small{ display:block; font-weight:500; color:var(--ink-soft); font-size:.72rem; white-space:normal; }
+      .rank-row .rv{ font-weight:900; font-variant-numeric:tabular-nums; white-space:nowrap; }
+      .rank-row .rd{ flex:0 0 auto; color:var(--ink-soft); font-size:.74rem; white-space:nowrap; }
+      .rank-row.me{ background:rgba(202,161,78,.16); border-radius:8px; }
+      .rank-note{ font-size:.82rem; color:var(--ink-soft); margin:6px 0 0; }
+      .rank-form{ margin-top:8px; }
+      .rank-form-row{ display:flex; gap:8px; margin-top:6px; }
+      .rank-form-row input{ flex:1; min-width:0; font-family:inherit; font-size:.95rem; padding:10px 12px; border:1px solid var(--line); border-radius:10px; background:var(--card); color:var(--ink); min-height:44px; }
+      .rank-reg-btn{ flex:0 0 auto; font-family:inherit; cursor:pointer; border-radius:10px; border:1px solid var(--accent); background:var(--accent); color:var(--accent-ink); font-weight:900; font-size:.92rem; padding:10px 16px; min-height:44px; }
+      .rank-controls{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:4px; }
+      .rank-sel{ font-family:inherit; font-size:.92rem; font-weight:700; padding:8px 10px; border:1px solid var(--line); border-radius:10px; background:var(--card2); color:var(--ink); min-height:40px; max-width:62vw; }
+      .rank-status{ font-size:.8rem; color:var(--ink-soft); margin:6px 0 0; }
+      .rank-status.err{ color:var(--danger); font-weight:700; }
+      .rank-reg-btn:disabled{ opacity:.55; cursor:default; }
+      .rank-rules{ margin-top:10px; font-size:.82rem; color:var(--ink-soft); }
+      .rank-rules summary{ cursor:pointer; font-weight:700; min-height:32px; }
+      .rank-rules pre{ white-space:pre-wrap; word-break:break-all; background:var(--card2); border:1px solid var(--line); border-radius:10px; padding:10px; font-size:.72rem; line-height:1.5; max-height:260px; overflow:auto; touch-action:pan-y; }
       .ctl{ margin-bottom:12px; }
       .ctl:last-child{ margin-bottom:0; }
       .ctl .lab{ font-size:.82rem; font-weight:900; color:var(--ink-soft); margin-bottom:6px; letter-spacing:.06em; }
@@ -274,9 +305,55 @@
       .stage-box.ojama-active canvas#pond{ filter:saturate(.82); }
       .btn.rebait{ flex:1; font-size:.95rem; padding:10px 6px; }
       .btn.rebait:disabled{ opacity:.4; }
+      /* 起動スプラッシュ：ロゴマーク（ヘラ浮き＋「延べ竿日和」）を2秒だけ表示してフェードアウトする */
+      .splash{
+        position:fixed; inset:0; z-index:200;
+        display:flex; align-items:center; justify-content:center;
+        background:
+          radial-gradient(ellipse 75% 46% at 50% 36%, rgba(52,92,66,.85) 0%, rgba(52,92,66,0) 70%),
+          linear-gradient(180deg,#0d1c15 0%, #12271b 55%, #182e22 100%);
+        opacity:1; visibility:visible;
+        transition:opacity .7s ease, visibility 0s linear .7s;
+      }
+      .splash.hide{ opacity:0; visibility:hidden; pointer-events:none; }
+      .splash-inner{ text-align:center; padding:20px 16px; }
+      .splash-float{ display:block; margin:0 auto; height:min(172px, 30dvh); width:auto; }
+      .splash-title{
+        font-family:"Shippori Mincho B1","Hiragino Mincho ProN",serif;
+        font-weight:800; color:#f5f1e6;
+        font-size:clamp(2rem, 9.5vw, 3.3rem);
+        letter-spacing:.14em; text-indent:.14em;
+        margin:22px 0 0; line-height:1.3; white-space:nowrap;
+      }
+      .splash-rule{ width:min(210px, 56vw); height:1px; margin:16px auto 14px; background:rgba(245,241,230,.35); }
+      .splash-sub{
+        color:#c6b280; font-weight:500;
+        font-size:.82rem; letter-spacing:.55em; text-indent:.55em;
+        margin:0; white-space:nowrap;
+      }
+      @media (prefers-reduced-motion: reduce){
+        .splash{ transition-duration:.05s; }
+      }
     </style>
   </head>
   <body>
+    <div class="splash" id="splash" aria-hidden="true">
+      <div class="splash-inner">
+        <svg class="splash-float" viewBox="0 0 60 320" aria-hidden="true" focusable="false">
+          <line x1="30" y1="4" x2="30" y2="310" stroke="#5a6e60" stroke-width="3"/>
+          <rect x="23" y="10" width="14" height="52" rx="7" fill="#ce4a34"/>
+          <rect x="23" y="62" width="14" height="32" rx="7" fill="#f0eee6"/>
+          <rect x="23" y="94" width="14" height="24" rx="6" fill="#1e1e1e"/>
+          <rect x="17" y="118" width="26" height="100" rx="10" fill="#e9e0c7"/>
+          <rect x="17" y="160" width="26" height="12" fill="#ce4a34"/>
+          <polygon points="17,218 43,218 33,272 27,272" fill="#78603e"/>
+          <line x1="30" y1="272" x2="30" y2="310" stroke="#3c3c3c" stroke-width="3"/>
+        </svg>
+        <p class="splash-title">延べ竿日和</p>
+        <div class="splash-rule"></div>
+        <p class="splash-sub">NOBEZAO BIYORI</p>
+      </div>
+    </div>
     <div class="wrap">
       <header class="top" id="topInfo" hidden>
         <div class="top-line">
@@ -303,6 +380,25 @@
               <div class="meta" id="resMeta"></div>
               <div class="badges" id="resBadges"></div>
               <p class="desc" id="resDesc"></p>
+              <div class="rank-box" id="resRank" hidden>
+                <div class="rank-head">
+                  <span class="rank-title" id="resRankTitle">ランキング トップ5</span>
+                  <span class="rank-tabs" role="group" aria-label="ランキングの並び替え">
+                    <button type="button" class="rank-tab" id="resRankTabSize" aria-pressed="true">大きさ</button>
+                    <button type="button" class="rank-tab" id="resRankTabWeight" aria-pressed="false">重さ</button>
+                  </span>
+                </div>
+                <ol class="rank-list" id="resRankList"></ol>
+                <p class="rank-status" id="resRankStatus" hidden></p>
+                <div class="rank-form" id="resRankForm" hidden>
+                  <p class="rank-note" id="resRankMsg" style="font-weight:700; color:var(--ink);"></p>
+                  <div class="rank-form-row">
+                    <input type="text" id="resRankName" maxlength="10" autocomplete="off" placeholder="名前（10文字まで）" aria-label="ランキングに登録する名前">
+                    <button class="rank-reg-btn" id="resRankReg" type="button">登録する</button>
+                  </div>
+                </div>
+                <p class="rank-note" id="resRankNote" hidden></p>
+              </div>
               <div class="res-scroll-hint" id="resScrollHint" hidden>▼ スライドで続きが見られます</div>
               <button class="btn primary" id="resClose" style="width:100%;">そっとリリースする</button>
             </div>
@@ -395,6 +491,71 @@
           <div class="stat"><div class="n" id="stZukan">0/30</div><div class="t" id="stZukanLab">図鑑</div></div>
           <div class="stat"><div class="n" id="stRecord">0</div><div class="t" id="stRecordLab">記録級（80cm超）</div></div>
         </div>
+        <h3 style="font-size:1rem; margin:14px 0 6px;" id="rankTitle">魚種別ランキング</h3>
+        <div class="rank-controls">
+          <select class="rank-sel" id="rankSpeciesSel" aria-label="ランキングを見る魚種"></select>
+          <span class="rank-tabs" role="group" aria-label="ランキングの並び替え">
+            <button type="button" class="rank-tab" id="recRankTabSize" aria-pressed="true">大きさ</button>
+            <button type="button" class="rank-tab" id="recRankTabWeight" aria-pressed="false">重さ</button>
+          </span>
+        </div>
+        <ol class="rank-list" id="recRankList"></ol>
+        <p class="rank-note" id="recRankEmpty" hidden></p>
+        <p class="rank-status" id="recRankStatus" hidden></p>
+        <button type="button" class="rank-tab" id="recRankRetry" hidden>再読み込み</button>
+        <details class="rank-rules">
+          <summary id="rankRulesSummary">オンラインランキングの設定（Firestoreルール）</summary>
+          <p>ランキングが読み込めない・登録できないときは、Firebaseコンソール（プロジェクト jogo-base1）の「Firestore Database → ルール」に以下を丸ごと貼って公開してください。既存の rhythm_scores と page_views も含む統合版です。</p>
+          <pre id="nobezaoRulesText">rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ランキング（Rhythm Drums）
+    match /rhythm_scores/{scoreId} {
+      allow read: if true;
+      allow create: if
+        request.resource.data.name is string
+        &amp;&amp; request.resource.data.name.size() &gt;= 1
+        &amp;&amp; request.resource.data.name.size() &lt;= 10
+        &amp;&amp; request.resource.data.score is number
+        &amp;&amp; request.resource.data.score &gt;= 0;
+      allow update, delete: if false;
+    }
+
+    // 魚種別ランキング（延べ竿日和）
+    match /nobezao_scores/{scoreId} {
+      allow read: if true;
+      allow create: if
+        request.resource.data.name is string
+        &amp;&amp; request.resource.data.name.size() &gt;= 1
+        &amp;&amp; request.resource.data.name.size() &lt;= 10
+        &amp;&amp; request.resource.data.speciesId is string
+        &amp;&amp; request.resource.data.speciesId.size() &gt;= 1
+        &amp;&amp; request.resource.data.size is number
+        &amp;&amp; request.resource.data.size &gt; 0
+        &amp;&amp; request.resource.data.size &lt;= 1000
+        &amp;&amp; request.resource.data.weight is number
+        &amp;&amp; request.resource.data.weight &gt; 0
+        &amp;&amp; request.resource.data.weight &lt;= 10000;
+      allow update, delete: if false;
+    }
+
+    // 閲覧カウンター（ORBITなど）
+    match /page_views/{pageId} {
+      allow read: if true;
+      allow create: if request.resource.data.count == 1;
+      allow update: if request.resource.data.count == resource.data.count + 1;
+      allow delete: if false;
+    }
+
+    // それ以外のコレクションは全て禁止
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}</pre>
+          <button type="button" class="btn small" id="copyNobezaoRules">ルールをコピー</button>
+        </details>
         <div class="zukan" id="zukan"></div>
         <h3 style="font-size:1rem; margin:0 0 6px;" id="itemsTitle">拾い物</h3>
         <div class="items-line" id="itemsLine"><span class="empty">まだ何も拾っていない。</span></div>
@@ -632,6 +793,9 @@ var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: r
 /* ================= 保存 ================= */
 var LS_KEY = "nobezao-koi-game-v1";
 var records = [];
+/* 魚種別ランキング（大きさ・重さ）：釣果画面で名前登録した記録。釣果記録と同じ保存先に残す */
+var rankings = {};
+var rankName = "";
 /* 音量設定（効果音／お邪魔ボイス／環境音）：設定画面のスライダーで変え、記録と一緒にブラウザへ保存する。
    2026-11-18、ユーザーが実機で見つけたベスト音量（旧スケールで 効果音57%／お邪魔ボイス18%／環境音100%）を
    「スライダー50%」に再校正した。初期値は3つとも50%＝ベスト音量。
@@ -644,10 +808,10 @@ var SE_SCALE = 1.14, VOICE_SCALE = 0.36;
 var AMB_SCALE = 1 / 2;
 try{
   var raw = localStorage.getItem(LS_KEY);
-  if(raw){ var parsed = JSON.parse(raw); if(parsed && parsed.records) records = parsed.records; if(parsed && (parsed.lang==="en" || parsed.lang==="ja")) lang = parsed.lang; if(parsed && parsed.vol){ if(typeof parsed.vol.se==="number") volSE = Math.min(1, Math.max(0, parsed.vol.se)); if(typeof parsed.vol.voice==="number") volVoice = Math.min(1, Math.max(0, parsed.vol.voice)); if(typeof parsed.vol.amb==="number") volAmb = Math.min(1, Math.max(0, parsed.vol.amb)); if(parsed.volVer !== 2){ /* 旧スケールで保存された値を新スケール（ベスト＝50%）へ一度だけ換算し、聞こえる大きさを変えない */ volSE = Math.min(1, Math.max(0, volSE * 0.5 / 0.57)); volVoice = Math.min(1, Math.max(0, volVoice * 0.5 / 0.18)); volAmb = Math.min(1, Math.max(0, volAmb * 0.5)); } } }
+  if(raw){ var parsed = JSON.parse(raw); if(parsed && parsed.records) records = parsed.records; if(parsed && parsed.rankings && typeof parsed.rankings==="object") rankings = parsed.rankings; if(parsed && typeof parsed.rankName==="string") rankName = parsed.rankName; if(parsed && (parsed.lang==="en" || parsed.lang==="ja")) lang = parsed.lang; if(parsed && parsed.vol){ if(typeof parsed.vol.se==="number") volSE = Math.min(1, Math.max(0, parsed.vol.se)); if(typeof parsed.vol.voice==="number") volVoice = Math.min(1, Math.max(0, parsed.vol.voice)); if(typeof parsed.vol.amb==="number") volAmb = Math.min(1, Math.max(0, parsed.vol.amb)); if(parsed.volVer !== 2){ /* 旧スケールで保存された値を新スケール（ベスト＝50%）へ一度だけ換算し、聞こえる大きさを変えない */ volSE = Math.min(1, Math.max(0, volSE * 0.5 / 0.57)); volVoice = Math.min(1, Math.max(0, volVoice * 0.5 / 0.18)); volAmb = Math.min(1, Math.max(0, volAmb * 0.5)); } } }
 }catch(e){ records = []; }
 function save(){
-  try{ localStorage.setItem(LS_KEY, JSON.stringify({records:records, lang:lang, vol:{se:volSE, voice:volVoice, amb:volAmb}, volVer:2})); }catch(e){}
+  try{ localStorage.setItem(LS_KEY, JSON.stringify({records:records, rankings:rankings, rankName:rankName, lang:lang, vol:{se:volSE, voice:volVoice, amb:volAmb}, volVer:2})); }catch(e){}
 }
 
 /* ================= 条件 ================= */
@@ -2828,6 +2992,8 @@ function landItem(){
   var now = new Date();
   records.unshift({kind:"item", itemId:it.id, name:it.name, bait:sel.bait, season:sel.season, time:sel.time, date:now.toISOString()});
   save(); renderRecords();
+  pendingRank = null;
+  var rankBox0 = document.getElementById("resRank"); if(rankBox0) rankBox0.hidden = true;
   showResult({
     art: itemSVG(it.id, 150),
     name: itemName(it),
@@ -2877,6 +3043,7 @@ function landFish(){
     desc: (function(){ var cc = catchComment(sp); return (cc ? cc + " " : "") + speciesDesc(sp); })() + L(" 濡らした手でそっと支えて、写真の代わりに図鑑へ記録した。", " You supported it gently with wet hands and recorded it in the collection, in place of a photo."),
     btn: L("そっとリリースする", "Release gently")
   });
+  setupResultRank(sp, size, enc.weight, now.toISOString());
   endFightToIdle(null);
   say("タモに収まった。記録したら、そっと水へ返そう。");
   resultOpen = true;
@@ -2886,6 +3053,363 @@ function fmtDate(d){
   var p=function(n){ return (n<10?"0":"")+n; };
   return (d.getMonth()+1) + "/" + d.getDate() + " " + p(d.getHours()) + ":" + p(d.getMinutes());
 }
+
+/* ================= 魚種別ランキング（オンライン / Firestore） =================
+   釣った魚がその魚種のトップ5（大きさ／重さのどちらか）に入れば、釣果画面で
+   名前を入力して登録できる。登録先は Firebase（プロジェクト jogo-base1）の
+   Firestore コレクション nobezao_scores で、誰でも閲覧できる（読み取り公開）。
+   リズムゲームのランキング（rhythm_scores）と同じ方式。
+   読み込み前・失敗時は、この端末に残っている旧ランキング（rankings）を予備表示する。
+   名前（rankName）だけは従来どおりこの端末に保存して次回自動入力する。 */
+var FB_CONFIG = {
+  apiKey: "AIzaSyAyY5dx0abrg8ebszeSW09FjsTcHhBmErM",
+  authDomain: "jogo-base1.firebaseapp.com",
+  projectId: "jogo-base1",
+  storageBucket: "jogo-base1.firebasestorage.app",
+  messagingSenderId: "900398186329",
+  appId: "1:900398186329:web:fdd8dd385df75be1605648"
+};
+var RANK_COLLECTION = "nobezao_scores";
+var RANK_NG_WORDS = [
+  "fuck", "shit", "bitch", "nigger", "nigga", "faggot", "whore",
+  "dick", "pussy", "porn", "sex", "rape", "kill", "nazi", "hitler",
+  "ばか", "バカ", "あほ", "アホ", "死ね", "しね", "殺す", "ころす",
+  "うんこ", "ちんこ", "まんこ", "セックス", "えっち", "エッチ"
+];
+var fbDb = null, fbInitError = "";
+var fbRankings = {}; /* 魚種ID -> [{id, name, size, weight, date}]（オンライン） */
+var fbRankState = "idle"; /* idle | loading | ready | error | offline */
+var fbLoadError = "";
+var fbHighlightId = null;
+var rankSubmitting = false;
+try{
+  if(typeof firebase === "undefined") throw new Error("Firebase SDK を読み込めませんでした");
+  firebase.initializeApp(FB_CONFIG);
+  fbDb = firebase.firestore();
+}catch(e){
+  fbInitError = (e && e.message) ? e.message : "Firebase の初期化に失敗しました";
+  fbRankState = "offline";
+}
+var rankMetric = "size";
+var rankSelSpecies = "";
+var pendingRank = null; // 釣果画面で表示中の魚 {sp, size, weight, dateISO, entry}
+function rankData(){ return fbRankState === "ready" ? fbRankings : rankings; }
+function rankListOf(spId){ return rankData()[spId] || []; }
+function rankSorted(spId, metric){
+  var arr = rankListOf(spId).slice();
+  arr.sort(function(a,b){ return (b[metric]||0) - (a[metric]||0); });
+  return arr;
+}
+function rankPosition(spId, metric, val){
+  var arr = rankSorted(spId, metric), pos = 1, i;
+  for(i=0;i<arr.length;i++){ if((arr[i][metric]||0) > val) pos++; }
+  return pos;
+}
+function rankQualifies(spId, size, weight){
+  if(rankListOf(spId).length < 5) return true;
+  return rankPosition(spId, "size", size) <= 5 || rankPosition(spId, "weight", weight) <= 5;
+}
+function fmtWeightText(wKg){
+  if(!wKg || wKg <= 0) wKg = 0.00005;
+  if(wKg >= 1) return wKg.toFixed(2) + "kg";
+  var g = wKg * 1000;
+  if(g >= 10) return String(Math.round(g)) + "g";
+  if(g >= 1) return g.toFixed(1) + "g";
+  return g.toFixed(2) + "g";
+}
+function fillRankList(ol, spId, metric, highlight){
+  if(!ol) return 0;
+  ol.innerHTML = "";
+  var top = rankSorted(spId, metric).slice(0, 5);
+  top.forEach(function(e, i){
+    var isMe = highlight && (e === highlight || (highlight.id && e.id && e.id === highlight.id));
+    var li = document.createElement("li");
+    li.className = "rank-row" + (i===0 ? " top1" : "") + (isMe ? " me" : "");
+    var rk = document.createElement("span"); rk.className = "rk"; rk.textContent = String(i+1);
+    var rn = document.createElement("span"); rn.className = "rn"; rn.textContent = e.name || "";
+    var sub = document.createElement("small");
+    sub.textContent = metric==="size" ? (L("約 ", "about ") + fmtWeightText(e.weight)) : ((e.size||0).toFixed(1) + "cm");
+    rn.appendChild(sub);
+    var rv = document.createElement("span"); rv.className = "rv";
+    rv.textContent = metric==="size" ? (e.size||0).toFixed(1) + "cm" : fmtWeightText(e.weight);
+    var rd = document.createElement("span"); rd.className = "rd";
+    rd.textContent = e.date ? fmtDate(new Date(e.date)) : "";
+    li.appendChild(rk); li.appendChild(rn); li.appendChild(rv); li.appendChild(rd);
+    ol.appendChild(li);
+  });
+  return top.length;
+}
+function syncRankTabs(){
+  [["resRankTabSize","size"],["resRankTabWeight","weight"],["recRankTabSize","size"],["recRankTabWeight","weight"]].forEach(function(pair){
+    var b = document.getElementById(pair[0]);
+    if(b) b.setAttribute("aria-pressed", rankMetric===pair[1] ? "true" : "false");
+  });
+}
+function setRankMetric(m){
+  if(rankMetric === m){ syncRankTabs(); return; }
+  rankMetric = m;
+  syncRankTabs();
+  renderResultRankList();
+  renderRecRankList();
+}
+function renderResultRankList(){
+  if(!pendingRank) return;
+  fillRankList(document.getElementById("resRankList"), pendingRank.sp.id, rankMetric, pendingRank.entry);
+  syncRankTabs();
+}
+function renderRecRankList(){
+  if(!rankSelSpecies) return;
+  var n = fillRankList(document.getElementById("recRankList"), rankSelSpecies, rankMetric, null);
+  var emp = document.getElementById("recRankEmpty");
+  if(emp){
+    emp.hidden = n > 0;
+    if(!n) emp.textContent = L("この魚種はまだ登録がない。釣った魚がトップ5に入ると、釣果の画面で名前を登録できます。", "No entries for this species yet. When a catch makes the top 5, you can register your name on the catch screen.");
+  }
+}
+/* オンライン状態の表示（釣果画面と図鑑・記録の両方） */
+function updateRankStatusUI(){
+  var msg = "", isErr = false, showRetry = false;
+  if(fbRankState === "loading" || fbRankState === "idle"){
+    msg = L("オンラインランキングを読み込み中…", "Loading the online ranking…");
+  } else if(fbRankState === "ready"){
+    msg = L("オンラインランキング（誰でも見られます）", "Online ranking — open to everyone");
+  } else if(fbRankState === "offline"){
+    isErr = true; showRetry = true;
+    msg = L("オンラインランキングに接続できませんでした。通信状態を確認して再読み込みしてください。（いまはこの端末の記録を表示しています）", "Could not connect to the online ranking. Check your connection and reload. (Showing this device's records for now)");
+  } else if(fbRankState === "error"){
+    isErr = true; showRetry = true;
+    if(fbLoadError === "permission-denied"){
+      msg = L("ランキングを読み込めませんでした。Firestoreルールに nobezao_scores の設定が必要です（図鑑・記録のランキング下にあるルール全文を貼ってください）。", "Could not load the ranking. The Firestore rules need the nobezao_scores section (paste the full rules under the ranking in Collection & Records).");
+    } else {
+      msg = L("ランキングを読み込めませんでした。通信状態を確認して再読み込みしてください。（いまはこの端末の記録を表示しています）", "Could not load the ranking. Check your connection and reload. (Showing this device's records for now)");
+    }
+  }
+  [["resRankStatus"],["recRankStatus"]].forEach(function(pair){
+    var el = document.getElementById(pair[0]);
+    if(el){ el.hidden = !msg; el.textContent = msg; el.className = "rank-status" + (isErr ? " err" : ""); }
+  });
+  var rb = document.getElementById("recRankRetry");
+  if(rb) rb.hidden = !showRetry;
+}
+function updateResultRankForm(){
+  var form = document.getElementById("resRankForm");
+  var note = document.getElementById("resRankNote");
+  var msg = document.getElementById("resRankMsg");
+  if(!form || !note || !pendingRank) return;
+  var sp = pendingRank.sp;
+  if(pendingRank.entry){
+    form.hidden = true;
+    note.hidden = false;
+    note.textContent = L("ランキングに登録しました！", "Registered in the ranking!");
+    return;
+  }
+  if(fbRankState === "loading" || fbRankState === "idle"){
+    form.hidden = true;
+    note.hidden = false;
+    note.textContent = L("オンラインランキングを読み込み中…", "Loading the online ranking…");
+    return;
+  }
+  if(fbRankState !== "ready"){
+    form.hidden = true;
+    note.hidden = false;
+    note.textContent = L("オンラインランキングに接続できないため、いまは登録できません。通信状態を確認して、もう一度釣果画面を開いてください。", "The online ranking is unreachable, so registration is unavailable right now. Check your connection and open the catch screen again.");
+    return;
+  }
+  if(rankQualifies(sp.id, pendingRank.size, pendingRank.weight)){
+    form.hidden = false;
+    note.hidden = true;
+    var ps = rankPosition(sp.id, "size", pendingRank.size);
+    var pw = rankPosition(sp.id, "weight", pendingRank.weight);
+    var parts = [];
+    if(ps <= 5) parts.push(L("大きさ ", "Size #") + ps + L("位", ""));
+    if(pw <= 5) parts.push(L("重さ ", "Weight #") + pw + L("位", ""));
+    if(msg) msg.textContent = L("トップ5入り！ ", "Top 5! ") + parts.join(" ・ ") + L(" ― 名前を登録できます", " — add your name");
+  } else {
+    form.hidden = true;
+    note.hidden = false;
+    var byS = rankSorted(sp.id, "size"), byW = rankSorted(sp.id, "weight");
+    var gapS = byS.length >= 5 ? Math.max(0, byS[4].size - pendingRank.size) : 0;
+    var gapW = byW.length >= 5 ? Math.max(0, (byW[4].weight||0) - (pendingRank.weight||0)) : 0;
+    note.textContent = L("トップ5まであと少し（大きさ あと" + gapS.toFixed(1) + "cm／重さ あと" + fmtWeightText(gapW) + "）",
+      "Just short of the top 5 (size: " + gapS.toFixed(1) + "cm more / weight: " + fmtWeightText(gapW) + " more)");
+  }
+}
+function setupResultRank(sp, size, weight, dateISO){
+  pendingRank = {sp:sp, size:size, weight:weight, dateISO:dateISO, entry:null};
+  var box = document.getElementById("resRank");
+  if(box) box.hidden = false;
+  var t = document.getElementById("resRankTitle");
+  if(t) t.textContent = speciesName(sp) + L("のランキング トップ5", " — Top 5 Ranking");
+  var inp = document.getElementById("resRankName");
+  if(inp) inp.value = rankName || "";
+  renderResultRankList();
+  updateResultRankForm();
+  updateRankStatusUI();
+  if(fbRankState === "idle") loadOnlineRankings();
+}
+function renderRankings(){
+  var sel = document.getElementById("rankSpeciesSel");
+  if(!sel) return;
+  if(!rankSelSpecies || !speciesById(rankSelSpecies)){
+    rankSelSpecies = "";
+    var i;
+    for(i=0;i<SPECIES.length;i++){ if(rankListOf(SPECIES[i].id).length){ rankSelSpecies = SPECIES[i].id; break; } }
+    if(!rankSelSpecies){
+      for(i=0;i<records.length;i++){ if(records[i].kind==="fish" && records[i].speciesId && speciesById(records[i].speciesId)){ rankSelSpecies = records[i].speciesId; break; } }
+    }
+    if(!rankSelSpecies) rankSelSpecies = SPECIES[0].id;
+  }
+  sel.innerHTML = "";
+  SPECIES.forEach(function(sp){
+    var o = document.createElement("option");
+    o.value = sp.id;
+    o.textContent = speciesName(sp) + (rankListOf(sp.id).length ? " (" + rankListOf(sp.id).length + ")" : "");
+    sel.appendChild(o);
+  });
+  sel.value = rankSelSpecies;
+  syncRankTabs();
+  renderRecRankList();
+  updateRankStatusUI();
+}
+/* Firestore から全員のランキングを読み込む（公開読み取り） */
+function loadOnlineRankings(){
+  if(!fbDb){
+    if(fbRankState !== "offline"){ fbRankState = "offline"; }
+    updateRankStatusUI();
+    if(pendingRank){ renderResultRankList(); updateResultRankForm(); }
+    return Promise.resolve();
+  }
+  fbRankState = "loading"; fbLoadError = "";
+  updateRankStatusUI();
+  if(pendingRank) updateResultRankForm();
+  return fbDb.collection(RANK_COLLECTION).limit(1000).get()
+    .then(function(snap){
+      var map = {};
+      snap.forEach(function(doc){
+        var d = doc.data() || {};
+        var spId = typeof d.speciesId === "string" ? d.speciesId : "";
+        if(!spId || !speciesById(spId)) return;
+        var nm = d.playerName || d.name || "";
+        var sz = typeof d.size === "number" ? d.size : 0;
+        var wt = typeof d.weight === "number" ? d.weight : 0;
+        if(!nm || !(sz > 0)) return;
+        var dt = "";
+        if(d.createdAt && typeof d.createdAt.toDate === "function"){ try{ dt = d.createdAt.toDate().toISOString(); }catch(e){} }
+        if(!map[spId]) map[spId] = [];
+        map[spId].push({id:doc.id, name:nm, size:sz, weight:wt, date:dt});
+      });
+      fbRankings = map;
+      fbRankState = "ready";
+      if(pendingRank && fbHighlightId){
+        var arr = fbRankings[pendingRank.sp.id] || [];
+        for(var i=0;i<arr.length;i++){ if(arr[i].id === fbHighlightId){ pendingRank.entry = arr[i]; break; } }
+      }
+      renderRankings();
+      if(pendingRank){ renderResultRankList(); updateResultRankForm(); }
+      updateRankStatusUI();
+    })
+    .catch(function(err){
+      fbRankState = "error";
+      fbLoadError = (err && err.code) ? err.code : "unknown";
+      renderRankings();
+      if(pendingRank){ renderResultRankList(); updateResultRankForm(); }
+      updateRankStatusUI();
+    });
+}
+function validateRankName(raw){
+  var name = String(raw || "").replace(/^\s+|\s+$/g, "").replace(/\s+/g, " ");
+  var len = Array.from(name).length;
+  if(len < 1 || len > 10) return {ok:false, message:L("名前は1〜10文字で入力してください。", "Please enter a name of 1–10 characters.")};
+  var lowered = name.toLowerCase();
+  for(var i=0;i<RANK_NG_WORDS.length;i++){
+    if(lowered.indexOf(RANK_NG_WORDS[i]) !== -1) return {ok:false, message:L("その名前は使えません。別の名前で登録してください。", "That name cannot be used. Please register with a different name.")};
+  }
+  return {ok:true, name:name};
+}
+/* ランキングまわりの操作（タブ切替・魚種選択・名前登録・再読み込み・ルールコピー） */
+[["resRankTabSize","size"],["resRankTabWeight","weight"],["recRankTabSize","size"],["recRankTabWeight","weight"]].forEach(function(pair){
+  var b = document.getElementById(pair[0]);
+  if(b) b.addEventListener("click", function(){ setRankMetric(pair[1]); });
+});
+(function(){
+  var sel = document.getElementById("rankSpeciesSel");
+  if(sel) sel.addEventListener("change", function(){ rankSelSpecies = sel.value; renderRankings(); });
+  var retry = document.getElementById("recRankRetry");
+  if(retry) retry.addEventListener("click", function(){ loadOnlineRankings(); });
+  var copyBtn = document.getElementById("copyNobezaoRules");
+  if(copyBtn) copyBtn.addEventListener("click", function(){
+    var pre = document.getElementById("nobezaoRulesText");
+    if(!pre) return;
+    var text = pre.textContent;
+    var btn = this;
+    function done(){ btn.textContent = L("コピーしました", "Copied"); setTimeout(function(){ btn.textContent = L("ルールをコピー", "Copy rules"); }, 1600); }
+    if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(text).then(done).catch(function(){ fallback(); }); }
+    else fallback();
+    function fallback(){
+      var ta = document.createElement("textarea");
+      ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.select();
+      try{ document.execCommand("copy"); done(); }catch(e){}
+      ta.remove();
+    }
+  });
+  var reg = document.getElementById("resRankReg");
+  if(reg) reg.addEventListener("click", function(){
+    if(!pendingRank || pendingRank.entry || rankSubmitting) return;
+    var msg = document.getElementById("resRankMsg");
+    var inp = document.getElementById("resRankName");
+    var v = validateRankName(inp && inp.value ? inp.value : "");
+    if(!v.ok){ if(msg) msg.textContent = v.message; return; }
+    if(!fbDb || fbRankState !== "ready"){
+      if(msg) msg.textContent = L("オンラインランキングに接続できていないため登録できません。通信状態を確認してお試しください。", "Cannot register while the online ranking is unreachable. Check your connection and try again.");
+      return;
+    }
+    rankSubmitting = true;
+    reg.disabled = true;
+    var regOrig = reg.textContent;
+    reg.textContent = L("登録中…", "Registering…");
+    if(msg) msg.textContent = "";
+    var spId = pendingRank.sp.id;
+    var data = {
+      name: v.name,
+      playerName: v.name,
+      speciesId: spId,
+      size: pendingRank.size,
+      weight: pendingRank.weight || 0,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    fbDb.collection(RANK_COLLECTION).add(data)
+      .then(function(ref){
+        rankName = v.name;
+        save();
+        fbHighlightId = ref.id;
+        pendingRank.entry = {id:ref.id, name:v.name, size:pendingRank.size, weight:pendingRank.weight, date:pendingRank.dateISO};
+        return loadOnlineRankings();
+      })
+      .then(function(){
+        renderResultRankList();
+        updateResultRankForm();
+        renderRankings();
+      })
+      .catch(function(err){
+        pendingRank.entry = null;
+        if(msg){
+          if(err && err.code === "permission-denied"){
+            msg.textContent = L("登録がFirestoreのルールで拒否されました。図鑑・記録のランキング下にあるルール全文を貼って公開してください。", "Registration was rejected by the Firestore rules. Paste and publish the full rules shown under the ranking in Collection & Records.");
+          } else {
+            msg.textContent = L("登録に失敗しました。通信状態を確認してもう一度お試しください。", "Registration failed. Check your connection and try again.") + (err && err.code ? " (" + err.code + ")" : "");
+          }
+        }
+        var form2 = document.getElementById("resRankForm");
+        if(form2) form2.hidden = false;
+      })
+      .then(function(){
+        rankSubmitting = false;
+        reg.disabled = false;
+        reg.textContent = regOrig;
+      });
+  });
+})();
 
 /* ================= お邪魔モード ================= */
 var OJAMA_EVENTS = [
@@ -3406,7 +3930,7 @@ function showResult(o){
   }, true);
 })();
 document.getElementById("resClose").addEventListener("click", function(){
-  resultBox.className = "result"; resultOpen = false;
+  resultBox.className = "result"; resultOpen = false; pendingRank = null;
   if(state==="idle") say(pick(["魚は静かに深みへ帰っていった。またウキを眺めよう。","魚が尾を振って、水の底へ消えていった。いい出会いだった。","波紋だけが残って、池は静かになった。さあ、次を待とう。"]));
 });
 
@@ -3586,6 +4110,7 @@ function renderRecords(){
     li.appendChild(when); li.appendChild(what); li.appendChild(sz); li.appendChild(del);
     ul.appendChild(li);
   });
+  renderRankings();
 }
 
 /* ================= 設定チップ ================= */
@@ -3801,7 +4326,7 @@ if(condToggleBtn && topInfoEl){
 
 /* 記録の書き出し・消去 */
 document.getElementById("exportBtn").addEventListener("click", function(){
-  var data = JSON.stringify({app:"nobezao-koi-game", exported:new Date().toISOString(), records:records}, null, 2);
+  var data = JSON.stringify({app:"nobezao-koi-game", exported:new Date().toISOString(), records:records, rankings:(fbRankState==="ready" ? fbRankings : rankings)}, null, 2);
   try{
     var blob = new Blob([data], {type:"application/json"});
     var a = document.createElement("a");
@@ -3825,7 +4350,7 @@ clearBtn.addEventListener("click", function(){
     return;
   }
   clearTimeout(clearTimer);
-  records = []; save(); renderRecords();
+  records = []; rankings = {}; save(); renderRecords();
   clearArmed = false; clearBtn.textContent = L("全て消す", "Delete All"); clearBtn.className = "btn small";
   say("記録を全て消した。");
 });
@@ -4007,7 +4532,10 @@ function buildWaterMask(){
 var mainCtxSaved = null;
 function beginWaterFx(){
   if(!buildWaterMask()) return false;
-  fxCv.width = cv.width; fxCv.height = cv.height;
+  /* サイズが変わったときだけ再確保する。width への代入は中身の消去と面の作り直しを
+     伴うため、毎フレーム（1フレームに複数回）代入し直すと実機、特に iPhone では
+     描画が詰まって画面が固まったように見える原因になる */
+  if(fxCv.width !== cv.width || fxCv.height !== cv.height){ fxCv.width = cv.width; fxCv.height = cv.height; }
   fxCtx.setTransform(canvasScale, 0, 0, canvasScale, 0, 0);
   fxCtx.clearRect(0, 0, CW, CH);
   mainCtxSaved = ctx; ctx = fxCtx;
@@ -5040,8 +5568,19 @@ function drawRodAndFloat(pal, t){
 
 /* ================= メインループ ================= */
 var lastTs = 0, chirpT = 5, frogT = 7, insectT = 9, windT = 13, leafT = 19, cooT = 15, lapT = 9;
+/* メインループの外枠：1フレーム分の処理（状態更新・イベント・音のタイマー・描画）で
+   万一例外が出ても、そのフレームは捨てて描画だけでも続け、次のフレームへ進む。
+   実機でのみ起きる条件（写真・音声・端末差）で例外が毎フレーム繰り返され、
+   画面が固まって動かなくなる事態を防ぐための保険 */
 function loop(ts){
   requestAnimationFrame(loop);
+  try{
+    loopFrame(ts);
+  }catch(e){
+    try{ draw(); }catch(e2){}
+  }
+}
+function loopFrame(ts){
   var dt = Math.min(0.05, (ts - lastTs)/1000 || 0.016);
   lastTs = ts; perfNow = ts/1000;
   var t = perfNow;
@@ -5412,6 +5951,23 @@ function applyLanguage(){
   setTxt("logTitle", L("釣果の記録", "Catch Log"));
   setTxt("logEmpty", L("まだ記録がない。最初の一尾を釣ろう。", "No records yet. Catch your first fish."));
   setTxt("saveNote", L("記録はこの端末のブラウザに保存されます。ブラウザのデータを消すと記録も消えるので、大事な記録は「記録を書き出す」でファイルに残せます。", "Records are saved in this device's browser. Clearing browser data deletes them too, so use Export Records to keep important records as a file."));
+  setTxt("rankTitle", L("魚種別ランキング（オンライン）", "Rankings by Species (Online)"));
+  setTxt("recRankRetry", L("再読み込み", "Reload"));
+  setTxt("rankRulesSummary", L("オンラインランキングの設定（Firestoreルール）", "Online ranking setup (Firestore rules)"));
+  setTxt("copyNobezaoRules", L("ルールをコピー", "Copy rules"));
+  setTxt("resRankTabSize", L("大きさ", "Size"));
+  setTxt("recRankTabSize", L("大きさ", "Size"));
+  setTxt("resRankTabWeight", L("重さ", "Weight"));
+  setTxt("recRankTabWeight", L("重さ", "Weight"));
+  setTxt("resRankReg", L("登録する", "Register"));
+  var rni = document.getElementById("resRankName"); if(rni) rni.placeholder = L("名前（10文字まで）", "Name (up to 10 characters)");
+  updateRankStatusUI();
+  if(pendingRank){
+    var rt2 = document.getElementById("resRankTitle");
+    if(rt2) rt2.textContent = speciesName(pendingRank.sp) + L("のランキング トップ5", " — Top 5 Ranking");
+    renderResultRankList();
+    updateResultRankForm();
+  }
   setTxt("helpTitle", L("遊び方と、本式の作法", "How to Play — The Proper Way"));
   var hj = document.getElementById("helpJa"), he = document.getElementById("helpEn");
   if(hj) hj.hidden = lang !== "ja";
@@ -5438,11 +5994,26 @@ function applyLanguage(){
   if(ojamaActive) updateOjamaCount();
 }
 
+/* ================= 起動スプラッシュ（ロゴマークを2秒表示してフェードアウト） ================= */
+var splashEl = document.getElementById("splash");
+if(splashEl){
+  var splashGone = false;
+  var dismissSplash = function(){
+    if(splashGone || !splashEl) return;
+    splashGone = true;
+    splashEl.classList.add("hide");
+    setTimeout(function(){ if(splashEl && splashEl.parentNode) splashEl.parentNode.removeChild(splashEl); splashEl = null; }, 800);
+  };
+  setTimeout(dismissSplash, 2000);
+  splashEl.addEventListener("pointerdown", dismissSplash);
+}
+
 /* ================= 初期化 ================= */
 weather = pickWeather();
 updateCond();
 renderRecords();
 applyLanguage();
+loadOnlineRankings();
 fitCanvas();
 requestAnimationFrame(function(ts){ lastTs = ts; requestAnimationFrame(loop); });
 })();
