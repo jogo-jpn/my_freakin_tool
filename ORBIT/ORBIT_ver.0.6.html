@@ -680,6 +680,14 @@ body.edit-off #edit{
       border-color:var(--ac);
       font-weight:700
     }
+    /* GRAIN SOURCEのボタン行は常に1行（DEMO / MIC / MONITOR / AUDIO） */
+    #gSrcBtns button{
+      flex:1 1 0;
+      min-width:0;
+      padding:8px 2px;
+      font-size:11px;
+      white-space:nowrap
+    }
     #grainWave.recording{
       border-color:rgba(255,93,122,.75);
       background:#170d18
@@ -1042,11 +1050,11 @@ body.edit-off #edit{
         <span class="section-title">GRAIN SOURCE</span>
       </div>
       <div class="fx-content" style="display:flex;">
-        <div class="row" style="gap:8px;flex-wrap:wrap;">
+        <div class="row" id="gSrcBtns" style="gap:6px;flex-wrap:nowrap;">
           <button id="gDemo" type="button">DEMO</button>
           <button id="gMic" type="button">MIC</button>
-          <button id="gFile" type="button">AUDIO</button>
           <button id="gMonitor" type="button" class="active">MONITOR</button>
+          <button id="gFile" type="button">AUDIO</button>
           <input id="gFileInput" type="file" accept="audio/*,.wav,.mp3,.m4a,.aac,.ogg,.flac" hidden>
         </div>
         <div class="row"><label>Input Level</label><input id="gInputLevel" type="range" min="0" max="1000" step="1" value="100"><span id="gInputLevelV" class="value">100%</span></div>
