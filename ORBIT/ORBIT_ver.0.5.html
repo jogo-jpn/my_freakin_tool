@@ -970,8 +970,8 @@ body.edit-off #overlay{
         <span class="section-title">PHYSICS</span>
       </div>
       <div class="fx-content" style="display:flex;">
-        <div class="row"><label>Gravity</label><input id="gravity" type="range" min="0" max="1.5" step=".05" value=".5"><span id="gravityV" class="value"></span></div>
-        <div class="row"><label>Motion Speed</label><input id="motionSpeed" type="range" min=".25" max="4" step=".05" value="1"><span id="motionSpeedV" class="value"></span></div>
+        <div class="row"><label>Gravity</label><input id="gravity" type="range" min="0" max="1.5" step=".05" value="0.1"><span id="gravityV" class="value"></span></div>
+        <div class="row"><label>Motion Speed</label><input id="motionSpeed" type="range" min=".25" max="4" step=".05" value="0.5"><span id="motionSpeedV" class="value"></span></div>
         <div class="row"><label>Bounce</label><input id="bounce" type="range" min=".1" max=".98" step=".01" value=".7"><span id="bounceV" class="value"></span></div>
       </div>
     </div>
@@ -1749,7 +1749,7 @@ delayTime:.34,
 ballColor:DEFAULT_BALL_COLOR,
 ballVolume:1.0,
 
-    motionSpeed:1,
+    motionSpeed:0.5,
     lineStraight:true,
     fillAlpha:0.35,
     drawWidth:960,
