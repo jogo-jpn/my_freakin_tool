@@ -484,7 +484,7 @@
         </div>
         <div class="ctl">
           <div class="lab" id="labFloatSize">浮きの大きさ</div>
-          <div class="volrow"><input type="range" id="rngFloatSize" min="0.5" max="2" step="0.05" value="1" aria-label="浮きの大きさ"><span class="volval" id="rngFloatSizeVal">1倍</span></div>
+          <div class="volrow"><input type="range" id="rngFloatSize" min="0.5" max="2" step="0.05" value="2" aria-label="浮きの大きさ"><span class="volval" id="rngFloatSizeVal">2倍</span></div>
           <p class="rank-note">左が小さく、右が大きい浮きになります。設定を開いている間もすぐ反映されます。</p>
         </div>
         <div class="ctl">
@@ -832,7 +832,7 @@ var LS_KEY = "nobezao-koi-game-v1";
 /* 地元ニュースの場所（位置情報または手動選択）と環境音ON/OFFは、記録と一緒に保存する */
 var newsPlace = null; // {province, city}（都道府県・市区町村）
 var ambientOn = true; // 環境音のON/OFF（設定で切替。初期値はON＝従来どおり）
-var floatSizeMul = 1; // 浮きの大きさスライダーの倍率（1＝従来の大きさ。0.5〜2.0）
+var floatSizeMul = 2; // 浮きの大きさスライダーの倍率（2＝最大。0.5〜2.0）
 var records = [];
 /* 魚種別ランキング（大きさ・重さ）：釣果画面で名前登録した記録。釣果記録と同じ保存先に残す */
 var rankings = {};
@@ -849,10 +849,10 @@ var SE_SCALE = 1.14, VOICE_SCALE = 0.36;
 var AMB_SCALE = 1 / 2;
 try{
   var raw = localStorage.getItem(LS_KEY);
-  if(raw){ var parsed = JSON.parse(raw); if(parsed && parsed.records) records = parsed.records; if(parsed && parsed.rankings && typeof parsed.rankings==="object") rankings = parsed.rankings; if(parsed && typeof parsed.rankName==="string") rankName = parsed.rankName; if(parsed && parsed.newsPlace && typeof parsed.newsPlace==="object") newsPlace = parsed.newsPlace; if(parsed && typeof parsed.ambientOn==="boolean") ambientOn = parsed.ambientOn; if(parsed && typeof parsed.floatSize==="number") floatSizeMul = Math.min(2, Math.max(0.5, parsed.floatSize)); if(parsed && (parsed.lang==="en" || parsed.lang==="ja")) lang = parsed.lang; if(parsed && parsed.vol){ if(typeof parsed.vol.se==="number") volSE = Math.min(1, Math.max(0, parsed.vol.se)); if(typeof parsed.vol.voice==="number") volVoice = Math.min(1, Math.max(0, parsed.vol.voice)); if(typeof parsed.vol.amb==="number") volAmb = Math.min(1, Math.max(0, parsed.vol.amb)); if(parsed.volVer !== 2){ /* 旧スケールで保存された値を新スケール（ベスト＝50%）へ一度だけ換算し、聞こえる大きさを変えない */ volSE = Math.min(1, Math.max(0, volSE * 0.5 / 0.57)); volVoice = Math.min(1, Math.max(0, volVoice * 0.5 / 0.18)); volAmb = Math.min(1, Math.max(0, volAmb * 0.5)); } } }
+  if(raw){ var parsed = JSON.parse(raw); if(parsed && parsed.records) records = parsed.records; if(parsed && parsed.rankings && typeof parsed.rankings==="object") rankings = parsed.rankings; if(parsed && typeof parsed.rankName==="string") rankName = parsed.rankName; if(parsed && parsed.newsPlace && typeof parsed.newsPlace==="object") newsPlace = parsed.newsPlace; if(parsed && typeof parsed.ambientOn==="boolean") ambientOn = parsed.ambientOn; if(parsed && typeof parsed.floatSize==="number") floatSizeMul = Math.min(2, Math.max(0.5, parsed.floatSize)); if(parsed && parsed.floatSizeVer !== 2){ /* 浮きの大きさの既定を最大(2倍)に変えたので、古い保存値は一度だけ最大に寄せる */ floatSizeMul = 2; } if(parsed && (parsed.lang==="en" || parsed.lang==="ja")) lang = parsed.lang; if(parsed && parsed.vol){ if(typeof parsed.vol.se==="number") volSE = Math.min(1, Math.max(0, parsed.vol.se)); if(typeof parsed.vol.voice==="number") volVoice = Math.min(1, Math.max(0, parsed.vol.voice)); if(typeof parsed.vol.amb==="number") volAmb = Math.min(1, Math.max(0, parsed.vol.amb)); if(parsed.volVer !== 2){ /* 旧スケールで保存された値を新スケール（ベスト＝50%）へ一度だけ換算し、聞こえる大きさを変えない */ volSE = Math.min(1, Math.max(0, volSE * 0.5 / 0.57)); volVoice = Math.min(1, Math.max(0, volVoice * 0.5 / 0.18)); volAmb = Math.min(1, Math.max(0, volAmb * 0.5)); } } }
 }catch(e){ records = []; }
 function save(){
-  try{ localStorage.setItem(LS_KEY, JSON.stringify({records:records, rankings:rankings, rankName:rankName, lang:lang, vol:{se:volSE, voice:volVoice, amb:volAmb}, volVer:2, newsPlace:newsPlace, ambientOn:ambientOn, floatSize:floatSizeMul})); }catch(e){}
+  try{ localStorage.setItem(LS_KEY, JSON.stringify({records:records, rankings:rankings, rankName:rankName, lang:lang, vol:{se:volSE, voice:volVoice, amb:volAmb}, volVer:2, newsPlace:newsPlace, ambientOn:ambientOn, floatSize:floatSizeMul, floatSizeVer:2})); }catch(e){}
 }
 
 /* ================= 条件 ================= */
@@ -4629,7 +4629,7 @@ function polyTopAt(poly, nx){
   return best;
 }
 /* ウキは大きく見えるように描く（従来の約2倍）。座りの数値はローカル座標なので倍率に連動して見え方も比例する。
-   浮きの大きさ（設定ダイアログのスライダー）の倍率 floatSizeMul を掛ける。既定1.0倍＝従来の1.24で、動かすまで見た目は変わらない。
+   浮きの大きさ（設定ダイアログのスライダー）の倍率 floatSizeMul を掛ける。既定2.0倍（最大）で、動かすまで見た目は変わらない。
    描画だけに使い、座り・当たり判定などの物理量はローカル座標のまま変えない */
 var FLOAT_SCALE = 1.24 * floatSizeMul;
 (function(){
