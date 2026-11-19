@@ -484,7 +484,7 @@
         </div>
         <div class="ctl">
           <div class="lab" id="labFloatSize">浮きの大きさ</div>
-          <div class="volrow"><input type="range" id="rngFloatSize" min="0.5" max="2" step="0.05" value="2" aria-label="浮きの大きさ"><span class="volval" id="rngFloatSizeVal">2倍</span></div>
+          <div class="volrow"><input type="range" id="rngFloatSize" min="0.5" max="2" step="0.05" value="1.15" aria-label="浮きの大きさ"><span class="volval" id="rngFloatSizeVal">1.15倍</span></div>
           <p class="rank-note">左が小さく、右が大きい浮きになります。設定を開いている間もすぐ反映されます。</p>
         </div>
         <div class="ctl">
@@ -825,6 +825,15 @@ function nextEventDelay(spooked){
 }
 function nextOjamaDelay(){ return nextEventDelay(false); } // お邪魔の間隔＝アタリの間隔
 var ojamaEnabled = true, ojamaActive = false, ojamaTimer = nextOjamaDelay(), ojamaRemaining = 0, ojamaTotal = 0, ojamaKind = "";
+/* 季節のお邪魔（夏の蚊・冬のさすり・春の蜂・秋の落ち葉）：お邪魔タイマー（＝アタリと同じ抽選
+   nextOjamaDelay）が鳴ったとき、季節で中身を振り分ける。出現確率はアタリと同一。
+   蚊・蜂・落ち葉はキャンバス上の生き物／葉、冬は画面を擦る。どれも ojamaActive /
+   ojamaRemaining / ojamaTimer を流用し、竿を持つ・餌付けのブロックは従来のお邪魔とまったく同じ。
+   既存の夏の蚊（mosquitoState＝手元の周りを飛ぶだけの演出）とは別物なので名前を分けてある */
+var seasonCritters = []; // 蚊・蜂・落ち葉の共通配列 {kind,x,y,vx,vy,phase,seed,state,stateT,rot,rotV,landX,landY,dead,deadT}
+var rubStroke = null; // 冬のさすり：現在の1ストローク {lastX,lastY,dist}
+var RUB_NEED = 5; // 冬のさすりの回数
+var RUB_MIN_DIST = 90; // 1ストロークとして数える最低の移動距離（px。タップや短いなぞりは数えない）
 var lureAnim = null;
 var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 /* ================= 保存 ================= */
@@ -832,7 +841,7 @@ var LS_KEY = "nobezao-koi-game-v1";
 /* 地元ニュースの場所（位置情報または手動選択）と環境音ON/OFFは、記録と一緒に保存する */
 var newsPlace = null; // {province, city}（都道府県・市区町村）
 var ambientOn = true; // 環境音のON/OFF（設定で切替。初期値はON＝従来どおり）
-var floatSizeMul = 2; // 浮きの大きさスライダーの倍率（2＝最大。0.5〜2.0）
+var floatSizeMul = 1.15; // 浮きの大きさスライダーの倍率（既定1.15倍。0.5〜2.0）
 var records = [];
 /* 魚種別ランキング（大きさ・重さ）：釣果画面で名前登録した記録。釣果記録と同じ保存先に残す */
 var rankings = {};
@@ -849,10 +858,10 @@ var SE_SCALE = 1.14, VOICE_SCALE = 0.36;
 var AMB_SCALE = 1 / 2;
 try{
   var raw = localStorage.getItem(LS_KEY);
-  if(raw){ var parsed = JSON.parse(raw); if(parsed && parsed.records) records = parsed.records; if(parsed && parsed.rankings && typeof parsed.rankings==="object") rankings = parsed.rankings; if(parsed && typeof parsed.rankName==="string") rankName = parsed.rankName; if(parsed && parsed.newsPlace && typeof parsed.newsPlace==="object") newsPlace = parsed.newsPlace; if(parsed && typeof parsed.ambientOn==="boolean") ambientOn = parsed.ambientOn; if(parsed && typeof parsed.floatSize==="number") floatSizeMul = Math.min(2, Math.max(0.5, parsed.floatSize)); if(parsed && parsed.floatSizeVer !== 2){ /* 浮きの大きさの既定を最大(2倍)に変えたので、古い保存値は一度だけ最大に寄せる */ floatSizeMul = 2; } if(parsed && (parsed.lang==="en" || parsed.lang==="ja")) lang = parsed.lang; if(parsed && parsed.vol){ if(typeof parsed.vol.se==="number") volSE = Math.min(1, Math.max(0, parsed.vol.se)); if(typeof parsed.vol.voice==="number") volVoice = Math.min(1, Math.max(0, parsed.vol.voice)); if(typeof parsed.vol.amb==="number") volAmb = Math.min(1, Math.max(0, parsed.vol.amb)); if(parsed.volVer !== 2){ /* 旧スケールで保存された値を新スケール（ベスト＝50%）へ一度だけ換算し、聞こえる大きさを変えない */ volSE = Math.min(1, Math.max(0, volSE * 0.5 / 0.57)); volVoice = Math.min(1, Math.max(0, volVoice * 0.5 / 0.18)); volAmb = Math.min(1, Math.max(0, volAmb * 0.5)); } } }
+  if(raw){ var parsed = JSON.parse(raw); if(parsed && parsed.records) records = parsed.records; if(parsed && parsed.rankings && typeof parsed.rankings==="object") rankings = parsed.rankings; if(parsed && typeof parsed.rankName==="string") rankName = parsed.rankName; if(parsed && parsed.newsPlace && typeof parsed.newsPlace==="object") newsPlace = parsed.newsPlace; if(parsed && typeof parsed.ambientOn==="boolean") ambientOn = parsed.ambientOn; if(parsed && typeof parsed.floatSize==="number") floatSizeMul = Math.min(2, Math.max(0.5, parsed.floatSize)); if(parsed && parsed.floatSizeVer !== 3){ /* 浮きの大きさの既定を1.15倍に変えたので、古い保存値は一度だけ1.15倍に寄せる */ floatSizeMul = 1.15; } if(parsed && (parsed.lang==="en" || parsed.lang==="ja")) lang = parsed.lang; if(parsed && parsed.vol){ if(typeof parsed.vol.se==="number") volSE = Math.min(1, Math.max(0, parsed.vol.se)); if(typeof parsed.vol.voice==="number") volVoice = Math.min(1, Math.max(0, parsed.vol.voice)); if(typeof parsed.vol.amb==="number") volAmb = Math.min(1, Math.max(0, parsed.vol.amb)); if(parsed.volVer !== 2){ /* 旧スケールで保存された値を新スケール（ベスト＝50%）へ一度だけ換算し、聞こえる大きさを変えない */ volSE = Math.min(1, Math.max(0, volSE * 0.5 / 0.57)); volVoice = Math.min(1, Math.max(0, volVoice * 0.5 / 0.18)); volAmb = Math.min(1, Math.max(0, volAmb * 0.5)); } } }
 }catch(e){ records = []; }
 function save(){
-  try{ localStorage.setItem(LS_KEY, JSON.stringify({records:records, rankings:rankings, rankName:rankName, lang:lang, vol:{se:volSE, voice:volVoice, amb:volAmb}, volVer:2, newsPlace:newsPlace, ambientOn:ambientOn, floatSize:floatSizeMul, floatSizeVer:2})); }catch(e){}
+  try{ localStorage.setItem(LS_KEY, JSON.stringify({records:records, rankings:rankings, rankName:rankName, lang:lang, vol:{se:volSE, voice:volVoice, amb:volAmb}, volVer:2, newsPlace:newsPlace, ambientOn:ambientOn, floatSize:floatSizeMul, floatSizeVer:3})); }catch(e){}
 }
 
 /* ================= 条件 ================= */
@@ -3049,6 +3058,7 @@ function clearOjamaSilent(){
   var ct1 = document.getElementById("ojamaCount"); if(ct1) ct1.hidden = true;
   var ly1 = document.getElementById("ojamaLayer"); if(ly1){ ly1.innerHTML = ""; ly1.classList.remove("on"); }
   var sb1 = document.getElementById("stageBox"); if(sb1) sb1.classList.remove("ojama-active");
+  seasonCritters = []; rubStroke = null; // 季節のお邪魔の生き物・葉っぱ・さすり追跡も一緒に片付ける
   ojamaTimer = nextOjamaDelay();
 }
 function startFight(){
@@ -3539,6 +3549,39 @@ var OJAMA_EVENTS = [
   {kind:"neighbor", balls:25, who:"隣の釣り人", lines:["「隣、入っていい？」 断る間もなく、すぐ隣に座られた。仕掛けが絡みそうだ。","隣の釣り人が、こちらのポイントめがけて投げてくる。……人の寄せた魚を狙う気だな。","「そっち、当たってる？ エサ、何使ってる？」 隣からの質問攻めが止まらない。","隣の釣り人のウキが、こちらのウキのすぐ横に着水した。近い、近すぎる。"]},
   {kind:"tvcrew", balls:30, who:"テレビ取材班", lines:["「あのー、テレビの取材なんですが、釣りの様子を撮らせてもらえませんか！」 カメラとマイクと照明が一斉にこちらを向いた。最強クラスのお邪魔だ。","「釣れた瞬間に、いい表情をお願いしますね！」 注文が多い。照明が水面を照らして、魚が散りそうだ。","ディレクターの「もう一回お願いします！」が池に響く。何をもう一回するのだろう。","「視聴者の皆さん、今まさに釣り人が大物と対峙しています！」 対峙しているのは、取材班とだ。"]}
 ];
+/* 季節のお邪魔のセリフ（夏の蚊・春の蜂・秋の落ち葉・冬のさすり）。triggerOjama が季節で振り分け、
+   従来のボールのお邪魔と同じ ojamaActive / ojamaRemaining で進行する。英語表示では En 側を使う。
+   蚊はタップで潰す、蜂はタップで追い払う（潰さない）、落ち葉はタップで片付ける、冬は画面を5回さする */
+var SEASON_OJAMA = {
+  mosquito:{ who:"夏の蚊", whoEn:"Summer mosquitoes",
+    lines:["ブーン……蚊が何匹も寄ってきた！ 刺される前に、全部タップして潰そう。","蚊の大群だ！ ウキから目を離せないのに……タップして潰すしかない。"],
+    linesEn:["Bzzz... a swarm of mosquitoes is closing in! Tap them all to squash them before they bite.","A cloud of mosquitoes! I can't take my eyes off the float... tap them to squash them."],
+    explain:["蚊が出てきた！ お邪魔中は「竿を持つ」も餌付けも使えない。アタリはその間も通常通り来るから、蚊を全部タップして潰すまで、お邪魔は続く。消し込みが来たら、急いで潰し終えてから合わせよう。"],
+    explainEn:["Mosquitoes! While interrupted, both 'Strike' and re-baiting are disabled. Bites still come exactly as usual meanwhile. The interruption lasts until you tap every mosquito to squash it. If the float sinks away, squash them fast, then strike."],
+    end:["蚊を全部潰した。耳元のブーンが消えた。さあ、ウキを見よう。","やっと静かになった。蚊のいない水辺は最高だ。"],
+    endEn:["Every mosquito squashed. The buzzing by my ear is gone. Back to the float.","Quiet at last. A pond without mosquitoes is the best."] },
+  bee:{ who:"春のミツバチ", whoEn:"Spring honeybees",
+    lines:["ミツバチが寄ってきた。刺されないよう、そっとタップして追い払おう。潰しちゃダメだよ。","ブンブン……ミツバチが花と間違えたみたい。タップして、そっと追い払おう。"],
+    linesEn:["Honeybees have drifted over. Tap gently to shoo them away — don't squash them.","Bzzz... the bees seem to mistake us for flowers. Tap to shoo them away, gently."],
+    explain:["ミツバチが寄ってきた！ お邪魔中は「竿を持つ」も餌付けも使えない。アタリはその間も通常通り来る。蜂を全部タップして追い払うまで、お邪魔は続く。潰さずに、そっと追い払おう。"],
+    explainEn:["Honeybees! While interrupted, both 'Strike' and re-baiting are disabled. Bites still come exactly as usual meanwhile. The interruption lasts until you tap every bee to shoo it away. Don't squash them — just shoo them off, gently."],
+    end:["ミツバチはみんな飛んでいった。花の方へ帰ったみたい。さあ、釣りの続きだ。","蜂たちを追い払えた。刺されずにすんだ。ウキに集中しよう。"],
+    endEn:["The bees have all flown off, back to the flowers. Back to fishing.","Bees shooed away, and nobody got stung. Eyes on the float again."] },
+  leaves:{ who:"秋の落ち葉", whoEn:"Autumn leaves",
+    lines:["ひらひら……落ち葉が水面を覆っちゃった。ウキが見えない！ タップして、葉っぱをどかそう。","風で落ち葉が舞い込んで、水面が葉っぱだらけ。タップして片付けよう。"],
+    linesEn:["Flutter... fallen leaves have covered the water — I can't see the float! Tap the leaves away.","The wind blew leaves all over the water. Tap them away to clear it."],
+    explain:["落ち葉が水面を覆っちゃった！ お邪魔中は「竿を持つ」も餌付けも使えない。アタリはその間も通常通り来る。葉っぱを全部タップして片付けるまで、お邪魔は続く。"],
+    explainEn:["Fallen leaves have covered the water! While interrupted, both 'Strike' and re-baiting are disabled. Bites still come exactly as usual meanwhile. The interruption lasts until you tap every leaf away."],
+    end:["水面がすっきりした。ウキがまた見える。さあ、続きを釣ろう。","葉っぱを片付けた。水面が鏡みたいに戻った。"],
+    endEn:["The water is clear again — I can see the float. Back to fishing.","Leaves cleared. The water is a mirror again."] },
+  rub:{ who:"冬の寒さ", whoEn:"Winter cold",
+    lines:["寒くなったのでさすって温めよう。画面を5回こすって、手を温めよう。","寒い……手がかじかんできた。画面を5回さすって温めよう。"],
+    linesEn:["It's gotten cold — let's rub to warm up. Rub the screen 5 times to warm your hands.","Brrr... my hands are freezing. Rub the screen 5 times to warm them up."],
+    explain:["寒くなったのでさすって温めよう。お邪魔中は「竿を持つ」も餌付けも使えない。アタリはその間も通常通り来る。画面を5回さすって温まるまで、お邪魔は続く。タップだけでは数えないよ。"],
+    explainEn:["It's gotten cold — let's rub to warm up. While interrupted, both 'Strike' and re-baiting are disabled. Bites still come exactly as usual meanwhile. Rub the screen 5 times to warm up — taps alone don't count."],
+    end:["手がぽかぽか温まった。さあ、ウキを見よう。","温まった！ 指が動くようになった。釣りの続きだ。"],
+    endEn:["My hands are warm again. Back to the float.","Warm at last! My fingers move again. Back to fishing."] }
+};
 /* 登場人物のイラスト（吹き出しの横に絵で表示する） */
 var OJAMA_ART = {
   jiisan: "<svg viewBox='0 0 96 96' xmlns='http://www.w3.org/2000/svg' role='img' aria-label='おじいさん'>"
@@ -3735,6 +3778,38 @@ var OJAMA_ART = {
     + "<circle cx='60' cy='65' r='7.5' fill='#7fb3d9'/><circle cx='60' cy='65' r='3.6' fill='#16222e'/>"
     + "<circle cx='80' cy='57' r='2.6' fill='#e23c2e'/>"
     + "<rect x='50' y='45' width='12' height='7' rx='2' fill='#2c3540'/>"
+    + "</svg>",
+  mosquito: "<svg viewBox='0 0 96 96' xmlns='http://www.w3.org/2000/svg' role='img' aria-label='蚊'>"
+    + "<rect width='96' height='96' fill='#e8e4d2'/>"
+    + "<ellipse cx='30' cy='38' rx='16' ry='7' fill='rgba(230,230,215,0.9)' transform='rotate(-28 30 38)'/>"
+    + "<ellipse cx='66' cy='38' rx='16' ry='7' fill='rgba(230,230,215,0.9)' transform='rotate(28 66 38)'/>"
+    + "<ellipse cx='48' cy='52' rx='16' ry='7' fill='#2e2a26' transform='rotate(18 48 52)'/>"
+    + "<circle cx='62' cy='44' r='6' fill='#2e2a26'/>"
+    + "<path d='M67 46l10 4' stroke='#2e2a26' stroke-width='2' stroke-linecap='round'/>"
+    + "<path d='M40 56l-6 10M48 58l-2 11M56 56l3 10' stroke='#2e2a26' stroke-width='1.8' stroke-linecap='round'/>"
+    + "</svg>",
+  bee: "<svg viewBox='0 0 96 96' xmlns='http://www.w3.org/2000/svg' role='img' aria-label='ミツバチ'>"
+    + "<rect width='96' height='96' fill='#f2e8c8'/>"
+    + "<ellipse cx='34' cy='34' rx='15' ry='8' fill='rgba(255,255,255,0.85)' transform='rotate(-30 34 34)'/>"
+    + "<ellipse cx='62' cy='34' rx='15' ry='8' fill='rgba(255,255,255,0.85)' transform='rotate(30 62 34)'/>"
+    + "<ellipse cx='48' cy='56' rx='24' ry='17' fill='#f2b705'/>"
+    + "<path d='M34 44q4 12 0 24M48 40q4 15 0 32M62 44q-4 12 0 24' stroke='#2e2a26' stroke-width='5' fill='none'/>"
+    + "<circle cx='70' cy='50' r='3' fill='#2e2a26'/>"
+    + "<path d='M70 40q4-6 9-5' stroke='#2e2a26' stroke-width='2' fill='none' stroke-linecap='round'/>"
+    + "</svg>",
+  leaves: "<svg viewBox='0 0 96 96' xmlns='http://www.w3.org/2000/svg' role='img' aria-label='落ち葉'>"
+    + "<rect width='96' height='96' fill='#dce8dd'/>"
+    + "<path d='M48 14l7 14 15-6-6 15 16 2-12 11 10 12-15 2 3 15-13-8-6 14-6-14-13 8 3-15-15-2 10-12-12-11 16-2-6-15 15 6z' fill='#c33d21'/>"
+    + "<path d='M48 52v26' stroke='#7a3a1a' stroke-width='3' stroke-linecap='round'/>"
+    + "<path d='M62 76l8 8M34 76l-8 8' stroke='#d2691e' stroke-width='4' stroke-linecap='round'/>"
+    + "<circle cx='70' cy='22' r='7' fill='#d2691e'/>"
+    + "<circle cx='24' cy='30' r='5' fill='#e07b39'/>"
+    + "</svg>",
+  rub: "<svg viewBox='0 0 96 96' xmlns='http://www.w3.org/2000/svg' role='img' aria-label='寒さ'>"
+    + "<rect width='96' height='96' fill='#dce6f2'/>"
+    + "<path d='M48 18v60M24 34l48 28M72 34l-48 28M30 22l36 52M66 22l-36 52' stroke='#7fa8d9' stroke-width='4' stroke-linecap='round'/>"
+    + "<circle cx='48' cy='48' r='10' fill='none' stroke='#7fa8d9' stroke-width='3'/>"
+    + "<path d='M20 82q14-12 28 0t28 0' stroke='#e07b39' stroke-width='5' fill='none' stroke-linecap='round'/>"
     + "</svg>"
 };
 /* お邪魔キャラの声：セリフは表示と同時に、キャラごとに録音済みの声で読み上げる。
@@ -3791,11 +3866,24 @@ function ojamaSay(kind, who, line, lineIdx){
 }
 function updateOjamaCount(){
   var el = document.getElementById("ojamaCount");
-  el.textContent = lang==="en" ? ("Left: " + ojamaRemaining + " / " + ojamaTotal + " — tap them away") : ("残り " + ojamaRemaining + " / " + ojamaTotal + "個 ・ タップして消そう");
+  if(ojamaKind==="rub"){
+    el.textContent = lang==="en" ? ("Rub " + ojamaRemaining + " more time" + (ojamaRemaining===1 ? "" : "s") + " to warm up") : ("あと " + ojamaRemaining + " 回さすろう");
+  } else if(ojamaKind==="mosquito" || ojamaKind==="bee"){
+    el.textContent = lang==="en" ? ("Left: " + ojamaRemaining + " / " + ojamaTotal) : ("残り " + ojamaRemaining + " / " + ojamaTotal + "匹 ・ タップして" + (ojamaKind==="bee" ? "追い払おう" : "潰そう"));
+  } else if(ojamaKind==="leaves"){
+    el.textContent = lang==="en" ? ("Left: " + ojamaRemaining + " / " + ojamaTotal + " leaves — tap them away") : ("残り " + ojamaRemaining + " / " + ojamaTotal + "枚 ・ タップして片付けよう");
+  } else {
+    el.textContent = lang==="en" ? ("Left: " + ojamaRemaining + " / " + ojamaTotal + " — tap them away") : ("残り " + ojamaRemaining + " / " + ojamaTotal + "個 ・ タップして消そう");
+  }
   el.hidden = !ojamaActive;
 }
 function triggerOjama(){
   if(ojamaActive || state==="idle" || state==="await" || state==="fight") return;
+  /* 季節のお邪魔：夏は蚊、冬はさすり、春は蜂、秋は落ち葉。お邪魔タイマー（＝アタリと同じ抽選
+     nextOjamaDelay）はそのまま使い、季節で中身だけ振り分けるので、出現確率はアタリと同一。
+     従来のボールのお邪魔は、季節が4つ以外の場合のフォールバックとして残してある */
+  var seasonKind = (sel.season==="summer") ? "mosquito" : (sel.season==="winter") ? "rub" : (sel.season==="spring") ? "bee" : (sel.season==="autumn") ? "leaves" : "";
+  if(seasonKind){ startSeasonOjama(seasonKind); return; }
   var evList = P(OJAMA_EVENTS, OJAMA_EVENTS_EN);
   var ev = evList[Math.floor(Math.random()*evList.length)];
   ojamaKind = ev.kind;
@@ -3871,12 +3959,220 @@ function endOjama(){
     /* アタリ進行中（前アタリ／本アタリ）なら通常と同じ残り時間に任せる：保持も延長もしない。
        進行中でなければ、ルアーで散った魚を寄せ直すために待ち直す */
     if(state!=="mae" && state!=="hon") scheduleWait(true);
+  } else if(ojamaKind==="mosquito" || ojamaKind==="bee" || ojamaKind==="leaves" || ojamaKind==="rub"){
+    var sDef = SEASON_OJAMA[ojamaKind];
+    say(pick(P(sDef.end, sDef.endEn)));
+    // お邪魔の間もアタリの時計は通常通り進んでいるので、そのまま再開する（本アタリは保持されず、制限を過ぎていれば既に逃げている）
+    if(state!=="wait" && state!=="mae" && state!=="hon") scheduleWait(false);
   } else {
     say(ojamaKind==="inemuri" ? pick(["ボールをはじいて、すっかり目が覚めた。ウキに集中し直そう。","はっ、と目が覚めた。夢の続きは、ウキが消し込むところからだ。"]) : pick(["静けさが戻ってきた。さっきの騒ぎが嘘みたいだ。ウキを見よう。","やっと静かになった。ウキに集中し直そう。","話し相手も去っていった。さあ、釣りの時間に戻ろう。"]));
     // お邪魔の間もアタリの時計は通常通り進んでいるので、そのまま再開する（本アタリは保持されず、制限を過ぎていれば既に逃げている）
     if(state!=="wait" && state!=="mae" && state!=="hon") scheduleWait(false);
   }
+  seasonCritters = []; rubStroke = null;
   ojamaKind = "";
+}
+
+/* ================= 季節のお邪魔（夏の蚊・冬のさすり・春の蜂・秋の落ち葉） =================
+   お邪魔タイマー（＝アタリと同じ抽選 nextOjamaDelay）で鳴り、季節で中身を振り分ける。
+   蚊・蜂・落ち葉はキャンバスに描く生き物／葉で、タップして処理する。冬は画面を5回さする。
+   どれも ojamaActive / ojamaRemaining / ojamaTimer を流用するので、竿を持つ・餌付けの
+   ブロックと、アタリがその間も通常通り来る点は、従来のボールのお邪魔とまったく同じ */
+function startSeasonOjama(kind){
+  var def = SEASON_OJAMA[kind]; if(!def) return;
+  ojamaKind = kind;
+  ojamaActive = true;
+  document.getElementById("stageBox").classList.add("ojama-active");
+  ojamaSay(kind, lang==="en" ? def.whoEn : def.who, pick(lang==="en" ? def.linesEn : def.lines), 0);
+  say(pick(P(def.explain, def.explainEn)), true);
+  if(kind==="rub"){
+    ojamaTotal = RUB_NEED; ojamaRemaining = RUB_NEED; rubStroke = null;
+  } else {
+    var n = kind==="leaves" ? 6 : 4; // 落ち葉は6枚、蚊・蜂は4匹
+    ojamaTotal = n; ojamaRemaining = n;
+    setTimeout(function(){ if(ojamaActive && ojamaKind===kind) spawnSeasonCritters(kind, n); }, 900);
+  }
+  updateOjamaCount();
+}
+function spawnSeasonCritters(kind, n){
+  var fx = fxNow(), fy = floatY(), i, c;
+  for(i=0;i<n;i++){
+    if(kind==="leaf"){
+      var land = leafLandingSpot();
+      c = {kind:"leaf", x:land.x + (Math.random()-0.5)*60, y:land.y - 150 - Math.random()*90,
+        vx:0, vy:52 + Math.random()*34, phase:Math.random()*6.28, seed:Math.random(),
+        rot:Math.random()*6.28, rotV:(Math.random()-0.5)*1.2, landX:land.x, landY:land.y,
+        col:pick(["#c33d21","#d2691e","#b03a2e","#e07b39","#c65a1e"]), state:"fall", dead:false, deadT:0};
+    } else {
+      c = {kind:kind, x:Math.max(24, Math.min(CW-24, fx + (Math.random()-0.5)*280)),
+        y:Math.max(48, Math.min(CH-64, fy - 46 + (Math.random()-0.5)*100)),
+        vx:0, vy:0, phase:Math.random()*6.28, seed:Math.random()*6.28,
+        rot:0, rotV:0, landX:0, landY:0, col:"", state:"fly", dead:false, deadT:0};
+    }
+    seasonCritters.push(c);
+  }
+}
+/* 落ち葉が着水する場所：浮きの周りの水面の内側。写真の水際から少し下で、水面ポリゴンの内側だけを使う */
+function leafLandingSpot(){
+  var x = Math.max(24, Math.min(CW-24, fxNow() + (Math.random()-0.5)*280));
+  var top = waterTopAtScreen(x), y;
+  if(top !== null) y = top + 18 + Math.random()*46;
+  else y = floatY() + 20 + Math.random()*40;
+  y = Math.min(y, CH - 16);
+  if(!pointInPoly(waterPoints(), x, y)){ x = fxNow(); y = floatY() + 24 + Math.random()*36; }
+  return {x:x, y:y};
+}
+/* 蚊・蜂の飛行と落ち葉の舞い降り。毎フレームの tick から呼ぶ。お邪魔中でなければ何もしない */
+function updateSeasonCritters(dt){
+  if(!ojamaActive || !seasonCritters.length) return;
+  var fx = fxNow(), fy = floatY();
+  for(var i=seasonCritters.length-1;i>=0;i--){
+    var c = seasonCritters[i];
+    if(c.dead){
+      c.deadT += dt;
+      if(c.kind==="bee" && c.state==="flyoff"){ c.x += c.vx*dt; c.y += c.vy*dt; }
+      if(c.kind==="leaf"){ c.y -= 26*dt; }
+      if(c.deadT > 0.6) seasonCritters.splice(i,1);
+      continue;
+    }
+    if(c.kind==="leaf"){
+      if(c.state==="fall"){
+        c.phase += dt;
+        c.x += Math.sin(c.phase*2 + c.seed)*14*dt;
+        c.y += c.vy*dt; c.rot += c.rotV*dt;
+        if(c.y >= c.landY){ c.y = c.landY; c.state = "float"; }
+      }
+      continue;
+    }
+    /* 蚊・蜂：浮きの周りを漂いながらブンブン飛ぶ（ゆっくりした正弦波の漂い＋細かい揺れ） */
+    c.phase += dt;
+    var tx = fx + Math.cos(c.phase*0.9 + c.seed)*95 + Math.sin(c.phase*2.3)*14;
+    var ty = fy - 34 + Math.sin(c.phase*1.3 + c.seed*2)*38 + Math.cos(c.phase*3.1)*6;
+    c.x += (tx - c.x) * Math.min(1, dt*1.6);
+    c.y += (ty - c.y) * Math.min(1, dt*1.6);
+  }
+}
+/* 蚊・蜂・落ち葉へのタップ。どれか1匹／1枚に当たれば処理して true を返す（竿の操作には進まない） */
+function tapSeasonCritter(tx, ty){
+  var hitR = 34; // タップの当たり半径（指の太さに合わせて少し大きめ）
+  for(var i=0;i<seasonCritters.length;i++){
+    var c = seasonCritters[i];
+    if(c.dead) continue;
+    var dx = tx - c.x, dy = ty - c.y;
+    if(dx*dx + dy*dy <= hitR*hitR){
+      c.dead = true; c.deadT = 0;
+      if(c.kind==="bee"){
+        /* 蜂は潰さない：追い払い（画面の外へ飛び去る）＋小さなパフ */
+        c.state = "flyoff";
+        var ang = Math.atan2(c.y - floatY(), c.x - fxNow());
+        c.vx = Math.cos(ang)*260; c.vy = -120 - Math.random()*60;
+        plop(980 + Math.random()*200, 0.10, 0.10);
+      } else if(c.kind==="leaf"){
+        plop(620 + Math.random()*160, 0.10, 0.10);
+      } else {
+        /* 蚊は潰す */
+        plop(420 + Math.random()*120, 0.16, 0.10);
+      }
+      ojamaRemaining--; updateOjamaCount();
+      if(ojamaRemaining<=0) setTimeout(endOjama, 380);
+      return true;
+    }
+  }
+  return false;
+}
+/* 冬のさすり：1ストロークが終わったときに呼ぶ。十分な長さのなぞりだけ1回と数える */
+function finishRubStroke(){
+  if(!rubStroke) return;
+  var d = rubStroke.dist; rubStroke = null;
+  if(!ojamaActive || ojamaKind!=="rub") return;
+  if(d < RUB_MIN_DIST) return; // タップや短いなぞりは数えない
+  ojamaRemaining--; updateOjamaCount();
+  plop(300 + (RUB_NEED - ojamaRemaining)*60, 0.12, 0.12); // さするたび少しずつ高い音
+  if(ojamaRemaining<=0) setTimeout(endOjama, 380);
+}
+/* 蚊・蜂・落ち葉の描画。draw() の浮きの直後から呼ぶ（水面の上に重なる） */
+function drawSeasonOjama(t){
+  if(!ojamaActive || !seasonCritters.length) return;
+  for(var i=0;i<seasonCritters.length;i++){
+    var c = seasonCritters[i];
+    if(c.kind==="mosquito") drawOjamaMosquito(c, t);
+    else if(c.kind==="bee") drawOjamaBee(c, t);
+    else if(c.kind==="leaf") drawOjamaLeaf(c, t);
+  }
+}
+function drawOjamaMosquito(c, t){
+  var fade = c.dead ? Math.max(0, 1 - c.deadT/0.6) : 1;
+  ctx.save(); ctx.translate(c.x, c.y); ctx.globalAlpha = fade;
+  if(c.dead){
+    /* 潰した跡：小さな黒い星型のしぶき */
+    ctx.strokeStyle = "rgba(30,26,22,0.85)"; ctx.lineWidth = 1.6; ctx.lineCap = "round";
+    for(var k=0;k<6;k++){
+      var a = k*1.047 + c.seed;
+      ctx.beginPath(); ctx.moveTo(Math.cos(a)*3, Math.sin(a)*3); ctx.lineTo(Math.cos(a)*10, Math.sin(a)*10); ctx.stroke();
+    }
+    ctx.fillStyle = "#2e2a26";
+    ctx.beginPath(); ctx.ellipse(0, 0, 4.5, 1.8, 0.3, 0, Math.PI*2); ctx.fill();
+  } else {
+    var flap = Math.sin(t*70 + c.seed*9)*0.9;
+    ctx.fillStyle = "rgba(220,220,210,0.6)"; ctx.strokeStyle = "rgba(90,90,80,0.4)"; ctx.lineWidth = 0.6;
+    [-1, 1].forEach(function(sd){
+      ctx.save(); ctx.rotate(sd*(0.7 + flap*0.5));
+      ctx.beginPath(); ctx.ellipse(sd*4.5, -2.5, 5, 1.7, sd*0.5, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+      ctx.restore();
+    });
+    ctx.fillStyle = "#2e2a26";
+    ctx.beginPath(); ctx.ellipse(0, 0, 5.2, 2.1, 0.35, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(5.4, -1.2, 1.9, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = "rgba(30,26,22,0.85)"; ctx.lineWidth = 0.8;
+    ctx.beginPath(); ctx.moveTo(7, -0.6); ctx.lineTo(10.5, 1.6); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-1, 1.6); ctx.lineTo(-3.5, 5); ctx.moveTo(1.5, 1.8); ctx.lineTo(1, 5.4); ctx.moveTo(-3.5, 1.2); ctx.lineTo(-6.5, 4.2);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+function drawOjamaBee(c, t){
+  var fade = c.dead ? Math.max(0, 1 - c.deadT/0.6) : 1;
+  ctx.save(); ctx.translate(c.x, c.y); ctx.globalAlpha = fade;
+  if(c.dead){
+    /* 追い払いのパフ：薄いベージュの輪が広がって消える（潰した跡は描かない） */
+    ctx.strokeStyle = "rgba(210,200,170," + (0.55*fade).toFixed(3) + ")"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(0, 0, 6 + c.deadT*36, 0, Math.PI*2); ctx.stroke();
+  }
+  var flap = Math.sin(t*64 + c.seed*9)*0.8;
+  ctx.fillStyle = "rgba(235,235,220,0.65)"; ctx.strokeStyle = "rgba(90,90,80,0.4)"; ctx.lineWidth = 0.6;
+  [-1, 1].forEach(function(sd){
+    ctx.save(); ctx.rotate(sd*(0.7 + flap*0.5));
+    ctx.beginPath(); ctx.ellipse(sd*5, -3.5, 6, 2.2, sd*0.5, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+    ctx.restore();
+  });
+  ctx.fillStyle = "#f2b705";
+  ctx.beginPath(); ctx.ellipse(0, 0, 7.5, 4.2, 0.25, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = "#2e2a26";
+  ctx.beginPath(); ctx.ellipse(-1.5, -0.6, 2.2, 3.6, 0.25, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(2.5, 0.6, 2.2, 3.4, 0.25, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(7.2, -1.8, 2.2, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = "rgba(30,26,22,0.85)"; ctx.lineWidth = 0.8;
+  ctx.beginPath(); ctx.moveTo(-3, 3.2); ctx.lineTo(-5.5, 7); ctx.moveTo(1, 3.8); ctx.lineTo(0.5, 7.4); ctx.stroke();
+  ctx.restore();
+}
+function drawOjamaLeaf(c, t){
+  var fade = c.dead ? Math.max(0, 1 - c.deadT/0.6) : 1;
+  var bobY = (c.state==="float" && !c.dead) ? Math.sin(t*1.5 + c.seed)*1.6 : 0;
+  ctx.save(); ctx.translate(c.x, c.y + bobY); ctx.rotate(c.rot + (c.state==="float" ? Math.sin(t*0.9 + c.seed)*0.12 : 0)); ctx.globalAlpha = fade;
+  var s = 10;
+  ctx.fillStyle = c.col;
+  ctx.beginPath();
+  ctx.moveTo(0, -s);
+  ctx.lineTo(s*0.28, -s*0.34); ctx.lineTo(s*0.95, -s*0.62); ctx.lineTo(s*0.62, -s*0.02);
+  ctx.lineTo(s*0.95, s*0.45); ctx.lineTo(s*0.34, s*0.34); ctx.lineTo(s*0.2, s*0.95);
+  ctx.lineTo(0, s*0.42); ctx.lineTo(-s*0.2, s*0.95); ctx.lineTo(-s*0.34, s*0.34);
+  ctx.lineTo(-s*0.95, s*0.45); ctx.lineTo(-s*0.62, -s*0.02); ctx.lineTo(-s*0.95, -s*0.62);
+  ctx.lineTo(-s*0.28, -s*0.34);
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = "rgba(90,50,20,0.4)"; ctx.lineWidth = 0.8;
+  ctx.beginPath(); ctx.moveTo(0, -s*0.7); ctx.lineTo(0, s*1.15); ctx.stroke();
+  ctx.restore();
 }
 
 /* ---- ファイト更新 ---- */
@@ -4379,6 +4675,17 @@ document.getElementById("pond").addEventListener("pointerdown", function(e){
   var r = cv.getBoundingClientRect();
   if(!r.width || !r.height) return;
   var tx = e.clientX - r.left, ty = e.clientY - r.top;
+  /* 季節のお邪魔（蚊・蜂・落ち葉）のタップ：水面判定より先に、生き物・葉っぱへの当たり判定をする
+     （蚊・蜂は水際の少し上に飛ぶこともあるため）。当たればその場で処理し、竿の操作には進まない */
+  if(ojamaActive && (ojamaKind==="mosquito" || ojamaKind==="bee" || ojamaKind==="leaves")){
+    if(tapSeasonCritter(tx, ty)) return;
+  }
+  /* 冬のさすり：この pointerdown から1ストロークの追跡を始める（タップだけでは数えない）。
+     お邪魔中は竿の操作が無効なので、ここで返しても釣りの操作は壊れない */
+  if(ojamaActive && ojamaKind==="rub"){
+    rubStroke = {lastX:tx, lastY:ty, dist:0};
+    return;
+  }
   if(!isWaterTap(tx, ty)) return; // 水面以外は反応しない
   if(state==="idle" || state==="await"){
     // タップした場所を打ち込む場所にする。水際すれすれなら少し水の中へ寄せ、画面端にも寄せすぎない
@@ -4404,6 +4711,19 @@ document.getElementById("pond").addEventListener("pointerdown", function(e){
 var pondEl = document.getElementById("pond");
 pondEl.addEventListener("touchstart", function(e){ e.preventDefault(); }, {passive:false});
 pondEl.addEventListener("touchmove", function(e){ e.preventDefault(); }, {passive:false});
+/* 冬のさすり：池の上で指を滑らせた距離を数える。お邪魔（rub）の間だけ追跡する。
+   指を離した時点で、十分な長さのなぞりなら1回と数える（finishRubStroke）。
+   通常のタップは距離が短いので数えず、打ち込み・合わせの操作とも重ならない */
+pondEl.addEventListener("pointermove", function(e){
+  if(!rubStroke || !ojamaActive || ojamaKind!=="rub") return;
+  var r = cv.getBoundingClientRect(); if(!r.width || !r.height) return;
+  var tx = e.clientX - r.left, ty = e.clientY - r.top;
+  var dx = tx - rubStroke.lastX, dy = ty - rubStroke.lastY;
+  rubStroke.dist += Math.sqrt(dx*dx + dy*dy);
+  rubStroke.lastX = tx; rubStroke.lastY = ty;
+});
+document.addEventListener("pointerup", function(){ finishRubStroke(); });
+document.addEventListener("pointercancel", function(){ rubStroke = null; });
 mainBtn.addEventListener("touchstart", function(e){ if(state==="wait" || state==="mae" || state==="hon") e.preventDefault(); }, {passive:false});
 mainBtn.addEventListener("touchmove", function(e){ if(rodGrip) e.preventDefault(); }, {passive:false});
 holdBtn.addEventListener("touchstart", function(e){ e.preventDefault(); }, {passive:false});
@@ -4629,7 +4949,7 @@ function polyTopAt(poly, nx){
   return best;
 }
 /* ウキは大きく見えるように描く（従来の約2倍）。座りの数値はローカル座標なので倍率に連動して見え方も比例する。
-   浮きの大きさ（設定ダイアログのスライダー）の倍率 floatSizeMul を掛ける。既定2.0倍（最大）で、動かすまで見た目は変わらない。
+   浮きの大きさ（設定ダイアログのスライダー）の倍率 floatSizeMul を掛ける。既定1.15倍で、動かすまで見た目は変わらない。
    描画だけに使い、座り・当たり判定などの物理量はローカル座標のまま変えない */
 var FLOAT_SCALE = 1.24 * floatSizeMul;
 (function(){
@@ -5073,9 +5393,9 @@ function drawWaterFxAll(t){
   drawWaterSurface(t);
   ripples.forEach(function(r){
     /* 輪の寿命で見え方を決める：ゆっくり立ち上がり、広がりながらだんだん薄くなって消える。
-       白い線は描かない。山は実写テクスチャを soft-light 合成で水面になじませ（対応しない
-       環境では通常合成で薄く重ねる）、谷はそのすぐ内側と外側の柔らかい暗い輪だけ。
-       光と影の濃淡だけで水の動きを表す。輪ごとに大きさ・濃さ・テクスチャの潰れ具合を
+       白は一切使わない。実写テクスチャの白い輪のスタンプは描かない。
+       輪は「谷」の柔らかい暗い輪2本と、光側へ寄せたごく薄い暖色のハイライト弧だけで作る。
+       光と影の濃淡だけで水の動きを表す。輪ごとに大きさ・濃さ・潰れ具合を
        少しだけ変え、完全なコピーに見えないようにする */
     if(r.age===undefined || r.age<0) return;
     var p = Math.min(1, r.age / r.life);
@@ -5083,30 +5403,27 @@ function drawWaterFxAll(t){
     var ra = (r.a0 || 0.34) * Math.min(1, p/0.15) * Math.pow(1-p, 1.6);
     if(ra <= 0.01) return;
     var rseed = r.seed || 0;
-    if(RIPPLE_IMG.complete && RIPPLE_IMG.naturalWidth){
-      var rw = rr*2.6*(0.94 + rseed*0.12), rh = rw*(0.30 + rseed*0.04);
-      ctx.save();
-      ctx.globalAlpha = Math.min(1, ra*1.4);
-      if(RIPPLE_SOFT) ctx.globalCompositeOperation = "soft-light";
-      ctx.drawImage(RIPPLE_IMG, r.x - rw/2, r.y - rh/2, rw, rh);
-      ctx.restore();
-    }
     ctx.beginPath(); ctx.ellipse(r.x, r.y, rr*0.86, rr*0.86*0.32, 0, 0, Math.PI*2);
     ctx.strokeStyle = "rgba(10,30,28," + (ra*0.30).toFixed(3) + ")"; ctx.lineWidth = 2.6; ctx.stroke();
     ctx.beginPath(); ctx.ellipse(r.x, r.y, rr*1.09, rr*1.09*0.32, 0, 0, Math.PI*2);
     ctx.strokeStyle = "rgba(10,30,28," + (ra*0.12).toFixed(3) + ")"; ctx.lineWidth = 1.6; ctx.stroke();
     if(p < 0.45){
-      var shA = 0.06 * (1 - p/0.45);
+      /* 暖色のハイライト弧（白ではない。薄いベージュを光側＝左上に寄せて3本だけ）。
+         輪が薄く見えすぎるときは、まずここの 0.08 を上げる */
+      var shA = 0.08 * (1 - p/0.45);
       for(var k=0;k<3;k++){
-        var a0 = rseed*6.28 + k*2.1 + t*0.7*(k%2 ? 1 : -1);
+        var a0 = Math.PI*1.05 + rseed*0.9 + k*0.35 + t*0.25*(k%2 ? 1 : -1);
         ctx.beginPath(); ctx.ellipse(r.x, r.y, rr*0.45, rr*0.45*0.32, 0, a0, a0+0.7);
-        ctx.strokeStyle = "rgba(200,225,210," + shA.toFixed(3) + ")"; ctx.lineWidth = 1; ctx.stroke();
+        ctx.strokeStyle = "rgba(210,200,170," + shA.toFixed(3) + ")"; ctx.lineWidth = 1; ctx.stroke();
       }
     }
   });
   bubbles.forEach(function(b){
+    /* 泡も白で描かない。暗い輪郭に、左上のごく小さな暖色のきらめきを添えるだけ */
     ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI*2);
-    ctx.strokeStyle = "rgba(255,255,255,0.75)"; ctx.lineWidth = 1; ctx.stroke();
+    ctx.strokeStyle = "rgba(12,32,30,0.45)"; ctx.lineWidth = 1; ctx.stroke();
+    ctx.beginPath(); ctx.arc(b.x, b.y, b.r*0.7, Math.PI*1.05, Math.PI*1.65);
+    ctx.strokeStyle = "rgba(215,205,175,0.5)"; ctx.lineWidth = 1; ctx.stroke();
   });
   var fd = computeFishDraw(t);
   if(fd) drawWaterFish(fd, t);
@@ -5825,6 +6142,8 @@ function drawRodAndFloat(pal, t){
     var ft2 = dragonFly.t;
     drawDragonflyAt(dragonFly.x + ft2*88, dragonFly.y - ft2*56 - Math.sin(ft2*9)*4, -0.2, ft2);
   }
+  // 季節のお邪魔（夏の蚊・春の蜂・秋の落ち葉）：浮きの周りに描く
+  drawSeasonOjama(t);
   // 水際の光の輪（メニスカスのハイライト）
   ctx.beginPath(); ctx.ellipse(fx, wy + 0.6, 10.5*FLOAT_SCALE + Math.sin(t*2.3)*0.8, 2.5*FLOAT_SCALE, 0, 0, Math.PI*2);
   ctx.strokeStyle = "rgba(255,255,255,0.55)"; ctx.lineWidth = 1.2; ctx.stroke();
@@ -5903,6 +6222,8 @@ function loopFrame(ts){
     ojamaTimer -= dt;
     if(ojamaTimer <= 0) triggerOjama();
   }
+  // 季節のお邪魔の生き物・葉っぱの動き（蚊・蜂は浮きの周りを飛び、落ち葉は水面へ舞い降りる）
+  updateSeasonCritters(dt);
   // フェイズ進行（付け替え中・投げ／回収アニメーション中は止める。お邪魔中もアタリの時計は進み、前アタリ・本アタリが来る）
   if(rebaiting || rigAnim || rigHidden){
     // 何も進めない
