@@ -75,7 +75,7 @@
       }
       .wrap{ max-width:none; width:100%; margin:0; height:100dvh; display:flex; flex-direction:column; gap:0; padding:0; position:relative; }
       h1,h2,h3{ font-family:"Shippori Mincho B1","Hiragino Mincho ProN",serif; }
-      header.top{ position:absolute; top:calc(50px + env(safe-area-inset-top) + 140px); left:0; right:0; z-index:8; pointer-events:none; padding:6px 12px 22px; font-size:.84rem; line-height:1.45; color:#f4f7ee; background:linear-gradient(180deg, rgba(10,17,12,.58), rgba(10,17,12,.28) 55%, rgba(10,17,12,0)); text-shadow:0 1px 4px rgba(0,0,0,.55); }
+      header.top{ position:absolute; top:calc(50px + env(safe-area-inset-top) + 98px); left:0; right:0; z-index:8; pointer-events:none; padding:6px 12px 22px; font-size:.84rem; line-height:1.45; color:#f4f7ee; background:linear-gradient(180deg, rgba(10,17,12,.58), rgba(10,17,12,.28) 55%, rgba(10,17,12,0)); text-shadow:0 1px 4px rgba(0,0,0,.55); }
       /* 上部の情報（水温など）はデフォルトで非表示：風景への没頭を優先し、「情報」ボタンで出し入れする */
       header.top[hidden]{ display:none; }
       header.top .top-line{ display:flex; align-items:baseline; gap:4px 12px; flex-wrap:wrap; }
@@ -115,22 +115,23 @@
       .dlg-body{ padding:14px 16px calc(128px + env(safe-area-inset-bottom)); font-size:.92rem; }
       .dlg-body .body{ font-size:.92rem; }
       .msg{
-        min-height:2.7em; display:flex; align-items:center; gap:8px;
-        padding:6px 4px 0; font-size:.95rem;
-        touch-action:none; cursor:grab;
+        display:flex; align-items:flex-start; gap:8px;
+        box-sizing:border-box; height:calc(3 * 1.45em + 16px); padding:8px 12px;
+        font-size:.95rem; line-height:1.45;
+        border-radius:12px; background:linear-gradient(180deg, rgba(10,17,12,.72), rgba(10,17,12,.45));
+        color:#f2f6ec; text-shadow:0 1px 3px rgba(0,0,0,.5);
       }
-      /* ドラッグで自由な位置へ動かしたメッセージ：写真の上に読みやすく浮かせる */
-      .msg.msg-free{ position:absolute; z-index:8; left:12px; top:60px; max-width:calc(100% - 24px); box-sizing:border-box; padding:8px 12px; border-radius:12px; background:linear-gradient(180deg, rgba(10,17,12,.72), rgba(10,17,12,.45)); color:#f2f6ec; text-shadow:0 1px 3px rgba(0,0,0,.5); cursor:grabbing; }
+      #msgText{ flex:1; min-width:0; overflow-y:auto; overflow-x:hidden; max-height:calc(3 * 1.45em); scrollbar-width:thin; overscroll-behavior:contain; }
       /* 状況テキスト専用の固定高さゾーン：テキスト量・ゲージ・お邪魔表示が変わっても、風景（ステージ）の大きさと位置は一切動かない */
-      .status-zone{ position:absolute; left:0; right:0; top:calc(50px + env(safe-area-inset-top)); z-index:7; height:140px; overflow-y:auto; overflow-x:hidden; scrollbar-width:thin; padding:16px 12px 2px; color:#f2f6ec; background:linear-gradient(180deg, rgba(10,17,12,.72), rgba(10,17,12,.45) 62%, rgba(10,17,12,0)); text-shadow:0 1px 3px rgba(0,0,0,.5); }
+      .status-zone{ position:absolute; left:0; right:0; top:calc(50px + env(safe-area-inset-top)); z-index:7; height:auto; overflow:visible; padding:8px 12px; color:#f2f6ec; background:linear-gradient(180deg, rgba(10,17,12,.72), rgba(10,17,12,.45) 62%, rgba(10,17,12,0)); text-shadow:0 1px 3px rgba(0,0,0,.5); }
       .status-zone .gauge-row label{ color:rgba(255,255,255,.85); }
       .status-zone .gauge-row .val{ color:#fff; }
       .status-zone .ojama-speech{ text-shadow:none; }
       /* お邪魔中は状況ゾーンをタップ透過にして、万一ボールが文字の裏に回っても必ずタップできるようにする */
       .stage-card:has(.stage-box.ojama-active) .status-zone{ pointer-events:none; }
-      .msg .dot{ flex:0 0 auto; width:9px; height:9px; border-radius:50%; background:var(--water); }
+      .msg .dot{ flex:0 0 auto; width:9px; height:9px; margin-top:.55em; border-radius:50%; background:var(--water); }
       .msg.strong{ font-weight:700; }
-      .fight-ui{ display:none; padding:6px 4px 0; }
+      .fight-ui{ display:none; position:absolute; left:12px; right:12px; top:100%; margin-top:4px; padding:8px 10px; border-radius:12px; background:linear-gradient(180deg, rgba(10,17,12,.80), rgba(10,17,12,.55)); }
       .fight-ui.on{ display:block; }
       .gauge-row{ display:flex; align-items:center; gap:10px; margin-bottom:6px; }
       .gauge-row label{ flex:0 0 4.4em; font-size:.8rem; font-weight:700; color:var(--ink-soft); }
@@ -616,10 +617,10 @@ service cloud.firestore {
             <li><b>やり取りは竿を立てて溜める。</b>リールがないので糸は出せない。「竿を立てる」を長押しして張りを保ち、緑の範囲を外さないように。緑の範囲に保てている間は魚がぐっと近づいてきて、走られても少しずつ寄せられる。張りすぎればハリスが切れ、緩めすぎればバレる。<b>張りのシビアさは魚ごとに違う</b>：タナゴやオイカワは適正範囲が広くゆるめだが、マゴイは狭く、大型（50cm超・80cm超）になるほど範囲がさらに狭まり、張りの上下も速く、限界の猶予も短くなる。掛かった瞬間に「適正 ○〜○％」とシビアさが表示されるので、まずそれを見てから小刻みに調整する。魚が疲れて近づいたらタモ入れ。タモは頭から。</li>
             <li><b>操作はボタンと水面タップ。</b>打ち込みは水面をタップした場所へ。打ち直したあとも、水面をタップするまで仕掛けは投入されない。合わせは「竿を持つ」方式：ボタンを押し続けて竿を持ち、本アタリの瞬間に指を離すと合わせる（水面も同じ作法で、触れている間は竿を持ち、離すと合わせる。水面以外は反応しない。スペースキーも、押している間は竿を持ち、離すと合わせる）。やり取り中の糸の張りは「竿を立てる（長押し）」ボタンで調整し、押している間は張り、離すと緩む。お邪魔中は「竿を持つ」ボタンも「餌付け」も使えない（水面・スペースキーでの合わせも同じ）。まずボールを全部消してから合わせること。</li>
             <li><b>お邪魔モード（常時ON）。</b>釣りを始めてから、アタリとまったく同じ確率（最速10秒〜最長1分半に1回）で、おじいさん・おばあさんの話しかけ、悪ガキのルアー投げ込み、野良猫、写真好きの観光客、釣りの先輩、動画配信者、押しの強いセールスマンなどが現れる。静かさに負けて居眠りしてしまうこともある。<b>お邪魔のセリフは、キャラごとに違う声で実際に読み上げられる</b>（おじいさんは低くゆっくり、おばあさんは少し高く、悪ガキは高く速く、居眠りは眠そうに遅く、など）。画面にボールが10〜30個降ってくる（厄介な相手ほど多い）ので、全部タップして消すまでお邪魔は続く（居眠りはボールをはじいて目を覚ます）。お邪魔が終われば声も止まる。<b>アタリはお邪魔の間も通常通り来るが、お邪魔中は合わせも餌付けもできない</b>：「竿を持つ」ボタンと「餌付け」はお邪魔中は使えなくなり、水面・スペースキーでの合わせも効かない（竿を持っている最中にお邪魔が始まると、握りは解けて合わせにはならない）。本アタリは保持されず、通常と同じ持ち時間しかないので、ボール消しに手間取って合わせが遅れれば魚はエサを離して逃げる。釣りたければ、ボールを素早く全部消してお邪魔を終わらせ、本アタリが残っているうちに通常通り合わせること。ルアーが入ると魚が散るので、消えたら打ち直しになる（ただしアタリ進行中に消し終えた場合は、そのアタリの残り時間に任される）。</li>
-            <li><b>風景の音は設定でON/OFF。</b>最初のタップで再生が始まる。OFFにすれば、YouTubeなどの他のアプリの音と一緒に楽しめる。音は合成ではなく、実際に野外で録音された環境音のループ：水のせせらぎがいつも流れ、早朝は鳥の合唱、昼は池の鳥の声（夏はセミの声も）、夕方は虫の声（夏・秋）、春・夏の朝と夕方にはカエルの合唱が、季節と時間帯に合わせて重なる。長さの違うループを重ねているので、同じ音の並びはめったに戻ってこない。録音出典（radio aporee／Internet Archive）：鳥の合唱＝Enquiring Ear（CC BY-NC 3.0）、池の鳥＝Carlos Santos（パブリックドメイン）、カエル＝リトアニア・ティルムーナイ（パブリックドメイン）、虫＝クロアチア・スプリト（パブリックドメイン）、セミと鳥＝Wu Tsan-Cheng（CC BY 3.0）、水音＝Vassar College（パブリックドメイン）。風景の写真（全28枚、季節ごと）：春＝Roman Boed from The Nether（CC BY 2.0）、Marathon（CC BY-SA 2.0）、Czeva（CC BY-SA 3.0）、Acabashi（CC BY-SA 4.0）、Sardaka（CC BY-SA 4.0）、EoRdE6（CC BY-SA 4.0）、U.S. Department of Agriculture（CC0）。夏＝Fotoscotty（CC BY-SA 3.0）、BLM Oregon & Washington（パブリックドメイン）、Oast House Archive（CC BY-SA 2.0）、Mimiliz（CC BY-SA 3.0）、Daniel Lepoitt（CC BY-SA 3.0）、sagesolar（CC BY 2.0）、Peter S.（CC BY-SA 2.0）、KirstKG（CC BY-SA 4.0）。秋＝vastateparksstaff（CC BY 2.0）、Holly's Coastal（CC0）、TAKAO_Tsushima（CC BY 4.0）、liz west（CC BY 2.0）、Bernard Spragg. NZ from Ch（CC0）、Calyponte（CC BY-SA 4.0）。冬＝Hossein（CC BY-SA 4.0）、BLM Oregon & Washington（パブリックドメイン）、Acabashi（CC BY-SA 4.0）、yrjö jyske（CC BY 4.0）、Yuri Samoylov（CC BY-SA 4.0）。波紋の写真＝Roger McLassus（CC BY-SA 3.0）。</li><li><b>距離は5メートル。</b>ポイントは竿先から5.0m先。やり取りでは魚との距離がこの5.0mから近づいたり離れたりする。</li><li><b>エサで釣れる魚がガラッと変わる。</b>練り餌はフナ類・タナゴ中心ながら、鯉やブルーギルも来て、たまにカメまで釣れる。コーンは大型コイ・ソウギョ中心で小魚が激減、パンは表層の魚とニシキゴイ中心、ミミズはナマズ・ウナギなど肉食魚中心（カメもミミズが好きだ）。全31種のうち、今のエサではほぼ来ない魚も多いので、狙いを変えたらエサを変える。</li><li><b>正体は釣り上げるまで分からない。</b>掛かった瞬間に魚種や大きさは表示されない。水中の姿も影だけで、タモに入れて初めて名前とサイズが分かる。</li>
+            <li><b>風景の音は設定でON/OFF。</b>最初のタップで再生が始まる。OFFにすれば、YouTubeなどの他のアプリの音と一緒に楽しめる。音は合成ではなく、実際に野外で録音された環境音のループ：水のせせらぎがいつも流れ、早朝は鳥の合唱、昼は池の鳥の声（夏はセミの声も）、夕方は虫の声（夏・秋）、春・夏の朝と夕方にはカエルの合唱が、季節と時間帯に合わせて重なる。長さの違うループを重ねているので、同じ音の並びはめったに戻ってこない。録音出典（radio aporee／Internet Archive）：鳥の合唱＝Enquiring Ear（CC BY-NC 3.0）、池の鳥＝Carlos Santos（パブリックドメイン）、カエル＝リトアニア・ティルムーナイ（パブリックドメイン）、虫＝クロアチア・スプリト（パブリックドメイン）、セミと鳥＝Wu Tsan-Cheng（CC BY 3.0）、水音＝Vassar College（パブリックドメイン）。風景の写真（全27枚、季節ごと）：春＝Roman Boed from The Nether（CC BY 2.0）、Marathon（CC BY-SA 2.0）、Czeva（CC BY-SA 3.0）、Acabashi（CC BY-SA 4.0）、Sardaka（CC BY-SA 4.0）、EoRdE6（CC BY-SA 4.0）、U.S. Department of Agriculture（CC0）。夏＝Fotoscotty（CC BY-SA 3.0）、BLM Oregon & Washington（パブリックドメイン）、Oast House Archive（CC BY-SA 2.0）、Mimiliz（CC BY-SA 3.0）、Daniel Lepoitt（CC BY-SA 3.0）、sagesolar（CC BY 2.0）、Peter S.（CC BY-SA 2.0）、KirstKG（CC BY-SA 4.0）。秋＝vastateparksstaff（CC BY 2.0）、Holly's Coastal（CC0）、TAKAO_Tsushima（CC BY 4.0）、liz west（CC BY 2.0）、Bernard Spragg. NZ from Ch（CC0）、Calyponte（CC BY-SA 4.0）。冬＝Hossein（CC BY-SA 4.0）、BLM Oregon & Washington（パブリックドメイン）、Acabashi（CC BY-SA 4.0）、Yuri Samoylov（CC BY-SA 4.0）。波紋の写真＝Roger McLassus（CC BY-SA 3.0）。</li><li><b>距離は5メートル。</b>ポイントは竿先から5.0m先。やり取りでは魚との距離がこの5.0mから近づいたり離れたりする。</li><li><b>エサで釣れる魚がガラッと変わる。</b>練り餌はフナ類・タナゴ中心ながら、鯉やブルーギルも来て、たまにカメまで釣れる。コーンは大型コイ・ソウギョ中心で小魚が激減、パンは表層の魚とニシキゴイ中心、ミミズはナマズ・ウナギなど肉食魚中心（カメもミミズが好きだ）。全31種のうち、今のエサではほぼ来ない魚も多いので、狙いを変えたらエサを変える。</li><li><b>正体は釣り上げるまで分からない。</b>掛かった瞬間に魚種や大きさは表示されない。水中の姿も影だけで、タモに入れて初めて名前とサイズが分かる。</li>
             <li><b>リリースは優しく。</b>鯉は濡れた手で触り、長く空気にさらさず、その場でそっと返すのがマナー。拾ったゴミは持ち帰ろう。ランキングに入る魚を登録せずにリリースしようとすると確認が出る（確認のボタンはリリースボタンと違う位置にあり、表示から600msは押せないので、連打での誤操作を防げる）。</li>
           </ol>
-          <p>風景の写真は上の帯に表示され、下のボタンには隠れない。状況の言葉は上の空の部分に表示され、池を隠さない（言葉の位置はドラッグで動かせる）。上部の水温などの情報は最初は隠れていて、上の「情報」ボタンで出し入れできる。状況の言葉が増えたり減ったりしても、風景そのものは決して動かない。延べ竿と糸は最初は表示されず、水面にはウキだけが立つ。竿と糸を見たいときは、設定の「竿と糸の表示」から表示できる。背景は実写の写真で、開くたびに季節と時間帯に合った写真（全28枚）からランダムに変わり、色づけの趣（24通り）も重なる。切り取り方や左右の向きまで変わるので、まるで違う場所で釣っているような気分になる（夏に紅葉、冬に桜のような季節外れの風景は出ない）。鳥居や橋、枝といった描き足しのイラストは一切ない。<b>開いた時のデフォルトのステージは、端末のカレンダーと時計に合わせる</b>：日付から季節（3〜5月は春、6〜8月は夏、9〜11月は秋、12〜2月は冬）を、現在時刻から時間帯（5〜10時台は早朝、11〜15時台は昼、16時〜翌4時台は夕方）を選び、その季節・時間帯の風景で始まる。設定で季節や時間帯を変えればその場で切り替わり、開き直すたびにまたカレンダーと時計のステージに戻る。設定で季節を変えると、その季節に合った風景に切り替わる。季節の情景も移ろう（春は桜、夏は日差し、秋は枯れ葉、冬は時々の雪）。待ちの間は、季節・時間帯・天気に寄せた独り言や「気のせいか？」といったウキの小さな揺れのコメント、ネットから取得した、地元のニュースの見出しと要約（出典・日付つき）への勝手な見解が流れ（取得できないときは、架空の世間話になる）、やり取り中は張りの状態に応じた掛け声が出る。ときどき魚が水面で跳ねることもある。ウキと水面だけを眺めて、静かに没頭してほしい。季節のいたずらもある：夏は蚊が飛んできて耳元を飛び回った末に刺される（かゆいが、釣りは止まらない）。秋はトンボ（アキアカネ）がウキのトップに止まって、その重みでウキが少し沈んでアタリが見えにくくなり、冬はウキに雪が少しずつ積もって、いつもより深く沈む（打ち直すか魚が引くと雪は落ちる）。</p>
+          <p>風景の写真は上の帯に表示され、下のボタンには隠れない。状況の言葉は上のテキストボックスに3行で表示され、長い言葉は箱の中でスクロールできる。池を隠さない。上部の水温などの情報は最初は隠れていて、上の「情報」ボタンで出し入れできる。状況の言葉が増えたり減ったりしても、風景そのものは決して動かない。延べ竿と糸は最初は表示されず、水面にはウキだけが立つ。竿と糸を見たいときは、設定の「竿と糸の表示」から表示できる。背景は実写の写真で、開くたびに季節と時間帯に合った写真（全27枚）からランダムに変わり、色づけの趣（24通り）も重なる。切り取り方や左右の向きまで変わるので、まるで違う場所で釣っているような気分になる（夏に紅葉、冬に桜のような季節外れの風景は出ない）。鳥居や橋、枝といった描き足しのイラストは一切ない。<b>開いた時のデフォルトのステージは、端末のカレンダーと時計に合わせる</b>：日付から季節（3〜5月は春、6〜8月は夏、9〜11月は秋、12〜2月は冬）を、現在時刻から時間帯（5〜10時台は早朝、11〜15時台は昼、16時〜翌4時台は夕方）を選び、その季節・時間帯の風景で始まる。設定で季節や時間帯を変えればその場で切り替わり、開き直すたびにまたカレンダーと時計のステージに戻る。設定で季節を変えると、その季節に合った風景に切り替わる。季節の情景も移ろう（春は桜、夏は日差し、秋は枯れ葉、冬は時々の雪）。待ちの間は、季節・時間帯・天気に寄せた独り言や「気のせいか？」といったウキの小さな揺れのコメント、ネットから取得した、地元のニュースの見出しと要約（出典・日付つき）への勝手な見解が流れ（取得できないときは、架空の世間話になる）、やり取り中は張りの状態に応じた掛け声が出る。ときどき魚が水面で跳ねることもある。ウキと水面だけを眺めて、静かに没頭してほしい。季節のいたずらもある：夏は蚊が飛んできて耳元を飛び回った末に刺される（かゆいが、釣りは止まらない）。秋はトンボ（アキアカネ）がウキのトップに止まって、その重みでウキが少し沈んでアタリが見えにくくなり、冬はウキに雪が少しずつ積もって、いつもより深く沈む（打ち直すか魚が引くと雪は落ちる）。</p>
           <p>サイズの目安：40〜60cmが中心、50cm超が最初の感動ライン、80cm超は記録級。水温15℃以上で活性が上がり、20〜25℃が最適。早朝と夕方が狙い目で、秋は越冬前の荒食いで一年で最も釣りやすい。</p>
           <p class="foot">延べ竿日和 ― ウキひとつ、水面ひとつ。</p>
         </div>
@@ -632,7 +633,7 @@ service cloud.firestore {
             <li><b>Play the fish with the rod raised.</b> There is no reel, so the line cannot run out. Hold “Raise the rod” to keep tension inside the green zone: while you hold the green, the fish comes much closer. Too much tension snaps the leader; too little and the hook comes out. <b>Each fish is different</b>: small fish forgive a wide range, while carp — especially over 50cm and 80cm — allow only a narrow range that moves fast. The ideal range is shown the moment the fish is hooked. When the tired fish is close, net it head-first.</li>
             <li><b>Buttons and water taps.</b> Cast by tapping the water where you want the rig to land — after a re-bait, too, nothing is cast until you tap the water. Striking works by holding the rod: press and hold the “Hold the Rod” button, then release at the instant of the real bite to strike (the water works the same way — touching it holds the rod, letting go strikes; taps off the water do nothing. The space key also holds while pressed and strikes on release). During a fight, hold the raise button to add tension and release to ease off. While interrupted, the “Hold the Rod” button and “Re-bait” cannot be used (water and space-key strikes are off too) — clear all the balls first, then strike.</li>
             <li><b>Interruptions (always on).</b> At exactly the same rate as bites — once every 10 seconds to 1.5 minutes after you start fishing, an old man or woman starts a long chat, a local kid throws a lure in, a stray cat, a camera-happy tourist, a senior angler, a video streamer or a pushy salesman shows up — or you doze off. Tap all 10 to 30 falling balls away to end the interruption (the more troublesome the visitor, the more balls). <b>Each character's line is also spoken aloud, in a recorded voice fitted to the character</b> — the old man low and slow, the old woman a little higher, the kid high and fast, the doze slow and sleepy, and so on. The voice stops when the interruption ends. <b>Bites still arrive while you are interrupted, but you cannot strike or re-bait until the interruption ends</b>: the “Hold the Rod” button and “Re-bait” are disabled, and water and space-key strikes do not work either (if an interruption starts while you are holding the rod, the grip is released without striking). A real bite is not held for you — it lasts only the usual time, so spend too long on the balls and the fish lets go and is gone. To catch, clear every ball quickly to end the interruption, then strike as usual while the real bite still lasts. A lure scatters the fish, so you will need to cast again (unless you clear it while a bite is in progress, in which case that bite simply keeps its remaining time).</li>
-            <li><b>The sounds of the shore can be turned on and off in Settings.</b> Sound starts with your first tap (turn it off to enjoy other apps' sound, such as YouTube, alongside the game), and it is not synthesized: it is real field recordings, looped and layered. Trickling water runs underneath everything; mornings bring a birdsong chorus, daytime the birds of a pond (with cicadas in summer), evenings the insects of summer and autumn, and spring and summer mornings and evenings a chorus of frogs — each following the season and time of day. The loops have different lengths, so the same sequence rarely comes round again. Recording credits (radio aporee / Internet Archive): birdsong chorus — Enquiring Ear (CC BY-NC 3.0); pond birds — Carlos Santos (public domain); frogs — Tirmūnai, Lithuania (public domain); crickets — Split, Croatia (public domain); cicadas and birds — Wu Tsan-Cheng (CC BY 3.0); water — Vassar College (public domain). Scenery photos (28, by season): spring — Roman Boed from The Nether (CC BY 2.0), Marathon (CC BY-SA 2.0), Czeva (CC BY-SA 3.0), Acabashi (CC BY-SA 4.0), Sardaka (CC BY-SA 4.0), EoRdE6 (CC BY-SA 4.0), U.S. Department of Agriculture (CC0); summer — Fotoscotty (CC BY-SA 3.0), BLM Oregon & Washington (public domain), Oast House Archive (CC BY-SA 2.0), Mimiliz (CC BY-SA 3.0), Daniel Lepoitt (CC BY-SA 3.0), sagesolar (CC BY 2.0), Peter S. (CC BY-SA 2.0), KirstKG (CC BY-SA 4.0); autumn — vastateparksstaff (CC BY 2.0), Holly's Coastal (CC0), TAKAO_Tsushima (CC BY 4.0), liz west (CC BY 2.0), Bernard Spragg. NZ from Ch (CC0), Calyponte (CC BY-SA 4.0); winter — Hossein (CC BY-SA 4.0), BLM Oregon & Washington (public domain), Acabashi (CC BY-SA 4.0), yrjö jyske (CC BY 4.0), Yuri Samoylov (CC BY-SA 4.0). Ripple photo — Roger McLassus (CC BY-SA 3.0).</li>
+            <li><b>The sounds of the shore can be turned on and off in Settings.</b> Sound starts with your first tap (turn it off to enjoy other apps' sound, such as YouTube, alongside the game), and it is not synthesized: it is real field recordings, looped and layered. Trickling water runs underneath everything; mornings bring a birdsong chorus, daytime the birds of a pond (with cicadas in summer), evenings the insects of summer and autumn, and spring and summer mornings and evenings a chorus of frogs — each following the season and time of day. The loops have different lengths, so the same sequence rarely comes round again. Recording credits (radio aporee / Internet Archive): birdsong chorus — Enquiring Ear (CC BY-NC 3.0); pond birds — Carlos Santos (public domain); frogs — Tirmūnai, Lithuania (public domain); crickets — Split, Croatia (public domain); cicadas and birds — Wu Tsan-Cheng (CC BY 3.0); water — Vassar College (public domain). Scenery photos (27, by season): spring — Roman Boed from The Nether (CC BY 2.0), Marathon (CC BY-SA 2.0), Czeva (CC BY-SA 3.0), Acabashi (CC BY-SA 4.0), Sardaka (CC BY-SA 4.0), EoRdE6 (CC BY-SA 4.0), U.S. Department of Agriculture (CC0); summer — Fotoscotty (CC BY-SA 3.0), BLM Oregon & Washington (public domain), Oast House Archive (CC BY-SA 2.0), Mimiliz (CC BY-SA 3.0), Daniel Lepoitt (CC BY-SA 3.0), sagesolar (CC BY 2.0), Peter S. (CC BY-SA 2.0), KirstKG (CC BY-SA 4.0); autumn — vastateparksstaff (CC BY 2.0), Holly's Coastal (CC0), TAKAO_Tsushima (CC BY 4.0), liz west (CC BY 2.0), Bernard Spragg. NZ from Ch (CC0), Calyponte (CC BY-SA 4.0); winter — Hossein (CC BY-SA 4.0), BLM Oregon & Washington (public domain), Acabashi (CC BY-SA 4.0), Yuri Samoylov (CC BY-SA 4.0). Ripple photo — Roger McLassus (CC BY-SA 3.0).</li>
             <li><b>The spot is 5 metres out.</b> During a fight, the distance changes from that 5.0m as the fish runs and tires.</li>
             <li><b>Bait changes everything.</b> Dough draws crucians and bitterlings — but carp and bluegill come too, and now and then even a turtle. Corn draws big carp and grass carp, bread draws surface fish and koi, and earthworm draws catfish, eels and other predators (turtles love earthworms too). Many of the 31 species rarely come to the wrong bait.</li>
             <li><b>You learn what it is only in the net.</b> Species and size stay hidden while you fight; underwater you see only a shadow.</li>
@@ -858,13 +859,12 @@ var volSE = 0.5, volVoice = 0.5, volAmb = 0.5;
    効果音 0.57×2=1.14／お邪魔ボイス 0.18×2=0.36／環境音は旧実効係数 1/4 × 旧ベスト1.0 の2倍で 1/2 */
 var SE_SCALE = 1.14, VOICE_SCALE = 0.36;
 var AMB_SCALE = 1 / 2;
-var msgPos = null; // メッセージ行のドラッグ位置（stageに対する割合 {x,y}、null＝既定位置（状況ゾーン内））
 try{
   var raw = localStorage.getItem(LS_KEY);
-  if(raw){ var parsed = JSON.parse(raw); if(parsed && parsed.records) records = parsed.records; if(parsed && parsed.rankings && typeof parsed.rankings==="object") rankings = parsed.rankings; if(parsed && typeof parsed.rankName==="string") rankName = parsed.rankName; if(parsed && parsed.newsPlace && typeof parsed.newsPlace==="object") newsPlace = parsed.newsPlace; if(parsed && typeof parsed.ambientOn==="boolean") ambientOn = parsed.ambientOn; if(parsed && typeof parsed.floatSize==="number") floatSizeMul = Math.min(2, Math.max(0.5, parsed.floatSize)); if(parsed && parsed.floatSizeVer !== 3){ /* 浮きの大きさの既定を1.15倍に変えたので、古い保存値は一度だけ1.15倍に寄せる */ floatSizeMul = 1.15; } if(parsed && parsed.msgPos && typeof parsed.msgPos.x==="number" && typeof parsed.msgPos.y==="number") msgPos = {x:Math.min(0.95, Math.max(0, parsed.msgPos.x)), y:Math.min(0.95, Math.max(0, parsed.msgPos.y))}; if(parsed && (parsed.lang==="en" || parsed.lang==="ja")) lang = parsed.lang; if(parsed && parsed.vol){ if(typeof parsed.vol.se==="number") volSE = Math.min(1, Math.max(0, parsed.vol.se)); if(typeof parsed.vol.voice==="number") volVoice = Math.min(1, Math.max(0, parsed.vol.voice)); if(typeof parsed.vol.amb==="number") volAmb = Math.min(1, Math.max(0, parsed.vol.amb)); if(parsed.volVer !== 2){ /* 旧スケールで保存された値を新スケール（ベスト＝50%）へ一度だけ換算し、聞こえる大きさを変えない */ volSE = Math.min(1, Math.max(0, volSE * 0.5 / 0.57)); volVoice = Math.min(1, Math.max(0, volVoice * 0.5 / 0.18)); volAmb = Math.min(1, Math.max(0, volAmb * 0.5)); } } }
+  if(raw){ var parsed = JSON.parse(raw); if(parsed && parsed.records) records = parsed.records; if(parsed && parsed.rankings && typeof parsed.rankings==="object") rankings = parsed.rankings; if(parsed && typeof parsed.rankName==="string") rankName = parsed.rankName; if(parsed && parsed.newsPlace && typeof parsed.newsPlace==="object") newsPlace = parsed.newsPlace; if(parsed && typeof parsed.ambientOn==="boolean") ambientOn = parsed.ambientOn; if(parsed && typeof parsed.floatSize==="number") floatSizeMul = Math.min(2, Math.max(0.5, parsed.floatSize)); if(parsed && parsed.floatSizeVer !== 3){ /* 浮きの大きさの既定を1.15倍に変えたので、古い保存値は一度だけ1.15倍に寄せる */ floatSizeMul = 1.15; } if(parsed && (parsed.lang==="en" || parsed.lang==="ja")) lang = parsed.lang; if(parsed && parsed.vol){ if(typeof parsed.vol.se==="number") volSE = Math.min(1, Math.max(0, parsed.vol.se)); if(typeof parsed.vol.voice==="number") volVoice = Math.min(1, Math.max(0, parsed.vol.voice)); if(typeof parsed.vol.amb==="number") volAmb = Math.min(1, Math.max(0, parsed.vol.amb)); if(parsed.volVer !== 2){ /* 旧スケールで保存された値を新スケール（ベスト＝50%）へ一度だけ換算し、聞こえる大きさを変えない */ volSE = Math.min(1, Math.max(0, volSE * 0.5 / 0.57)); volVoice = Math.min(1, Math.max(0, volVoice * 0.5 / 0.18)); volAmb = Math.min(1, Math.max(0, volAmb * 0.5)); } } }
 }catch(e){ records = []; }
 function save(){
-  try{ localStorage.setItem(LS_KEY, JSON.stringify({records:records, rankings:rankings, rankName:rankName, lang:lang, vol:{se:volSE, voice:volVoice, amb:volAmb}, volVer:2, newsPlace:newsPlace, ambientOn:ambientOn, floatSize:floatSizeMul, floatSizeVer:3, msgPos:msgPos})); }catch(e){}
+  try{ localStorage.setItem(LS_KEY, JSON.stringify({records:records, rankings:rankings, rankName:rankName, lang:lang, vol:{se:volSE, voice:volVoice, amb:volAmb}, volVer:2, newsPlace:newsPlace, ambientOn:ambientOn, floatSize:floatSizeMul, floatSizeVer:3})); }catch(e){}
 }
 
 /* ================= 条件 ================= */
@@ -1841,7 +1841,6 @@ function trSay(txt){
   return SAY_EN[txt] || txt;
 }
 
-
 /* ================= 英語表示用プール ================= */
 function P(jaArr, enArr){ return lang === "en" ? enArr : jaArr; }
 var WAIT_MUSINGS_EN = [
@@ -2185,9 +2184,8 @@ function say(t, strong){
   }
   t = trSay(t);
   msgText.textContent = t;
-  msgBox.className = "msg" + (msgFree ? " msg-free" : "") + (strong ? " strong" : "");
-  var sz = document.getElementById("statusZone");
-  if(sz) sz.scrollTop = 0; // 新しい状況は固定ゾーンの先頭から見せる（ゾーンの外＝風景は動かない）
+  msgBox.className = "msg" + (strong ? " strong" : "");
+  msgText.scrollTop = 0; // 新しい状況はテキストの先頭から見せる（風景は動かない）
 }
 
 /* ================= イベントごとのコメント ================= */
@@ -4790,75 +4788,6 @@ document.addEventListener("visibilitychange", function(){
   } else if(ambientOn) ensureAudio();
 });
 
-/* メッセージ行のドラッグ移動：#msg を指でつかんで動かせる。位置は localStorage に保存し、再読み込み時も復元する。
-   ドラッグ中は下のキャンバスへタップが届かない（#msg はキャンバスの兄弟要素で、pointerdown を止める）。
-   ただのタップ（動かさない）は何もしない。既定位置は状況ゾーンの中（上部の空の部分） */
-var msgFree = false, msgDrag = null;
-function msgStageBox(){ return document.getElementById("stageBox"); }
-function applyMsgPos(){
-  var box = msgBox, stage = msgStageBox();
-  if(!box || !stage || !msgPos) return;
-  var r = stage.getBoundingClientRect();
-  if(r.width < 10 || r.height < 10) return;
-  if(!msgFree){ stage.appendChild(box); box.classList.add("msg-free"); msgFree = true; }
-  var mw = box.offsetWidth || 200, mh = box.offsetHeight || 44;
-  var tb = document.querySelector(".toolbar");
-  var topMin = (tb ? tb.offsetHeight : 50) + 4;
-  var left = Math.max(8, Math.min(r.width - mw - 8, msgPos.x * r.width));
-  var top = Math.max(topMin, Math.min(r.height - mh - 8, msgPos.y * r.height));
-  box.style.left = left + "px"; box.style.top = top + "px";
-}
-function msgSavePos(){
-  var stage = msgStageBox();
-  if(!stage || !msgFree) return;
-  var r = stage.getBoundingClientRect();
-  var left = parseFloat(msgBox.style.left) || 0, top = parseFloat(msgBox.style.top) || 0;
-  msgPos = {x:left / r.width, y:top / r.height};
-  save();
-}
-if(msgBox){
-  msgBox.addEventListener("pointerdown", function(e){
-    e.preventDefault();
-    var stage = msgStageBox();
-    if(!stage) return;
-    var b = msgBox.getBoundingClientRect();
-    msgDrag = {id:e.pointerId, dx:e.clientX - b.left, dy:e.clientY - b.top, moved:false, sx:e.clientX, sy:e.clientY};
-    try{ msgBox.setPointerCapture(e.pointerId); }catch(_){}
-  });
-  msgBox.addEventListener("pointermove", function(e){
-    if(!msgDrag || e.pointerId !== msgDrag.id) return;
-    e.preventDefault();
-    if(!msgDrag.moved && Math.abs(e.clientX - msgDrag.sx) < 6 && Math.abs(e.clientY - msgDrag.sy) < 6) return;
-    var stage = msgStageBox();
-    if(!stage) return;
-    if(!msgDrag.moved){
-      msgDrag.moved = true;
-      /* 初めて動いた瞬間に stage 直下へ移し、つかんだ位置がずれないよう今の画面位置を保つ */
-      var b = msgBox.getBoundingClientRect();
-      var sr = stage.getBoundingClientRect();
-      if(!msgFree){ stage.appendChild(msgBox); msgBox.classList.add("msg-free"); msgFree = true; }
-      msgBox.style.left = (b.left - sr.left) + "px";
-      msgBox.style.top = (b.top - sr.top) + "px";
-      msgDrag.dx = e.clientX - b.left; msgDrag.dy = e.clientY - b.top;
-    }
-    var sr2 = stage.getBoundingClientRect();
-    var mw = msgBox.offsetWidth || 200, mh = msgBox.offsetHeight || 44;
-    var tb = document.querySelector(".toolbar");
-    var topMin = (tb ? tb.offsetHeight : 50) + 4;
-    var left = Math.max(8, Math.min(sr2.width - mw - 8, e.clientX - sr2.left - msgDrag.dx));
-    var top = Math.max(topMin, Math.min(sr2.height - mh - 8, e.clientY - sr2.top - msgDrag.dy));
-    msgBox.style.left = left + "px"; msgBox.style.top = top + "px";
-  });
-  var msgEndDrag = function(e){
-    if(!msgDrag) return;
-    var wasDrag = msgDrag.moved;
-    msgDrag = null;
-    if(wasDrag) msgSavePos();
-  };
-  msgBox.addEventListener("pointerup", msgEndDrag);
-  msgBox.addEventListener("pointercancel", msgEndDrag);
-}
-window.addEventListener("resize", function(){ applyMsgPos(); });
 /* 上部の情報（水温など）はデフォルトで非表示。「情報」ボタンで出し入れする */
 var condToggleBtn = document.getElementById("condToggle");
 var topInfoEl = document.getElementById("topInfo");
@@ -5300,7 +5229,7 @@ var SCENE_IMGS = {};
 ["morning","day","evening"].forEach(function(k){
   var im = new Image(); im.src = window.__SCENE_DATA[k]; SCENE_IMGS[k] = im;
 });
-/* ================= 背景写真（全28枚・実写のみ） =================
+/* ================= 背景写真（全27枚・実写のみ） =================
    開くたびに、今の季節と時間帯に合う写真から1枚がランダムに選ばれる。
    描き足しのイラスト（鳥居・橋・枝・小物など）は一切重ねない。
    poly はその写真の「開けた水面」の範囲（正規化座標）、sun は太陽の反射柱の位置、
@@ -5333,7 +5262,6 @@ var SCENE_PHOTOS = [
   {id:"winter-morning-1", src:__GD[197], times:["morning"], seasons:["winter"], sun:null, dy:0, poly:[[0,0.56],[0.15,0.50],[0.30,0.47],[0.50,0.47],[0.70,0.48],[0.85,0.53],[0.93,0.64],[1,0.80],[1,1],[0,1]]},
   {id:"winter-day-1", src:__GD[108], times:["day"], seasons:["winter"], sun:0.83, dy:0, poly:[[0,0.54],[0.25,0.51],[0.50,0.50],[0.75,0.51],[1,0.55],[1,1],[0,1]]},
   {id:"winter-day-2", src:__GD[198], times:["day"], seasons:["winter"], sun:null, dy:0, poly:[[0,0.40],[0.15,0.44],[0.30,0.48],[0.50,0.50],[0.70,0.51],[0.85,0.51],[1,0.52],[1,1],[0,1]]},
-  {id:"winter-evening-1", src:__GD[199], times:["evening"], seasons:["winter"], sun:0.62, dy:0, poly:[[0,0.25],[0.25,0.25],[0.50,0.26],[0.75,0.26],[1,0.25],[1,1],[0,1]]},
   {id:"winter-evening-2", src:__GD[200], times:["evening"], seasons:["winter"], sun:null, dy:0, poly:[[0,0.50],[0.25,0.50],[0.50,0.50],[0.75,0.51],[1,0.51],[1,1],[0.30,1],[0.24,0.92],[0.16,0.80],[0.08,0.70],[0,0.62]]},
   {id:"winter-free-1", src:__GD[201], times:["day"], seasons:["winter"], sun:null, dy:0, poly:[[0,0.56],[0.20,0.54],[0.40,0.53],[0.60,0.54],[0.80,0.55],[1,0.56],[1,1],[0,1]]}
 ];
@@ -6628,7 +6556,6 @@ function loopFrame(ts){
   if(!skipDraw) draw();
 }
 
-
 /* ================= 表示言語の適用（設定の「表示言語 / Language」で切り替え） ================= */
 function setTxt(id, txt){ var e = document.getElementById(id); if(e) e.textContent = txt; }
 function buildLangChips(){
@@ -6843,7 +6770,6 @@ renderRecords();
 applyLanguage();
 loadOnlineRankings();
 fitCanvas();
-applyMsgPos();
 requestAnimationFrame(function(ts){ lastTs = ts; requestAnimationFrame(loop); });
 })();
 </script>
