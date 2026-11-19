@@ -1,0 +1,1029 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<meta name="color-scheme" content="light dark"/>
+<link rel="icon" href="data:,"/>
+<title>FM-1 サンプルアプリ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;900&family=Noto+Sans+JP:wght@400;500;700;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f2efe9; --panel:#ffffff; --panel2:#e9e5dc; --ink:#17171c; --muted:#6b6b74; --line:#d8d2c6;
+  --accent:#ff5a1f; --accent2:#0aa67a; --amber:#ffb020; --red:#e5484d; --pad:#23232b; --pad-ink:#fff;
+  --chip:#17171c;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#0e0e11; --panel:#17171d; --panel2:#1f1f27; --ink:#f2f2f0; --muted:#a3a3ad; --line:#2c2c36; --chip:#f2f2f0; }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans JP",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:var(--accent)}
+button,select,input[type=file]{min-height:44px}
+button{font-family:inherit;cursor:pointer}
+.wrap{max-width:1080px;margin:0 auto;padding:18px 16px 56px}
+.hero{padding:22px 0 8px}
+.hero h1{font-family:"Archivo","Noto Sans JP",sans-serif;font-weight:900;font-size:clamp(30px,6vw,52px);line-height:.95;letter-spacing:-.02em;margin:0}
+.hero h1 span{color:var(--accent)}
+.hero p{color:var(--muted);line-height:1.7;max-width:680px;margin:12px 0 0;font-size:15px}
+.statusrow{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.pill{display:inline-flex;align-items:center;gap:7px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:8px 12px;font-size:12.5px;font-weight:700}
+.dot{width:9px;height:9px;border-radius:50%;background:#999;flex:none}
+.dot.on{background:var(--accent2);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent2) 22%,transparent)}
+.dot.rec{background:var(--red);animation:blink 1s infinite}
+@keyframes blink{50%{opacity:.25}}
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:20px 0 6px}
+.step{background:var(--chip);color:var(--bg);border-radius:12px;padding:12px}
+@media(prefers-color-scheme:dark){.step{background:#fff;color:#111}}
+.step b{font-family:"Archivo";font-size:20px;display:block}
+.step span{font-size:11.5px;font-weight:700;opacity:.85;line-height:1.4;display:block;margin-top:2px}
+@media(max-width:640px){.steps{grid-template-columns:1fr 1fr}}
+section{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:20px;margin-top:16px}
+.sec-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}
+.sec-head h2{margin:0;font-size:20px;font-weight:900;letter-spacing:-.01em}
+.sec-head h2 em{font-style:normal;color:var(--accent);font-family:"Archivo"}
+.sec-head p{margin:6px 0 0;color:var(--muted);font-size:13.5px;line-height:1.65;max-width:640px}
+.tag{font-family:"JetBrains Mono",monospace;font-size:11px;background:var(--panel2);border:1px solid var(--line);padding:6px 8px;border-radius:999px;white-space:nowrap}
+canvas.wave{width:100%;height:110px;background:#101014;border-radius:12px;display:block;margin-top:14px}
+.meterwrap{height:10px;background:var(--panel2);border-radius:999px;overflow:hidden;margin-top:12px;border:1px solid var(--line)}
+#meter{height:100%;width:0%;background:linear-gradient(90deg,var(--accent2),var(--amber),var(--red));transition:width .06s}
+.btnrow{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.btn{border:1px solid var(--line);background:var(--panel2);color:var(--ink);border-radius:999px;padding:10px 16px;font-weight:800;font-size:14px;display:inline-flex;align-items:center;gap:8px;min-height:44px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.dark{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.btn.recbtn{background:var(--red);border-color:var(--red);color:#fff}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.small{min-height:38px;padding:7px 12px;font-size:13px}
+.info{font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--muted);margin-top:10px;line-height:1.7;word-break:break-all}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:18px;z-index:50;background:#111;color:#fff;padding:12px 16px;border-radius:999px;font-size:13.5px;font-weight:700;box-shadow:0 10px 30px rgba(0,0,0,.35);display:none;max-width:92vw;text-align:center}
+.timer{font-family:"JetBrains Mono",monospace;font-size:28px;font-weight:700}
+/* FX */
+.presets{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.preset{border:1.5px solid var(--line);background:transparent;color:var(--ink);border-radius:999px;padding:9px 14px;font-weight:800;font-size:13px;min-height:40px}
+.preset.active{background:var(--amber);border-color:var(--amber);color:#111}
+.fxgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+@media(max-width:680px){.fxgrid{grid-template-columns:1fr}}
+.fx{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:14px}
+.fx.off{opacity:.55}
+.fx-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.fx-head b{font-size:14.5px}
+.fx-head small{display:block;color:var(--muted);font-weight:500;font-size:11.5px;margin-top:2px}
+.switchbtn{width:56px;height:36px;min-height:36px;border-radius:999px;background:#8a8a93;border:none;position:relative;flex:none;padding:0}
+.switchbtn:after{content:"";position:absolute;left:4px;top:4px;width:28px;height:28px;background:#fff;border-radius:50%;transition:.2s}
+.switchbtn.on{background:var(--accent2)}
+.switchbtn.on:after{transform:translateX(20px)}
+input[type=file]{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px;font-weight:700;color:var(--ink);max-width:100%}
+.ctl{margin-top:10px}
+.ctl label{display:flex;justify-content:space-between;font-size:12px;font-weight:700;color:var(--muted)}
+.ctl label output{font-family:"JetBrains Mono",monospace;color:var(--ink)}
+input[type=range]{width:100%;accent-color:var(--accent);height:36px}
+select{width:100%;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:10px;font-weight:700}
+input[type=text]{width:100%;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:10px;font-weight:800;font-family:"JetBrains Mono",monospace;letter-spacing:.08em;text-transform:uppercase}
+/* Kit */
+.destrow{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.dest{border:1.5px solid var(--line);background:transparent;color:var(--ink);border-radius:12px;padding:10px 13px;font-weight:800;font-size:13px;min-height:44px;text-align:left}
+.dest.active{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.dest small{display:block;font-weight:500;font-size:11px;opacity:.75}
+.budget{margin-top:14px}
+.budget label{display:flex;justify-content:space-between;font-size:12.5px;font-weight:800}
+.budget .bar{height:12px;background:var(--panel2);border:1px solid var(--line);border-radius:999px;overflow:hidden;margin-top:6px}
+.budget .fill{height:100%;background:var(--accent2);width:0%}
+.budget .fill.over{background:var(--red)}
+.pads{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:16px}
+@media(max-width:520px){.pads{gap:8px}}
+.pad{aspect-ratio:1/0.92;border-radius:14px;border:2px solid #34343f;background:var(--pad);color:var(--pad-ink);padding:10px;text-align:left;display:flex;flex-direction:column;justify-content:space-between;min-height:84px;position:relative;overflow:hidden}
+.pad b{font-family:"Archivo";font-size:17px}
+.pad span{font-size:10.5px;line-height:1.45;opacity:.85;word-break:break-all;display:block}
+.pad .dur{font-family:"JetBrains Mono",monospace;font-size:10px}
+.pad.filled{border-color:var(--amber);background:#2a2113}
+.pad.filled:before{content:"";position:absolute;top:0;left:0;right:0;height:5px;background:var(--amber)}
+.pad.selected{outline:3px solid var(--accent);outline-offset:2px}
+.pad.playing{border-color:var(--accent2)}
+.paddetail{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:16px;margin-top:14px}
+.paddetail h3{margin:0 0 4px;font-size:15px}
+.checklist{list-style:none;padding:0;margin:14px 0 0;display:grid;gap:10px}
+.checklist li{display:flex;gap:10px;line-height:1.6;font-size:14px}
+.checklist li b{flex:none;width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font-size:13px;font-family:"Archivo"}
+.note{background:color-mix(in srgb,var(--amber) 14%,var(--panel));border:1px solid color-mix(in srgb,var(--amber) 45%,var(--line));border-radius:12px;padding:13px 14px;font-size:13px;line-height:1.7;margin-top:14px}
+footer{color:var(--muted);font-size:12.5px;line-height:1.7;margin-top:18px;text-align:center}
+.kbd{font-family:"JetBrains Mono",monospace;background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:1px 6px;font-size:11.5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero">
+    <h1>FM-1<br><span>SAMPLE LAB</span></h1>
+    <p>M-VAVE FM-1（SLOOP 2.8.5）で演奏した音を iPhone で録音し、エフェクターで加工して、ユーザードラムキット（USR1〜USR4＋USR3+4の5つ）の16パッドに配置し、このアプリから直接FM-1へ送信（SysEx）する作業アプリです。USB-C で FM-1 をつないだ状態で使ってください。</p>
+    <div class="statusrow">
+      <span class="pill"><span class="dot" id="dotAudio"></span><span id="stAudio">入力：未接続</span></span>
+      <span class="pill"><span class="dot" id="dotMidi"></span><span id="stMidi">MIDI：未接続</span></span>
+      <span class="pill"><span class="dot" id="dotSample"></span><span id="stSample">サンプル：なし</span></span>
+    </div>
+  </div>
+
+  <div class="steps">
+    <div class="step"><b>01</b><span>REC<br>FM-1の音を録る</span></div>
+    <div class="step"><b>02</b><span>FX<br>エフェクトで加工</span></div>
+    <div class="step"><b>03</b><span>KIT<br>16パッドに配置</span></div>
+    <div class="step"><b>04</b><span>SEND<br>直接FM-1へ送信</span></div>
+  </div>
+
+  <!-- 1 REC -->
+  <section id="rec">
+    <div class="sec-head"><div><h2><em>01</em>　録音 — FM-1の音を取り込む</h2>
+    <p>FM-1側は HOME → USB AUDIO を <b>FULL</b>、USB RATE は 48kHz 推奨。ヘッドホン端子にプラグを挿すと内蔵スピーカーがミュートできます。録音許可を押すと、iPhoneにつながった FM-1（Felucca）が入力として使われます。</p></div><span class="tag">44.1 / 48kHz</span></div>
+    <canvas class="wave" id="waveLive" width="1000" height="220"></canvas>
+    <div class="meterwrap"><div id="meter"></div></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;flex-wrap:wrap;gap:8px">
+      <span class="timer" id="timer">0:00.0</span><span class="info" style="margin:0" id="recInfo">まだ録音していません</span>
+    </div>
+    <div class="btnrow">
+      <button class="btn dark" id="btnInput">🎙 入力を許可する</button>
+      <button class="btn recbtn" id="btnRec" disabled>● 録音開始</button>
+      <button class="btn" id="btnStopRec" disabled>■ 停止</button>
+      <button class="btn" id="btnPlayOrig" disabled>▶ 元音を再生</button>
+    </div>
+    <div class="btnrow" style="align-items:center">
+      <label for="fileInput" style="font-weight:800;font-size:13.5px">📂 WAV / 音声ファイルを読む</label>
+      <input type="file" id="fileInput" accept="audio/*,.wav,.mp3,.m4a,.aif,.aiff">
+    </div>
+    <div class="btnrow">
+      <span style="font-size:12.5px;font-weight:800;color:var(--muted);align-self:center">FM-1が近くにないときの試作用：</span>
+      <button class="btn small" data-synth="kick">テスト音：キック</button>
+      <button class="btn small" data-synth="snare">テスト音：スネア</button>
+      <button class="btn small" data-synth="hat">テスト音：ハット</button>
+      <button class="btn small" data-synth="tone">テスト音：シンセ音</button>
+    </div>
+    <canvas class="wave" id="waveOrig" width="1000" height="220"></canvas>
+    <div class="info" id="origInfo">サンプル情報：—</div>
+    <div class="btnrow">
+      <div class="ctl" style="flex:1;min-width:200px;margin:0"><label>トリム開始 <output id="oTrimS">0.00s</output></label><input type="range" id="trimStart" min="0" max="1000" value="0"></div>
+      <div class="ctl" style="flex:1;min-width:200px;margin:0"><label>トリム終了 <output id="oTrimE">—</output></label><input type="range" id="trimEnd" min="0" max="1000" value="1000"></div>
+    </div>
+  </section>
+
+  <!-- 2 FX -->
+  <section id="fx">
+    <div class="sec-head"><div><h2><em>02</em>　加工 — エフェクターラック</h2>
+    <p>使いたいエフェクトを ON にしてツマミを調整。「FXプレビュー」で加工後の音を確認し、「加工を確定」で下の波形にレンダリングします。プリセットから始めるのが早いです。</p></div><span class="tag">10 EFFECTS</span></div>
+    <div class="presets" id="presets">
+      <button class="preset active" data-preset="clean">クリーン</button>
+      <button class="preset" data-preset="punch">パンチ（ドラム向け）</button>
+      <button class="preset" data-preset="lofi">ローファイ</button>
+      <button class="preset" data-preset="dist">歪み</button>
+      <button class="preset" data-preset="space">空間系</button>
+      <button class="preset" data-preset="phone">電話ボイス風</button>
+      <button class="preset" data-preset="dub">ダブ・ディレイ</button>
+    </div>
+    <div class="fxgrid" id="fxGrid"></div>
+    <canvas class="wave" id="waveProc" width="1000" height="220"></canvas>
+    <div class="info" id="procInfo">加工後サンプル：まだ確定していません（プレビューだけでも試聴できます）</div>
+    <div class="btnrow">
+      <button class="btn" id="btnPreview" disabled>▶ FXプレビュー</button>
+      <button class="btn" id="btnStopPlay">■ 再生停止</button>
+      <button class="btn primary" id="btnRender" disabled>⚡ 加工を確定（レンダリング）</button>
+      <button class="btn" id="btnDlProc" disabled>⬇ 加工後WAVを保存</button>
+      <button class="btn dark" id="btnDlFm1" disabled>⬇ FM-1用WAV（22kHzモノ）</button>
+    </div>
+    <div class="note">FM-1のサンプル仕様に合わせ、FM-1用WAVは <b>22kHz / モノ / 16bit</b> で書き出します。1スロット約7.4秒が上限の目安です。長すぎる音はトリムで短くしてください。</div>
+  </section>
+
+  <!-- 3 KIT -->
+  <section id="kit">
+    <div class="sec-head"><div><h2><em>03</em>　ドラムキット — 好きな場所に入れる</h2>
+    <p>ユーザーキットは5つ（USR1〜USR4＋USR3+4）／1キット16パッドです。送り先キットと16パッドを組み立てます。パッドを選んで「確定したサンプルをこのパッドへ」を押すだけ。パッドをタップすると試聴できます。</p></div><span class="tag">5 KITS / 16 PADS</span></div>
+    <div class="destrow" id="destRow">
+      <button class="dest" data-dest="USR1">USR1<small>単体キット 約7.38秒</small></button>
+      <button class="dest" data-dest="USR2">USR2<small>単体キット 約7.38秒</small></button>
+      <button class="dest" data-dest="USR3">USR3<small>単体キット 約7.38秒</small></button>
+      <button class="dest" data-dest="USR4">USR4<small>単体キット 約7.38秒</small></button>
+      <button class="dest active" data-dest="USR3+4">USR3+4（キット41）<small>16パッドキット 合計 約14.77秒</small></button>
+    </div>
+    <div class="info" id="slotInfo" style="margin-top:10px;white-space:pre-line">FM-1のキット情報：まだ読んでいません。上の番号を押すと、そのキットにFM-1に保存されている音の名前をパッドに表示します。</div>
+    <div class="btnrow" style="margin-top:8px">
+      <button class="btn" id="btnReadSlots">⬇ FM-1のキット一覧を読む</button>
+      <button class="btn" id="btnBackEdit" style="display:none">✎ 編集中のキットに戻る</button>
+    </div>
+    <div class="ctl" style="margin-top:14px"><label>キット名（半角英数字・8文字まで） <output id="oKitName">MYKIT</output></label><input type="text" id="kitName" value="MYKIT" maxlength="8" autocomplete="off" autocapitalize="characters" spellcheck="false"></div>
+    <div class="budget"><label><span>キット合計時間</span><span id="budgetText">0.00 / 14.77 秒</span></label><div class="bar"><div class="fill" id="budgetFill"></div></div></div>
+    <div class="pads" id="pads"></div>
+    <div class="paddetail">
+      <h3 id="padTitle">PAD 1 — 空</h3>
+      <div class="info" id="padInfo" style="margin:0">サンプルが入っていません。先に 01 で録音し、02 で加工を確定してください。</div>
+      <div class="btnrow">
+        <div class="ctl" style="flex:1;min-width:160px;margin:0"><label>パッドのピッチ <output id="oPadPitch">±0 st</output></label><input type="range" id="padPitch" min="-12" max="12" step="1" value="0"></div>
+        <div class="ctl" style="flex:1;min-width:160px;margin:0"><label>パッドの音量 <output id="oPadGain">100%</output></label><input type="range" id="padGain" min="10" max="200" value="100"></div>
+      </div>
+      <div class="btnrow">
+        <button class="btn primary" id="btnAssign">＋ 確定したサンプルをこのパッドへ</button>
+        <button class="btn" id="btnPlayPad">▶ パッド試聴</button>
+        <button class="btn" id="btnDlPad">⬇ このパッドをFM-1用WAVで保存</button>
+        <button class="btn" id="btnClearPad">パッドを空にする</button>
+      </div>
+    </div>
+    <div class="btnrow">
+      <button class="btn dark" id="btnDlAll">⬇ 入っているパッドを全部WAV保存（FM-1用）</button>
+      <button class="btn" id="btnClearAll">キットを全部空にする</button>
+    </div>
+  </section>
+
+  <!-- 4 SEND -->
+  <section id="send">
+    <div class="sec-head"><div><h2><em>04</em>　送信 — このアプリから直接FM-1へ（SysEx）</h2>
+    <p>キットをこのアプリから直接FM-1へ送ります（SysEx）。FM-1の再生を止め、送る前にバックアップを取ってください。USRスロットの中身は上書きされます。最初は音数の少ないキットで試すのが安全です。</p></div><span class="tag">DIRECT SYSEX SEND</span></div>
+    <div class="btnrow" style="margin-top:14px">
+      <button class="btn dark" id="btnMidi">🔌 FM-1にMIDI接続する</button>
+      <select id="midiOut" style="flex:1;min-width:200px"><option value="">MIDI出力：未接続</option></select>
+      <button class="btn" id="btnMidiTest">▶ 選択中パッドをMIDIで鳴らす（ch10）</button>
+    </div>
+    <div class="info" id="midiLog">MIDIログ：—　※ Safari / 通常のChromeでは Web MIDI が使えません。MIDIWeb ブラウザで開いてください。</div>
+    <div class="btnrow">
+      <button class="btn primary" id="btnSendKit" style="flex:1;min-width:240px;justify-content:center">⚡ FM-1にキットを送信する</button>
+      <button class="btn" id="btnUseKit">🥁 ドラムトラックでこのキットを使う</button>
+    </div>
+    <div class="budget"><label><span>送信の進み具合</span><span id="sendProg">まだ送信していません</span></label><div class="bar"><div class="fill" id="sendFill"></div></div></div>
+    <div class="info" id="sendLog" style="white-space:pre-wrap;max-height:220px;overflow:auto;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px">送信ログ：—</div>
+    <div class="note">送信前の注意：FM-1の再生を止めてください。USRスロットの中身は送信で上書きされます。送る前に SLOOPエディタの Backup で現在のキットを保存してください。iPhoneでは大きなSysExが落ちやすいので、送信は少し間隔をあけて送っています。途中でケーブルを抜かないでください。</div>
+    <ul class="checklist">
+      <li><b>予備</b><span>WAVで送る場合：キット欄の「入っているパッドを全部WAV保存」でWAVを保存し、MIDIWebで <a href="https://isod89.github.io/sloop-fm1/webapp/editor/" target="_blank" rel="noopener">SLOOP Webエディタ</a> の Drum kit ページから送ることもできます。</span></li>
+    </ul>
+  </section>
+
+  <footer>FM-1 Sample Lab v0.0.1 — 直接SysEx送信対応。録音・加工したサンプルはこのタブの中だけで扱われ、閉じると消えます。大事な音はWAVで保存してください。</footer>
+</div>
+<div id="toast"></div>
+
+<script>
+"use strict";
+/* ---------- helpers ---------- */
+const $=id=>document.getElementById(id);
+let toastTimer=null;
+function toast(msg){const t=$("toast");t.textContent=msg;t.style.display="block";clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.style.display="none",3400);}
+function fmtTime(s){if(!isFinite(s))s=0;const m=Math.floor(s/60),ss=(s%60);return m+":"+ss.toFixed(1).padStart(4,"0");}
+function fmtDur(s){return s?s.toFixed(2)+"s":"—";}
+
+/* ---------- audio state ---------- */
+let AC=null; function ctx(){ if(!AC) AC=new (window.AudioContext||window.webkitAudioContext)({sampleRate:48000}); if(AC.state==="suspended")AC.resume(); return AC; }
+let stream=null, analyser=null, mediaRecorder=null, recChunks=[], recStart=0, recTimerInt=null;
+let originalBuffer=null, processedBuffer=null, currentName="sample";
+let liveSource=null, playSource=null;
+
+function setStatus(){ 
+  $("dotAudio").className="dot"+(stream?" on":"");
+  $("stAudio").textContent=stream?"入力：接続中（FM-1 / マイク）":"入力：未接続";
+  $("dotSample").className="dot"+(originalBuffer?" on":"");
+  $("stSample").textContent=originalBuffer?("サンプル："+currentName+" "+fmtDur(originalBuffer.duration)):"サンプル：なし";
+  $("btnRec").disabled=!stream; $("btnPlayOrig").disabled=!originalBuffer;
+  $("btnPreview").disabled=!originalBuffer; $("btnRender").disabled=!originalBuffer;
+  $("btnDlProc").disabled=!processedBuffer; $("btnDlFm1").disabled=!(processedBuffer||originalBuffer);
+}
+
+/* live waveform + meter */
+function drawLive(){
+  const c=$("waveLive"),g=c.getContext("2d");g.fillStyle="#101014";g.fillRect(0,0,c.width,c.height);
+  g.strokeStyle="#2c2c36";g.beginPath();g.moveTo(0,c.height/2);g.lineTo(c.width,c.height/2);g.stroke();
+  if(analyser){const data=new Uint8Array(analyser.fftSize);analyser.getByteTimeDomainData(data);
+    g.strokeStyle="#ffb020";g.lineWidth=2;g.beginPath();
+    data.forEach((v,i)=>{const x=i/data.length*c.width,y=v/255*c.height;i?g.lineTo(x,y):g.moveTo(x,y);});g.stroke();
+    let peak=0;data.forEach(v=>peak=Math.max(peak,Math.abs(v-128)/128));$("meter").style.width=Math.min(100,peak*140)+"%";
+  }
+  requestAnimationFrame(drawLive);
+}
+drawLive();
+
+function drawWave(canvas,buffer,color){
+  const g=canvas.getContext("2d");g.fillStyle="#101014";g.fillRect(0,0,canvas.width,canvas.height);
+  g.strokeStyle="#2c2c36";g.beginPath();g.moveTo(0,canvas.height/2);g.lineTo(canvas.width,canvas.height/2);g.stroke();
+  if(!buffer)return;
+  const d=buffer.getChannelData(0),step=Math.max(1,Math.floor(d.length/canvas.width));
+  g.strokeStyle=color;g.lineWidth=1.6;g.beginPath();
+  for(let x=0;x<canvas.width;x++){let mn=1,mx=-1;for(let i=0;i<step;i++){const v=d[x*step+i]||0;if(v<mn)mn=v;if(v>mx)mx=v;}
+    const y1=(1-mx)*canvas.height/2,y2=(1-mn)*canvas.height/2;g.moveTo(x,y1);g.lineTo(x,Math.max(y2,y1+1));}
+  g.stroke();
+  /* trim shading */
+  if(canvas.id==="waveOrig"&&buffer){const s=+$("trimStart").value/1000,e=+$("trimEnd").value/1000;
+    g.fillStyle="rgba(0,0,0,.55)";g.fillRect(0,0,s*canvas.width,canvas.height);g.fillRect(e*canvas.width,0,canvas.width,canvas.height);}
+}
+function refreshOrig(){ drawWave($("waveOrig"),originalBuffer,"#ff5a1f");
+  if(originalBuffer){$("origInfo").textContent="サンプル情報："+currentName+" ／ 長さ "+fmtDur(originalBuffer.duration)+" ／ "+originalBuffer.sampleRate+"Hz ／ "+originalBuffer.numberOfChannels+"ch";
+    const s=originalBuffer.duration*(+$("trimStart").value/1000),e=originalBuffer.duration*(+$("trimEnd").value/1000);
+    $("oTrimS").textContent=s.toFixed(2)+"s";$("oTrimE").textContent=e.toFixed(2)+"s";}
+  setStatus();
+}
+$("trimStart").addEventListener("input",refreshOrig);$("trimEnd").addEventListener("input",refreshOrig);
+
+function setOriginal(buf,name){ originalBuffer=buf; processedBuffer=null; currentName=name;
+  drawWave($("waveProc"),null,"#0aa67a"); $("procInfo").textContent="加工後サンプル：まだ確定していません（プレビューだけでも試聴できます）";
+  refreshOrig(); toast("サンプルを読み込みました："+name); }
+
+/* ---------- input / recording ---------- */
+$("btnInput").addEventListener("click",async()=>{
+  try{
+    stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
+    const ac=ctx(); const src=ac.createMediaStreamSource(stream); analyser=ac.createAnalyser(); analyser.fftSize=2048; src.connect(analyser);
+    toast("入力を許可しました。FM-1で音を出すと波形とメーターが動きます"); setStatus();
+  }catch(e){ toast("入力を取得できませんでした。マイク許可とUSB接続を確認してください"); }
+});
+$("btnRec").addEventListener("click",()=>{
+  if(!stream)return; recChunks=[];
+  try{ mediaRecorder=new MediaRecorder(stream); }catch(e){ toast("このブラウザでは録音（MediaRecorder）が使えません"); return; }
+  mediaRecorder.ondataavailable=e=>{if(e.data.size)recChunks.push(e.data);};
+  mediaRecorder.onstop=async()=>{
+    clearInterval(recTimerInt);$("dotAudio").className="dot on";
+    const blob=new Blob(recChunks,{type:mediaRecorder.mimeType||"audio/webm"});
+    try{ const ab=await blob.arrayBuffer(); const buf=await ctx().decodeAudioData(ab); setOriginal(buf,"fm1-rec-"+new Date().toISOString().slice(11,19).replace(/:/g,""));
+      $("recInfo").textContent="録音完了："+fmtDur(buf.duration); }catch(err){ toast("録音データの読み込みに失敗しました"); }
+    $("btnRec").disabled=false;$("btnStopRec").disabled=true;setStatus();
+  };
+  mediaRecorder.start(200); recStart=performance.now();
+  $("dotAudio").className="dot rec"; $("btnRec").disabled=true;$("btnStopRec").disabled=false;
+  recTimerInt=setInterval(()=>{$("timer").textContent=fmtTime((performance.now()-recStart)/1000);},90);
+  toast("録音中… FM-1を演奏してください");
+});
+$("btnStopRec").addEventListener("click",()=>{ if(mediaRecorder&&mediaRecorder.state!=="inactive")mediaRecorder.stop(); });
+$("fileInput").addEventListener("change",async e=>{
+  const f=e.target.files[0]; if(!f)return;
+  try{ const buf=await ctx().decodeAudioData(await f.arrayBuffer()); setOriginal(buf,f.name.replace(/\.[^.]+$/,"")); $("recInfo").textContent="ファイルから読み込みました"; }
+  catch(err){ toast("そのファイルは読み込めませんでした"); }
+  e.target.value="";
+});
+
+/* ---------- synth test samples ---------- */
+async function synth(kind){
+  const sr=44100,dur=kind==="tone"?0.9:0.5, oc=new OfflineAudioContext(1,sr*dur,sr), t=0.02;
+  const master=oc.createGain(); master.connect(oc.destination);
+  if(kind==="kick"){const o=oc.createOscillator(),g=oc.createGain();o.frequency.setValueAtTime(160,t);o.frequency.exponentialRampToValueAtTime(45,t+0.22);
+    g.gain.setValueAtTime(1,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.45);o.connect(g);g.connect(master);o.start(t);o.stop(t+0.5);}
+  else if(kind==="tone"){const o=oc.createOscillator(),g=oc.createGain(),f=oc.createBiquadFilter();o.type="sawtooth";o.frequency.setValueAtTime(220,t);o.frequency.linearRampToValueAtTime(440,t+0.7);
+    f.type="lowpass";f.frequency.value=1800;g.gain.setValueAtTime(0.5,t);g.gain.setValueAtTime(0.5,t+0.6);g.gain.linearRampToValueAtTime(0,t+0.9);o.connect(f);f.connect(g);g.connect(master);o.start(t);o.stop(t+0.9);}
+  else{ const len=sr*dur, nb=oc.createBuffer(1,len,sr), d=nb.getChannelData(0); for(let i=0;i<len;i++)d[i]=Math.random()*2-1;
+    const src=oc.createBufferSource();src.buffer=nb;const g=oc.createGain();const f=oc.createBiquadFilter();
+    if(kind==="snare"){f.type="bandpass";f.frequency.value=1800;g.gain.setValueAtTime(0.9,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.28);}
+    else{f.type="highpass";f.frequency.value=7000;g.gain.setValueAtTime(0.6,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.07);}
+    src.connect(f);f.connect(g);g.connect(master);src.start(t);}
+  const buf=await oc.startRendering(); setOriginal(buf,"test-"+kind); $("recInfo").textContent="テスト音を生成しました";
+}
+document.querySelectorAll("[data-synth]").forEach(b=>b.addEventListener("click",()=>synth(b.dataset.synth)));
+
+/* ---------- playback ---------- */
+function stopPlay(){ if(playSource){try{playSource.stop();}catch(e){} playSource=null;} }
+$("btnStopPlay").addEventListener("click",stopPlay);
+function playBuffer(buf,fxSettings){
+  stopPlay(); const ac=ctx(); const src=ac.createBufferSource(); src.buffer=buf;
+  let last=src;
+  if(fxSettings){ last=buildChain(ac,src,fxSettings); }
+  last.connect(ac.destination); src.start(); playSource=src; src.onended=()=>{if(playSource===src)playSource=null;};
+}
+$("btnPlayOrig").addEventListener("click",()=>{ if(originalBuffer)playBuffer(trimmedBuffer()); });
+
+function trimmedBuffer(){
+  if(!originalBuffer)return null; const ac=ctx();
+  const s=Math.floor(originalBuffer.duration*(+$("trimStart").value/1000)*originalBuffer.sampleRate);
+  const e=Math.floor(originalBuffer.duration*(+$("trimEnd").value/1000)*originalBuffer.sampleRate);
+  const len=Math.max(1,e-s); const out=ac.createBuffer(originalBuffer.numberOfChannels,len,originalBuffer.sampleRate);
+  for(let ch=0;ch<originalBuffer.numberOfChannels;ch++) out.getChannelData(ch).set(originalBuffer.getChannelData(ch).subarray(s,e));
+  return out;
+}
+function reversedCopy(buf){ const ac=ctx(); const out=ac.createBuffer(buf.numberOfChannels,buf.length,buf.sampleRate);
+  for(let ch=0;ch<buf.numberOfChannels;ch++){const d=buf.getChannelData(ch),o=out.getChannelData(ch);for(let i=0;i<d.length;i++)o[i]=d[d.length-1-i];} return out; }
+
+/* ---------- FX definitions ---------- */
+const FXDEF=[
+ {id:"gain",name:"ゲイン / ノーマライズ",desc:"音量とフェード",ctls:[{k:"gain",label:"ゲイン",min:-24,max:24,step:1,val:0,unit:" dB"},{k:"fade",label:"フェードイン/アウト",min:0,max:50,step:1,val:0,unit:"%"}]},
+ {id:"eq",name:"3バンドEQ",desc:"低音・中音・高音",ctls:[{k:"low",label:"LOW",min:-15,max:15,step:1,val:0,unit:" dB"},{k:"mid",label:"MID",min:-15,max:15,step:1,val:0,unit:" dB"},{k:"high",label:"HIGH",min:-15,max:15,step:1,val:0,unit:" dB"}]},
+ {id:"filter",name:"フィルター",desc:"ローパス / ハイパス",ctls:[{k:"freq",label:"カットオフ",min:100,max:12000,step:50,val:12000,unit:" Hz"},{k:"q",label:"レゾナンス Q",min:0.5,max:12,step:0.5,val:0.7,unit:""}],extra:"filterType"},
+ {id:"drive",name:"ディストーション",desc:"歪み・サチュレーション",ctls:[{k:"amount",label:"ドライブ",min:0,max:100,step:1,val:30,unit:"%"}]},
+ {id:"crush",name:"ビットクラッシュ",desc:"ローファイ・ゲーム音風",ctls:[{k:"bits",label:"荒さ",min:0,max:90,step:1,val:40,unit:"%"}]},
+ {id:"comp",name:"コンプレッサー",desc:"音量を揃えて太く",ctls:[{k:"thr",label:"スレッショルド",min:-60,max:0,step:1,val:-18,unit:" dB"},{k:"ratio",label:"レシオ",min:1,max:20,step:0.5,val:4,unit:" : 1"}]},
+ {id:"trem",name:"トレモロ",desc:"音量のうねり",ctls:[{k:"rate",label:"速さ",min:0.5,max:14,step:0.5,val:5,unit:" Hz"},{k:"depth",label:"深さ",min:0,max:90,step:1,val:50,unit:"%"}]},
+ {id:"chorus",name:"コーラス",desc:"厚み・広がり",ctls:[{k:"rate",label:"速さ",min:0.1,max:5,step:0.1,val:1.2,unit:" Hz"},{k:"mix",label:"ミックス",min:0,max:80,step:1,val:35,unit:"%"}]},
+ {id:"delay",name:"ディレイ",desc:"やまびこ",ctls:[{k:"time",label:"タイム",min:30,max:900,step:10,val:280,unit:" ms"},{k:"fb",label:"フィードバック",min:0,max:75,step:1,val:35,unit:"%"},{k:"mix",label:"ミックス",min:0,max:70,step:1,val:30,unit:"%"}]},
+ {id:"reverb",name:"リバーブ",desc:"残響・空間",ctls:[{k:"decay",label:"残響の長さ",min:0.2,max:4,step:0.1,val:1.6,unit:" s"},{k:"mix",label:"ミックス",min:0,max:80,step:1,val:30,unit:"%"}]},
+ {id:"pitch",name:"ピッチ / リバース",desc:"音程変更と逆再生",ctls:[{k:"semi",label:"ピッチ",min:-12,max:12,step:1,val:0,unit:" st"}],extra:"reverse"},
+];
+const fxGrid=$("fxGrid");
+FXDEF.forEach(def=>{
+  const div=document.createElement("div");div.className="fx";div.id="fx-"+def.id;
+  const defOn=(def.id==="gain"||def.id==="eq"); let html='<div class="fx-head"><div><b>'+def.name+'</b><small>'+def.desc+'</small></div><button type="button" class="switchbtn'+(defOn?" on":"")+'" id="on-'+def.id+'" data-on="'+(defOn?1:0)+'" aria-pressed="'+defOn+'" aria-label="'+def.name+'のON/OFF"></button></div>';
+  if(def.extra==="filterType")html+='<div class="ctl"><label>タイプ</label><select id="filter-type"><option value="lowpass">ローパス（こもらせる）</option><option value="highpass">ハイパス（細くする）</option><option value="bandpass">バンドパス（電話風）</option></select></div>';
+  if(def.extra==="reverse")html+='<div class="ctl"><label>逆再生（リバース）</label><select id="pitch-reverse"><option value="0">OFF</option><option value="1">ON — 逆再生する</option></select></div>';
+  def.ctls.forEach(c=>{html+='<div class="ctl"><label>'+c.label+' <output id="o-'+def.id+'-'+c.k+'"></output></label><input type="range" id="r-'+def.id+'-'+c.k+'" min="'+c.min+'" max="'+c.max+'" step="'+c.step+'" value="'+c.val+'" data-unit="'+c.unit+'"></div>';});
+  div.innerHTML=html; fxGrid.appendChild(div);
+});
+function syncFxUI(){
+  FXDEF.forEach(def=>{
+    const on=$("on-"+def.id).dataset.on==="1"; $("fx-"+def.id).classList.toggle("off",!on);
+    def.ctls.forEach(c=>{const r=$("r-"+def.id+"-"+c.k);$("o-"+def.id+"-"+c.k).textContent=(+r.value>0&&c.unit===" dB"&&def.id==="gain"||+r.value>0&&c.unit===" dB"?"+"+r.value:r.value)+r.dataset.unit;});
+  });
+}
+fxGrid.addEventListener("input",syncFxUI);
+fxGrid.addEventListener("click",e=>{const b=e.target.closest(".switchbtn");if(!b)return;b.dataset.on=b.dataset.on==="1"?"0":"1";b.classList.toggle("on",b.dataset.on==="1");b.setAttribute("aria-pressed",b.dataset.on==="1");syncFxUI();});
+ syncFxUI();
+
+function readFX(){
+  const v=(id,k)=>+$("r-"+id+"-"+k).value, on=id=>$("on-"+id).dataset.on==="1";
+  return { gainOn:on("gain"),gain:v("gain","gain"),fade:v("gain","fade"),
+    eqOn:on("eq"),low:v("eq","low"),mid:v("eq","mid"),high:v("eq","high"),
+    filterOn:on("filter"),freq:v("filter","freq"),q:v("filter","q"),ftype:$("filter-type").value,
+    driveOn:on("drive"),drive:v("drive","amount"), crushOn:on("crush"),crush:v("crush","bits"),
+    compOn:on("comp"),thr:v("comp","thr"),ratio:v("comp","ratio"),
+    tremOn:on("trem"),tremRate:v("trem","rate"),tremDepth:v("trem","depth"),
+    chorusOn:on("chorus"),choRate:v("chorus","rate"),choMix:v("chorus","mix"),
+    delayOn:on("delay"),dTime:v("delay","time"),dFb:v("delay","fb"),dMix:v("delay","mix"),
+    revOn:on("reverb"),revDecay:v("reverb","decay"),revMix:v("reverb","mix"),
+    pitchOn:on("pitch"),semi:v("pitch","semi"),reverse:$("pitch-reverse").value==="1" };
+}
+function driveCurve(amount){const n=256,c=new Float32Array(n),k=amount*1.2;for(let i=0;i<n;i++){const x=i/(n-1)*2-1;c[i]=(1+k)*x/(1+k*Math.abs(x));}return c;}
+function crushCurve(amount){const steps=Math.max(2,Math.round(32-amount*0.32)),c=new Float32Array(256);for(let i=0;i<256;i++){const x=i/255*2-1;c[i]=Math.round(x*steps)/steps;}return c;}
+function impulse(c,dur){const len=Math.max(1,Math.floor(c.sampleRate*dur)),b=c.createBuffer(2,len,c.sampleRate);
+  for(let ch=0;ch<2;ch++){const d=b.getChannelData(ch);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,2.4);}return b;}
+
+function buildChain(c,source,fx){
+  let node=source;
+  const stage=n=>{node.connect(n);node=n;};
+  if(fx.eqOn){[["lowshelf",300,fx.low],["peaking",1000,fx.mid],["highshelf",4000,fx.high]].forEach(([t,f,g])=>{const bi=c.createBiquadFilter();bi.type=t;bi.frequency.value=f;bi.gain.value=g;stage(bi);});}
+  if(fx.filterOn){const bi=c.createBiquadFilter();bi.type=fx.ftype;bi.frequency.value=fx.freq;bi.Q.value=fx.q;stage(bi);}
+  if(fx.driveOn){const ws=c.createWaveShaper();ws.curve=driveCurve(fx.drive);ws.oversample="2x";stage(ws);}
+  if(fx.crushOn){const ws=c.createWaveShaper();ws.curve=crushCurve(fx.crush);stage(ws);}
+  if(fx.compOn){const cp=c.createDynamicsCompressor();cp.threshold.value=fx.thr;cp.ratio.value=fx.ratio;cp.attack.value=0.004;cp.release.value=0.18;stage(cp);}
+  if(fx.tremOn){const g=c.createGain(),o=c.createOscillator(),og=c.createGain();o.frequency.value=fx.tremRate;og.gain.value=fx.tremDepth/100*0.5;g.gain.value=1-fx.tremDepth/100*0.5;o.connect(og);og.connect(g.gain);o.start();stage(g);}
+  if(fx.chorusOn){const d=c.createDelay(0.1);d.delayTime.value=0.022;const o=c.createOscillator(),og=c.createGain();o.frequency.value=fx.choRate;og.gain.value=0.006;o.connect(og);og.connect(d.delayTime);o.start();
+    const wet=c.createGain();wet.gain.value=fx.choMix/100;d.connect(wet);const out=c.createGain();node.connect(out);node.connect(d);wet.connect(out);node=out;}
+  if(fx.delayOn){
+    const d=c.createDelay(2);d.delayTime.value=fx.dTime/1000;const fb=c.createGain();fb.gain.value=fx.dFb/100;d.connect(fb);fb.connect(d);
+    const wet=c.createGain();wet.gain.value=fx.dMix/100;d.connect(wet);const out=c.createGain();node.connect(out);node.connect(d);wet.connect(out);node=out;}
+  if(fx.revOn){const cv=c.createConvolver();cv.buffer=impulse(c,fx.revDecay);const wet=c.createGain();wet.gain.value=fx.revMix/100;cv.connect(wet);
+    const out=c.createGain();node.connect(out);node.connect(cv);wet.connect(out);node=out;}
+  if(fx.gainOn){const g=c.createGain();const base=Math.pow(10,fx.gain/20);const dur=source.buffer?source.buffer.duration/(source.playbackRate||1):1;
+    if(fx.fade>0){const f=dur*fx.fade/100;g.gain.setValueAtTime(0.0001, c.currentTime||0);g.gain.linearRampToValueAtTime(base,(c.currentTime||0)+f);g.gain.setValueAtTime(base,(c.currentTime||0)+Math.max(f,dur-f));g.gain.linearRampToValueAtTime(0.0001,(c.currentTime||0)+dur);}
+    else g.gain.value=base; stage(g);}
+  return node;
+}
+
+/* presets */
+const PRESETS={
+ clean:{}, 
+ punch:{eq:[4,1,3],comp:[-22,6],gain:3},
+ lofi:{crush:55,filter:["lowpass",3200],eq:[-2,0,-6]},
+ dist:{drive:65,eq:[3,2,4],comp:[-20,5]},
+ space:{reverb:[2.6,45],chorus:[1.4,35],delay:[320,30,20]},
+ phone:{filter:["bandpass",1100],eq:[-8,4,-8],crush:25},
+ dub:{delay:[420,55,45],reverb:[1.8,25],filter:["lowpass",4500]},
+};
+function setRange(id,k,val){const el=$("r-"+id+"-"+k);if(el)el.value=val;}
+function setOn(id,val){const el=$("on-"+id);if(el){el.dataset.on=val?"1":"0";el.classList.toggle("on",!!val);el.setAttribute("aria-pressed",!!val);}}
+function applyPreset(name){
+  document.querySelectorAll(".preset").forEach(p=>p.classList.toggle("active",p.dataset.preset===name));
+  ["eq","filter","drive","crush","comp","trem","chorus","delay","reverb","pitch"].forEach(id=>setOn(id,false));
+  setOn("gain",true); setRange("gain","gain",0);
+  const p=PRESETS[name]||{};
+  if(p.eq){setOn("eq",true);setRange("eq","low",p.eq[0]);setRange("eq","mid",p.eq[1]);setRange("eq","high",p.eq[2]);}
+  if(p.filter){setOn("filter",true);$("filter-type").value=p.filter[0];setRange("filter","freq",p.filter[1]);}
+  if(p.drive!==undefined){setOn("drive",true);setRange("drive","amount",p.drive);}
+  if(p.crush!==undefined){setOn("crush",true);setRange("crush","bits",p.crush);}
+  if(p.comp){setOn("comp",true);setRange("comp","thr",p.comp[0]);setRange("comp","ratio",p.comp[1]);}
+  if(p.gain!==undefined)setRange("gain","gain",p.gain);
+  if(p.reverb){setOn("reverb",true);setRange("reverb","decay",p.reverb[0]);setRange("reverb","mix",p.reverb[1]);}
+  if(p.chorus){setOn("chorus",true);setRange("chorus","rate",p.chorus[0]);setRange("chorus","mix",p.chorus[1]);}
+  if(p.delay){setOn("delay",true);setRange("delay","time",p.delay[0]);setRange("delay","fb",p.delay[1]);setRange("delay","mix",p.delay[2]);}
+  syncFxUI(); toast("プリセット「"+name+"」をセットしました");
+}
+$("presets").addEventListener("click",e=>{const b=e.target.closest("[data-preset]");if(b)applyPreset(b.dataset.preset);});
+
+/* preview + render */
+$("btnPreview").addEventListener("click",()=>{ if(!originalBuffer)return; const fx=readFX(); let buf=trimmedBuffer(); if(fx.reverse&&fx.pitchOn)buf=reversedCopy(buf);
+  stopPlay(); const ac=ctx(); const src=ac.createBufferSource(); src.buffer=buf; if(fx.pitchOn)src.playbackRate.value=Math.pow(2,fx.semi/12);
+  buildChain(ac,src,fx).connect(ac.destination); src.start(); playSource=src; toast("FXプレビュー再生中"); });
+
+$("btnRender").addEventListener("click",async()=>{
+  if(!originalBuffer)return; const fx=readFX(); let buf=trimmedBuffer(); if(fx.reverse&&fx.pitchOn)buf=reversedCopy(buf);
+  const rate=fx.pitchOn?Math.pow(2,fx.semi/12):1;
+  const tail=(fx.revOn?fx.revDecay:0)+(fx.delayOn?1.2:0);
+  const len=Math.ceil((buf.duration/rate+tail)*buf.sampleRate);
+  const oc=new OfflineAudioContext(2,Math.max(1,len),buf.sampleRate);
+  const src=oc.createBufferSource(); src.buffer=buf; src.playbackRate.value=rate;
+  buildChain(oc,src,fx).connect(oc.destination); src.start();
+  processedBuffer=await oc.startRendering();
+  drawWave($("waveProc"),processedBuffer,"#0aa67a");
+  $("procInfo").textContent="加工後サンプル："+currentName+"-fx ／ 長さ "+fmtDur(processedBuffer.duration)+" ／ "+processedBuffer.sampleRate+"Hz";
+  setStatus(); toast("加工を確定しました。下のキットへ配置できます");
+});
+
+/* ---------- WAV export ---------- */
+function bufferToWav(buf,mono){
+  const ch=mono?1:buf.numberOfChannels, sr=buf.sampleRate, len=buf.length;
+  const bytes=44+len*ch*2, ab=new ArrayBuffer(bytes), v=new DataView(ab);
+  const ws=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i));};
+  ws(0,"RIFF");v.setUint32(4,bytes-8,true);ws(8,"WAVE");ws(12,"fmt ");v.setUint32(16,16,true);v.setUint16(20,1,true);
+  v.setUint16(22,ch,true);v.setUint32(24,sr,true);v.setUint32(28,sr*ch*2,true);v.setUint16(32,ch*2,true);v.setUint16(34,16,true);
+  ws(36,"data");v.setUint32(40,len*ch*2,true);
+  let off=44; const chans=[]; for(let c=0;c<buf.numberOfChannels;c++)chans.push(buf.getChannelData(c));
+  for(let i=0;i<len;i++)for(let c=0;c<ch;c++){let s=chans[mono?0:c][i]; if(mono&&buf.numberOfChannels>1)s=(chans[0][i]+chans[1][i])/2;
+    s=Math.max(-1,Math.min(1,s)); v.setInt16(off,s*32767,true); off+=2;}
+  return new Blob([ab],{type:"audio/wav"});
+}
+function download(blob,name){const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},800);}
+async function toFm1Buffer(buf,pitchSemi,gainPct){
+  const rate=Math.pow(2,(pitchSemi||0)/12), sr=22050, len=Math.ceil(buf.duration/rate*sr);
+  const oc=new OfflineAudioContext(1,Math.max(1,len),sr); const src=oc.createBufferSource(); src.buffer=buf; src.playbackRate.value=rate;
+  const g=oc.createGain(); g.gain.value=(gainPct||100)/100; src.connect(g); g.connect(oc.destination); src.start();
+  return await oc.startRendering();
+}
+$("btnDlProc").addEventListener("click",()=>{ if(processedBuffer)download(bufferToWav(processedBuffer,false),currentName+"-fx.wav"); });
+$("btnDlFm1").addEventListener("click",async()=>{ const b=processedBuffer||originalBuffer; if(!b)return; const f=await toFm1Buffer(b,0,100); download(bufferToWav(f,true),currentName+"-fm1-22k.wav"); toast("FM-1用WAV（22kHzモノ）を保存しました"); });
+
+/* ---------- drum kit ---------- */
+let dest="USR3+4", budgetMax=14.77, selectedPad=0;
+let pads=Array.from({length:16},()=>null);
+/* v0.0.3: FM-1に保存されたキットの表示。SLOOPの仕様で、FM-1はSMP_INFOで
+   「キット名・パッド数・サイズ」しか返さない。パッドごとの音の名前は返って
+   こないし、音を読み戻す命令もない。だからパッドごとの名前は、このアプリが
+   送った記録（localStorage）から表示する。 */
+const SENT_KEY="fm1lab.sent.v1";
+function loadSentKits(){try{return JSON.parse(localStorage.getItem(SENT_KEY)||"{}");}catch(e){return {};}}
+function saveSentKits(o){try{localStorage.setItem(SENT_KEY,JSON.stringify(o));}catch(e){}}
+let sentKits=loadSentKits();
+let viewMode="edit", deviceViewDest=null, deviceSlots=null;
+function recordSentKit(destName,kitName,filledLanes){
+  const rec={kitName:kitName,pads:{},time:new Date().toISOString().slice(0,16).replace("T"," ")};
+  for(const l of filledLanes){const p=pads[l]; if(p) rec.pads[l]=p.name;}
+  sentKits[destName]=rec; saveSentKits(sentKits);
+}
+function backToEdit(){
+  viewMode="edit"; deviceViewDest=null;
+  const b=$("btnBackEdit"); if(b) b.style.display="none";
+  const si=$("slotInfo"); if(si) si.textContent="編集中のキットを表示しています。上の番号を押すと、そのキットのFM-1の内容を表示します。";
+}
+const DRUM_LANES=[[36,"KICK"],[35,"KICK 2"],[38,"SNARE"],[39,"CLAP"],[42,"HAT"],[46,"OPEN HAT"],[44,"PEDAL"],[37,"RIM"],[40,"SNARE 2"],[43,"LOW TOM"],[48,"HI TOM"],[49,"CRASH"],[51,"RIDE"],[70,"SHAKER"],[63,"CONGA"],[56,"COWBELL"]];
+const LANE_NOTES=DRUM_LANES.map(l=>l[0]);
+const padNames=DRUM_LANES.map(l=>l[1]);
+const padsEl=$("pads");
+function renderPads(){
+  padsEl.innerHTML="";
+  const viewing=viewMode==="device"&&deviceViewDest;
+  const rec=viewing?sentKits[deviceViewDest]:null;
+  pads.forEach((p,i)=>{
+    const b=document.createElement("button");
+    let label,dur,cls="pad",playable=false;
+    if(viewing){
+      const nm=rec&&rec.pads?rec.pads[i]:null;
+      label=nm||padNames[i]; dur=nm?"FM-1":"EMPTY"; cls+=nm?" filled":"";
+    }else{
+      label=p?p.name:padNames[i]; dur=p?fmtDur(p.buffer.duration):"EMPTY";
+      cls+=(p?" filled":"")+(i===selectedPad?" selected":""); playable=!!p;
+    }
+    b.className=cls;
+    b.innerHTML="<b>"+String(i+1).padStart(2,"0")+"</b><span>"+label+"</span><span class='dur'>"+dur+"</span>";
+    b.addEventListener("click",()=>{
+      if(viewing){toast("FM-1の内容を表示中です。音を出す・編集するには「編集中のキットに戻る」を押してください");return;}
+      selectedPad=i; renderPads(); syncPadDetail(); if(p)playPad(i);
+    });
+    padsEl.appendChild(b);
+  });
+  const total=pads.reduce((a,p)=>a+(p?p.buffer.duration:0),0);
+  $("budgetText").textContent=total.toFixed(2)+" / "+budgetMax.toFixed(2)+" 秒"+(total>budgetMax?" ⚠ 上限オーバー":"");
+  const f=$("budgetFill"); f.style.width=Math.min(100,total/budgetMax*100)+"%"; f.classList.toggle("over",total>budgetMax);
+}
+function syncPadDetail(){
+  const p=pads[selectedPad];
+  $("padTitle").textContent="PAD "+(selectedPad+1)+"（"+padNames[selectedPad]+"） — "+(p?p.name:"空");
+  $("padInfo").textContent=p?("長さ "+fmtDur(p.buffer.duration)+" ／ "+p.buffer.sampleRate+"Hz ／ 送り先："+dest):"サンプルが入っていません。先に 01 で録音し、02 で加工を確定してください。";
+  if(p){$("padPitch").value=p.pitch;$("padGain").value=Math.round(p.gain*100);}
+  $("oPadPitch").textContent="±"+$("padPitch").value+" st"; $("oPadGain").textContent=$("padGain").value+"%";
+}
+$("padPitch").addEventListener("input",()=>{const p=pads[selectedPad];if(p)p.pitch=+$("padPitch").value;syncPadDetail();});
+$("padGain").addEventListener("input",()=>{const p=pads[selectedPad];if(p)p.gain=+$("padGain").value/100;syncPadDetail();});
+$("destRow").addEventListener("click",e=>{const b=e.target.closest("[data-dest]");if(!b)return;dest=b.dataset.dest;budgetMax=dest==="USR3+4"?14.77:7.38;
+  document.querySelectorAll(".dest").forEach(d=>d.classList.toggle("active",d===b)); showDeviceKit(dest);});
+async function readDeviceSlots(){
+  if(!midiOut)return null;
+  const smp=parseSmpInfo(await sysexRequest(CMD.SMP_INFO,[],{timeout:1000,retries:0}));
+  deviceSlots=smp.slots; return deviceSlots;
+}
+function slotInfoText(d){
+  if(!deviceSlots)return null;
+  const parts=DEST_SLOTS[d].map(k=>{const sl=deviceSlots[k]; if(!sl)return null;
+    return "USR"+(k+1)+"："+(sl.zones?("「"+sl.name+"」 "+sl.zones+"パッド・"+sl.kib+"KiB"):"空き");}).filter(Boolean);
+  return parts.join(" ／ ");
+}
+async function showDeviceKit(d){
+  viewMode="device"; deviceViewDest=d;
+  $("btnBackEdit").style.display="";
+  renderPads();
+  $("padTitle").textContent="FM-1の"+d+"を表示中";
+  $("padInfo").textContent="パッドの音の名前は、このアプリから送った記録です。FM-1はキット名とパッド数しか教えてくれません。";
+  const rec=sentKits[d];
+  let info="FM-1の"+d+"：";
+  if(midiOut){
+    try{
+      await readDeviceSlots();
+      info+=slotInfoText(d)||"読めませんでした";
+      const devName=deviceSlots&&DEST_SLOTS[d].map(k=>deviceSlots[k]&&deviceSlots[k].name).filter(Boolean)[0];
+      if(rec&&devName&&rec.kitName!==devName)info+="\n⚠ FM-1の中身は「"+devName+"」です。このアプリの記録（「"+rec.kitName+"」）と違います。別の方法で上書きされた可能性があります。";
+    }catch(e){info+="読めませんでした（"+e.message+"）";}
+  }else{
+    info+="MIDI未接続のためFM-1からは読めません。このアプリの送信記録を表示しています。";
+  }
+  if(rec)info+="\nこのアプリから送った記録（"+rec.time+"）："+Object.keys(rec.pads).map(l=>"PAD "+(Number(l)+1)+" "+padNames[l]+"＝"+rec.pads[l]).join(" ／ ");
+  else info+="\nこのアプリから送った記録がありません。FM-1はキット名とパッド数しか教えてくれないので、パッドごとの名前はここには出ません。";
+  $("slotInfo").textContent=info;
+  toast("FM-1の"+d+"を表示しています");
+}
+$("btnBackEdit").addEventListener("click",()=>{backToEdit();renderPads();syncPadDetail();});
+$("btnReadSlots").addEventListener("click",async()=>{
+  if(!midiOut){toast("先に「FM-1にMIDI接続する」を押してください");return;}
+  try{
+    await readDeviceSlots();
+    const lines=["USR1","USR2","USR3","USR4","USR3+4"].map(dd=>dd+"："+(slotInfoText(dd)||"？"));
+    $("slotInfo").textContent="FM-1のキット一覧\n"+lines.join("\n");
+    ["USR1","USR2","USR3","USR4","USR3+4"].forEach(dd=>{
+      const btn=document.querySelector('[data-dest="'+dd+'"]');
+      const sl=deviceSlots[DEST_SLOTS[dd][0]];
+      if(btn&&sl&&sl.zones)btn.querySelector("small").textContent="「"+sl.name+"」 "+sl.zones+"パッド";
+    });
+    toast("FM-1のキット一覧を読みました");
+  }catch(e){toast("読めませんでした："+e.message);}
+});
+$("btnAssign").addEventListener("click",()=>{
+  backToEdit();
+  const src=processedBuffer||trimmedBuffer(); if(!src){toast("まず録音して、加工を確定してください");return;}
+  pads[selectedPad]={buffer:processedBuffer||src,name:(processedBuffer?currentName+"-fx":currentName),pitch:0,gain:1};
+  renderPads(); syncPadDetail(); toast("PAD "+(selectedPad+1)+" に入れました → "+dest);
+  if(selectedPad<15){selectedPad++;renderPads();syncPadDetail();}
+});
+function playPad(i){ const p=pads[i]; if(!p)return; stopPlay(); const ac=ctx(); const s=ac.createBufferSource(); s.buffer=p.buffer; s.playbackRate.value=Math.pow(2,p.pitch/12);
+  const g=ac.createGain(); g.gain.value=p.gain; s.connect(g); g.connect(ac.destination); s.start(); playSource=s; }
+$("btnPlayPad").addEventListener("click",()=>playPad(selectedPad));
+$("btnClearPad").addEventListener("click",()=>{backToEdit();pads[selectedPad]=null;renderPads();syncPadDetail();});
+$("btnClearAll").addEventListener("click",()=>{backToEdit();pads=Array.from({length:16},()=>null);renderPads();syncPadDetail();toast("キットを空にしました");});
+$("btnDlPad").addEventListener("click",async()=>{const p=pads[selectedPad];if(!p){toast("このパッドは空です");return;} const f=await toFm1Buffer(p.buffer,p.pitch,p.gain*100); download(bufferToWav(f,true),"pad"+String(selectedPad+1).padStart(2,"0")+"-"+p.name+"-fm1.wav");});
+$("btnDlAll").addEventListener("click",async()=>{
+  const filled=pads.map((p,i)=>[p,i]).filter(([p])=>p); if(!filled.length){toast("入っているパッドがありません");return;}
+  for(const [p,i] of filled){ const f=await toFm1Buffer(p.buffer,p.pitch,p.gain*100); download(bufferToWav(f,true),"pad"+String(i+1).padStart(2,"0")+"-"+p.name+"-fm1.wav"); await new Promise(r=>setTimeout(r,450)); }
+  toast(filled.length+"個のパッドWAVを保存しました。「ファイル」からSLOOPエディタで割り当ててください");
+});
+$("kitName").addEventListener("input",()=>{const v=$("kitName").value.toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,8);$("kitName").value=v;$("oKitName").textContent=v||"MYKIT";});
+renderPads(); syncPadDetail(); setStatus();
+
+/* ---------- Web MIDI ---------- */
+let midiAccess=null,midiOut=null;
+function midiLog(m){$("midiLog").textContent="MIDIログ："+m;}
+$("btnMidi").addEventListener("click",async()=>{
+  if(!navigator.requestMIDIAccess){ midiLog("このブラウザは Web MIDI 非対応です。MIDIWeb ブラウザで開いてください。"); toast("Web MIDI非対応のブラウザです"); return; }
+  try{
+    midiAccess=await navigator.requestMIDIAccess({sysex:true});
+    const sel=$("midiOut"); sel.innerHTML="";
+    const outs=[...midiAccess.outputs.values()];
+    if(!outs.length){sel.innerHTML="<option value=''>MIDI出力：見つかりません（USB接続を確認）</option>";midiLog("MIDI出力が見つかりません。FM-1をUSB-Cでつないでから再度押してください。");}
+    outs.forEach((o,i)=>{const op=document.createElement("option");op.value=o.id;op.textContent=o.name||("Output "+(i+1));sel.appendChild(op);
+      if(/fm-1|felucca|m-vave|sloop/i.test(o.name||""))sel.value=o.id;});
+    midiOut=midiAccess.outputs.get(sel.value)||outs[0]||null;
+    sel.addEventListener("change",()=>{midiOut=midiAccess.outputs.get(sel.value);});
+    $("dotMidi").className="dot on"; $("stMidi").textContent="MIDI："+(midiOut?(midiOut.name||"接続中"):"未接続");
+    midiLog("接続しました："+outs.map(o=>o.name).join(" / ")+"（SysEx許可OK）");
+    midiAccess.inputs.forEach(inp=>{inp.onmidimessage=e=>{if(e.data&&e.data[0]===0xF0){onSysexData(e.data);}else{midiLog("受信 "+[...e.data].join(" ")+" — FM-1からのMIDIを受け取りました");}};});
+    toast("MIDI接続しました");
+  }catch(e){ midiLog("MIDIアクセスが許可されませんでした。MIDIWeb側でSysExを許可してください。"); }
+});
+$("btnMidiTest").addEventListener("click",()=>{
+  if(!midiOut){toast("先に「FM-1にMIDI接続する」を押してください");return;}
+  const note=LANE_NOTES[selectedPad]; midiOut.send([0x99,note,110]); setTimeout(()=>midiOut.send([0x89,note,0]),260);
+  midiLog("送信：ドラムch(10) ノート "+note+"（PAD "+(selectedPad+1)+"）— FM-1側でキット/USRを確認してください");
+  playPad(selectedPad);
+});
+
+/* ---------- direct SysEx send (v0.0.1) ---------- */
+/* Protocol: SLOOP editor (isod89/sloop-fm1, web/EDITOR_PROTOCOL.md).
+   Frame: F0 7D 46 4C <cmd> <args...> F7. All data bytes 7-bit. */
+const SMP={SLOT_SIZE:0x14000,DATA_OFF:512,RATE:22050,HDR_LEN:480,MAX_ZONES:16,ROOM:81344};
+const CMD={INFO:1,SET:3,DESC:5,SMP_BEGIN:11,SMP_WRITE:12,SMP_END:13,SMP_ERASE:14,SMP_INFO:15,TRACK:27};
+const KIT_FALLBACK={"USR1":37,"USR2":38,"USR3":39,"USR4":40,"USR3+4":41};
+const DEST_SLOTS={"USR1":[0],"USR2":[1],"USR3":[2],"USR4":[3],"USR3+4":[2,3]};
+const IMA_STEP=[7,8,9,10,11,12,13,14,16,17,19,21,23,25,28,31,34,37,41,45,50,55,60,66,73,80,88,97,107,118,130,143,157,173,190,209,230,253,279,307,337,371,408,449,494,544,598,658,724,796,876,963,1060,1166,1282,1411,1552,1707,1878,2066,2272,2499,2749,3024,3327,3660,4026,4428,4871,5358,5894,6484,7132,7845,8630,9493,10442,11487,12635,13899,15289,16818,18500,20350,22385,24623,27086,29794,32767];
+const IMA_IDX=[-1,-1,-1,-1,2,4,6,8];
+const CRC_TABLE=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0;}return t;})();
+function crc32(b){let c=0xFFFFFFFF;for(let i=0;i<b.length;i++)c=CRC_TABLE[(c^b[i])&0xFF]^(c>>>8);return (c^0xFFFFFFFF)>>>0;}
+function pack7(b){const out=[];for(let i=0;i<b.length;i+=7){const g=Array.from(b.slice(i,i+7));out.push(g.reduce((m,x,j)=>m|(((x>>7)&1)<<j),0));for(const x of g)out.push(x&0x7F);}return out;}
+function unpack7(a){const out=[];for(let i=0;i<a.length;i+=8){const top=a[i];for(let j=0;j<7&&i+1+j<a.length;j++)out.push(a[i+1+j]|(((top>>j)&1)<<7));}return Uint8Array.from(out);}
+function pyRound(v){const f=Math.floor(v),r=v-f;return r>0.5?f+1:r<0.5?f:(f%2?f+1:f);}
+/* editor's resample: moving average over the ratio, then linear interpolation.
+   v0.0.2: O(n) running-sum average + preallocated Float32Array (the old version
+   re-summed the window per sample and push()ed every output sample, which froze
+   the iPhone UI on long samples). Output values are identical to before. */
+function resample22(x,sr,to){
+  if(sr===to)return Float32Array.from(x);
+  if(sr>to){const k=Math.max(1,pyRound(sr/to));if(k>1){const y=new Float32Array(x.length);let sum=0;for(let j=0;j<k&&j<x.length;j++)sum+=x[j];for(let i=0;i<x.length;i++){y[i]=sum/k;if(i+k<x.length)sum+=x[i+k];sum-=x[i];}x=y;}}
+  const step=sr/to,n=Math.max(0,Math.ceil((x.length-1)/step)),out=new Float32Array(n);let pos=0;
+  for(let q=0;q<n;q++){const i=Math.floor(pos),f=pos-i;out[q]=x[i]*(1-f)+x[i+1]*f;pos+=step;}
+  return out;
+}
+function toInt16(x){let pk=1e-9;for(const v of x)pk=Math.max(pk,Math.abs(v));return Int16Array.from(x,v=>Math.max(-32768,Math.min(32767,Math.trunc(v/pk*30000))));}
+function imaEncode(s,loopStart){
+  loopStart=loopStart||0;
+  let pred=0,idx=0,atLoop=[0,0];
+  const nib=new Uint8Array(s.length+(s.length&1));
+  for(let n=0;n<s.length;n++){
+    if(n===loopStart)atLoop=[pred,idx];
+    const step=IMA_STEP[idx];
+    let diff=s[n]-pred,code=0;
+    if(diff<0){code=8;diff=-diff;}
+    let vd=step>>3;
+    if(diff>=step){code|=4;diff-=step;vd+=step;}
+    if(diff>=step>>1){code|=2;diff-=step>>1;vd+=step>>1;}
+    if(diff>=step>>2){code|=1;vd+=step>>2;}
+    pred=Math.max(-32768,Math.min(32767,code&8?pred-vd:pred+vd));
+    idx=Math.max(0,Math.min(88,idx+IMA_IDX[code&7]));
+    nib[n]=code;
+  }
+  const out=new Uint8Array(nib.length>>1);
+  for(let k=0;k<nib.length;k+=2)out[k>>1]=nib[k]|(nib[k+1]<<4);
+  return {data:out,pred:atLoop[0],idx:atLoop[1]};
+}
+/* zones: [{s:Int16Array, root, lo, hi}] -> {hdr (480 B), data} (sampleio.user_slot) */
+function buildSlot(name,zonesIn){
+  const zones=[],parts=[];let len=0;
+  for(const z of zonesIn){
+    const e=imaEncode(z.s,0);
+    zones.push({off:len,n:z.s.length,ls:0,le:z.s.length-1,looped:0,root:z.root,lo:z.lo,hi:z.hi,pred:e.pred,idx:e.idx});
+    parts.push(e.data);len+=e.data.length;
+  }
+  const data=new Uint8Array(len);let o=0;for(const p of parts){data.set(p,o);o+=p.length;}
+  if(len>SMP.SLOT_SIZE-SMP.DATA_OFF)throw new Error("合計 "+len+" バイトが1スロットの上限 "+(SMP.SLOT_SIZE-SMP.DATA_OFF)+" バイトを超えています");
+  if(!zones.length||zones.length>SMP.MAX_ZONES)throw new Error("1スロットに入るのは1〜16パッドです");
+  zones.sort((a,b)=>a.root-b.root);
+  const hdr=new Uint8Array(SMP.HDR_LEN),v=new DataView(hdr.buffer);
+  v.setUint32(0,0x504D5346,true);
+  v.setUint16(4,1,true);
+  hdr[6]=zones.length;
+  const nm=String(name).toUpperCase().replace(/[^\x20-\x7E]/g,"").slice(0,8);
+  for(let i=0;i<nm.length;i++)hdr[8+i]=nm.charCodeAt(i);
+  v.setUint32(16,len,true);
+  v.setUint32(20,crc32(data),true);
+  const rate=pyRound(SMP.RATE/44100*65536);
+  zones.forEach((z,j)=>{
+    const b=32+j*28;
+    [z.off,z.n,z.ls,z.le,rate].forEach((x,k)=>v.setUint32(b+k*4,x>>>0,true));
+    v.setInt16(b+20,z.root*16,true);
+    v.setInt16(b+22,z.pred,true);
+    hdr[b+24]=z.idx;hdr[b+25]=z.lo;hdr[b+26]=z.hi;hdr[b+27]=z.looped||0;
+  });
+  return {hdr,data,zones};
+}
+/* one pad -> 22050 Hz int16, tuned, gained (dB, -24..0), 4 ms fade-out */
+function monoFloat(buf){
+  const ch0=buf.getChannelData(0);
+  if(buf.numberOfChannels<2)return ch0;
+  const ch1=buf.getChannelData(1),out=new Float32Array(ch0.length);
+  for(let i=0;i<ch0.length;i++)out[i]=(ch0[i]+ch1[i])/2;
+  return out;
+}
+function kitPadPrep(p,lane){
+  let x=resample22(monoFloat(p.buffer),p.buffer.sampleRate,SMP.RATE);
+  if(p.pitch)x=resample22(x,SMP.RATE*Math.pow(2,p.pitch/12),SMP.RATE);
+  const s16=toInt16(x);
+  const db=Math.max(-24,Math.min(0,20*Math.log10(Math.max(0.01,p.gain||1))));
+  const g=Math.pow(10,db/20);
+  const FADE=Math.round(SMP.RATE*0.004),n=s16.length,fade=Math.min(FADE,n);
+  const out=new Int16Array(n);
+  for(let i=0;i<n;i++){const f=(i>=n-fade)?(n-i)/fade:1;out[i]=Math.max(-32768,Math.min(32767,Math.round(s16[i]*g*f)));}
+  return {s:out,root:LANE_NOTES[lane],lo:LANE_NOTES[lane],hi:LANE_NOTES[lane],lane:lane};
+}
+/* USR3+4: biggest first, each into the emptier slot that takes it (editor kitSplit) */
+function kitSplitItems(items,room){
+  const sorted=items.slice().sort((a,b)=>b.b-a.b||a.lane-b.lane);
+  const bins=[[],[]],used=[0,0];
+  for(const it of sorted){
+    const order=used[0]<=used[1]?[0,1]:[1,0];
+    const k=order.find(j=>used[j]+it.b<=room);
+    if(k==null)return null;
+    bins[k].push(it.lane);used[k]+=it.b;
+  }
+  return bins.map(x=>x.sort((a,b)=>a-b));
+}
+
+/* ---------- SysEx link: one frame in flight ---------- */
+function sysexFrame(cmd,args){
+  for(const b of args)if(!(Number.isInteger(b)&&b>=0&&b<=0x7F))throw new Error("bad data byte "+b);
+  return [0xF0,0x7D,0x46,0x4C,cmd&0x7F,...args,0xF7];
+}
+function unframe(d){
+  if(!d||d.length<6||d[0]!==0xF0||d[d.length-1]!==0xF7)return null;
+  if(d[1]!==0x7D||d[2]!==0x46||d[3]!==0x4C)return null;
+  return {cmd:d[4],a:Array.from(d.slice(5,d.length-1))};
+}
+class SReader{
+  constructor(a){this.a=a;this.i=0;}
+  b(){if(this.i>=this.a.length)throw new Error("short reply");return this.a[this.i++];}
+  v(){const lo=this.b();return (lo|(this.b()<<7))-8192;}
+  s(){let s="";for(;;){const c=this.b();if(!c)return s;s+=String.fromCharCode(c);}}
+}
+function parseInfo(a){const r=new SReader(a);const o={version:r.s(),nengines:r.b(),pcount:r.b(),gcount:r.b(),nstep:r.b(),pe0:r.b(),engines:[]};for(let i=0;i<o.nengines;i++)o.engines.push(r.s());o.ntrk=r.i<a.length?r.b():0;o.proto=r.i<a.length?r.b():0;return o;}
+function parseDesc(a){const r=new SReader(a);const o={scope:r.b(),id:r.b(),fmt:r.b(),min:r.v(),max:r.v(),def:r.v(),label:r.s(),unit:r.s(),names:[]};if(o.fmt===8){for(let i=0;i<=o.max-o.min&&i<64&&r.i<a.length;i++)o.names.push(r.s());}return o;}
+function parseSmpInfo(a){const r=new SReader(a);const o={nslots:r.b(),slotKiB:r.b(),slots:[]};for(let i=0;i<o.nslots;i++)o.slots.push({zones:r.b(),name:r.s(),kib:r.b()});return o;}
+function parseSlotRc(a){const r=new SReader(a);return {slot:r.b(),rc:r.b()};}
+function parseSmpWrite(a){const r=new SReader(a);return {slot:r.b(),offset:r.b()|(r.b()<<7)|(r.b()<<14),rc:r.b()};}
+function parseTrack(a){const r=new SReader(a);const o={sel:r.b(),ntrk:r.b(),tracks:[]};for(let i=0;i<o.ntrk;i++)o.tracks.push({engine:r.b(),preset:r.b(),level:r.v(),mute:r.b(),armed:r.b()});return o;}
+function v14enc(v){const u=Math.max(-8192,Math.min(8191,Math.round(v)))+8192;return [u&0x7F,(u>>7)&0x7F];}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+let sysexBuf=[],sysexPending=null;
+function replyMatches(cmd,args,a){
+  switch(cmd){
+    case CMD.SET:case CMD.DESC:return a[0]===args[0]&&a[1]===args[1];
+    case CMD.SMP_BEGIN:case CMD.SMP_END:case CMD.SMP_ERASE:return a[0]===args[0];
+    case CMD.SMP_WRITE:return a[0]===args[0]&&a[1]===args[1]&&a[2]===args[2]&&a[3]===args[3];
+    default:return true;
+  }
+}
+function handleSysexReply(uf){
+  if(!sysexPending)return;
+  const p=sysexPending;
+  if(uf.cmd!==p.cmd)return;
+  if(!replyMatches(p.cmd,p.args,uf.a))return;
+  clearTimeout(p.timer);sysexPending=null;p.resolve(uf.a);
+}
+function onSysexData(data){
+  for(const b of data)sysexBuf.push(b);
+  for(;;){
+    const start=sysexBuf.indexOf(0xF0);
+    if(start<0){sysexBuf=[];return;}
+    if(start>0)sysexBuf.splice(0,start);
+    const end=sysexBuf.indexOf(0xF7,1);
+    if(end<0)return;
+    const frame=sysexBuf.splice(0,end+1);
+    const uf=unframe(frame);
+    if(uf)handleSysexReply(uf);
+  }
+}
+function sysexRequest(cmd,args,opts){
+  opts=opts||{};
+  const timeout=opts.timeout||1000,retries=opts.retries||0;
+  return new Promise((resolve,reject)=>{
+    let attempt=0;
+    const trySend=()=>{
+      attempt++;
+      if(!midiOut){reject(new Error("MIDI未接続"));return;}
+      sysexPending={cmd:cmd,args:args,resolve:resolve,reject:reject,
+        timer:setTimeout(()=>{
+          sysexPending=null;
+          if(attempt<=retries){sendLog("タイムアウト：再送します（cmd "+cmd+"、"+attempt+"回目）");trySend();}
+          else reject(new Error("応答がありません（cmd "+cmd+"、"+timeout+"ms × "+attempt+"回）"));
+        },timeout)};
+      try{midiOut.send(sysexFrame(cmd,args));}
+      catch(e){clearTimeout(sysexPending.timer);sysexPending=null;reject(e);}
+    };
+    trySend();
+  });
+}
+
+/* ---------- send ---------- */
+let sending=false,devInfo=null;
+function sendLog(m){const el=$("sendLog");if(!el)return;const t=new Date().toTimeString().slice(0,8);el.textContent+="["+t+"] "+m+"\n";el.scrollTop=el.scrollHeight;}
+function sendProgress(pct,text){const f=$("sendFill");if(f)f.style.width=Math.max(0,Math.min(100,pct))+"%";const t=$("sendProg");if(t)t.textContent=text;}
+const WRITE_RC=["","引数エラー","消去エラー","書き込みエラー","スロット使用中"];
+const END_RC=["","サイズエラー","ヘッダーエラー","CRCエラー","フラッシュエラー","ゾーン数エラー"];
+async function smpUploadSlot(k,prepped,kitName,prog){
+  const zones=prepped.map(p=>({s:p.s,root:p.root,lo:p.lo,hi:p.hi}));
+  const built=buildSlot(kitName,zones),hdr=built.hdr,data=built.data;
+  sendLog("USR"+(k+1)+"：BEGIN（"+zones.length+"ゾーン、"+data.length+"バイト）");
+  sendProgress(prog.sent/prog.total*100,"USR"+(k+1)+" BEGIN…");
+  let r=parseSlotRc(await sysexRequest(CMD.SMP_BEGIN,[k],{timeout:1000,retries:0}));
+  if(r.rc)throw new Error("SMP_BEGIN 失敗（rc "+r.rc+"）— 再生を止めてからもう一度試してください");
+  for(let off=0;off<data.length;off+=256){
+    const a=SMP.DATA_OFF+off;
+    const chunk=data.subarray(off,off+256);
+    const args=[k&0x7F,a&0x7F,(a>>7)&0x7F,(a>>14)&0x7F].concat(pack7(chunk));
+    const w=parseSmpWrite(await sysexRequest(CMD.SMP_WRITE,args,{timeout:1000,retries:1}));
+    if(w.rc)throw new Error("SMP_WRITE 失敗（0x"+a.toString(16)+"、rc "+w.rc+"："+(WRITE_RC[w.rc]||"不明")+"）");
+    prog.sent+=chunk.length;
+    sendProgress(prog.sent/prog.total*100,"USR"+(k+1)+" WRITE "+prog.sent+" / "+prog.total+" バイト");
+    await sleep(0); /* v0.0.2: no artificial delay — the reply wait paces the send, like the official editor */
+  }
+  sendLog("USR"+(k+1)+"：END（ヘッダ480バイト）");
+  sendProgress(prog.sent/prog.total*100,"USR"+(k+1)+" END…");
+  r=parseSlotRc(await sysexRequest(CMD.SMP_END,[k].concat(pack7(hdr)),{timeout:2000,retries:0}));
+  if(r.rc)throw new Error("SMP_END 失敗（rc "+r.rc+"："+(END_RC[r.rc]||"不明")+"）");
+  sendLog("USR"+(k+1)+"：完了");
+}
+async function smpEraseSlot(k){
+  sendLog("USR"+(k+1)+"：パッドがないのでスロットを消去します");
+  const r=parseSlotRc(await sysexRequest(CMD.SMP_ERASE,[k],{timeout:2500,retries:0}));
+  if(r.rc)throw new Error("SMP_ERASE 失敗（rc "+r.rc+"）");
+  await sysexRequest(CMD.SMP_INFO,[],{timeout:1000,retries:0});
+  sendLog("USR"+(k+1)+"：消去しました");
+}
+async function useKitOnDrumTrack(){
+  if(!midiOut)throw new Error("MIDI未接続");
+  if(!devInfo)devInfo=parseInfo(await sysexRequest(CMD.INFO,[],{timeout:500,retries:3}));
+  const drum=(devInfo.ntrk||4)-1;
+  const tr=parseTrack(await sysexRequest(CMD.TRACK,[drum],{timeout:1000,retries:0}));
+  sendLog("ドラムトラックを選択しました（現在：トラック"+(tr.sel+1)+"）");
+  let idx=-1,min=0;
+  try{
+    const d=parseDesc(await sysexRequest(CMD.DESC,[0,devInfo.pe0],{timeout:1000,retries:0}));
+    min=d.min;idx=d.names.indexOf(dest);
+    sendLog("KIT一覧："+d.names.join(" / "));
+  }catch(e){sendLog("KIT一覧の取得に失敗：既定値を使います（"+e.message+"）");}
+  if(idx<0){idx=KIT_FALLBACK[dest];sendLog("一覧に "+dest+" がないため、既定値 "+idx+" を使います");}
+  else sendLog("KIT "+dest+" は一覧の "+idx+" 番目です");
+  await sysexRequest(CMD.SET,[0,devInfo.pe0].concat(v14enc(idx+min)),{timeout:1000,retries:0});
+  sendLog("ドラムトラックのKITを "+dest+" にしました");
+  toast("ドラムトラックのKITを "+dest+" にしました");
+}
+let sendArmed=false,sendArmTimer=null;
+async function sendKit(){
+  if(sending)return;
+  if(!midiOut){toast("先に「FM-1にMIDI接続する」を押してください");sendLog("送信できません：MIDI未接続です");return;}
+  const filled=pads.map((p,l)=>p?l:-1).filter(l=>l>=0);
+  if(!filled.length){toast("入っているパッドがありません");return;}
+  const kitName=($("kitName").value||"MYKIT").toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,8)||"MYKIT";
+  $("kitName").value=kitName;
+  /* v0.0.2: lock the button BEFORE the conversion (v0.0.1 only locked it after
+     prep+confirm, so a second tap while converting started a parallel conversion
+     and the UI froze with no visible progress). */
+  sending=true;$("btnSendKit").disabled=true;$("btnUseKit").disabled=true;
+  const t0=performance.now();
+  const prepped=[];
+  try{
+    for(let i=0;i<filled.length;i++){
+      const l=filled[i];
+      sendLog("準備中：パッド "+(i+1)+"/"+filled.length+"（PAD "+(l+1)+"）を22kHzに変換しています…");
+      await sleep(0); /* let the log paint before the heavy work */
+      prepped.push(kitPadPrep(pads[l],l));
+      sendLog("準備完了：パッド "+(i+1)+"/"+filled.length+"（"+(((performance.now()-t0)/1000).toFixed(1))+"秒）");
+    }
+  }catch(e){
+    sendLog("変換に失敗しました："+e.message);
+    toast("変換できませんでした："+e.message);
+    sending=false;$("btnSendKit").disabled=false;$("btnUseKit").disabled=false;
+    return;
+  }
+  const byLane=new Map(prepped.map(p=>[p.lane,p]));
+  const slots=DEST_SLOTS[dest];
+  let parts;
+  if(slots.length>1){
+    parts=kitSplitItems(prepped.map(p=>({lane:p.lane,b:(p.s.length+1)>>1})),SMP.ROOM);
+    if(!parts){sendLog("エラー：キットが大きすぎます。2スロットに分けられませんでした。パッドを減らすか、音を短くしてください。");toast("キットが大きすぎて送れません");sending=false;$("btnSendKit").disabled=false;$("btnUseKit").disabled=false;return;}
+  }else{
+    const total=prepped.reduce((a,p)=>a+((p.s.length+1)>>1),0);
+    if(total>SMP.ROOM){sendLog("エラー：合計 "+total+"バイトが1スロットの上限 "+SMP.ROOM+"バイトを超えています。パッドを減らすか、音を短くしてください。");toast("1スロットに入りません");sending=false;$("btnSendKit").disabled=false;$("btnUseKit").disabled=false;return;}
+    parts=[filled];
+  }
+  const totalBytes=prepped.reduce((a,p)=>a+((p.s.length+1)>>1),0);
+  /* v0.0.2: in-page two-tap confirm instead of native confirm() — on iOS/MIDIWeb
+     the native dialog can be missed, and cancelling it returned silently, which
+     looked like "conversion never ends". Tap once to arm, tap again to send. */
+  if(!sendArmed){
+    sendArmed=true;
+    sendLog("確認：もう一度「FM-1にキットを送信する」を押すと「"+kitName+"」を "+dest+"（"+slots.map(k=>"USR"+(k+1)).join(" + ")+"）に送信します。中身は上書きされます。FM-1の再生は止めましたか？バックアップは取りましたか？");
+    toast("もう一度押すと送信します");
+    $("btnSendKit").textContent="⚡ 本当に送る？もう一度押す";
+    $("btnSendKit").disabled=false;
+    sendArmTimer=setTimeout(()=>{sendArmed=false;$("btnSendKit").textContent="⚡ FM-1にキットを送信する";},8000);
+    sending=false;$("btnUseKit").disabled=false;
+    return;
+  }
+  clearTimeout(sendArmTimer);sendArmed=false;
+  $("btnSendKit").textContent="⚡ FM-1にキットを送信する";
+  $("btnSendKit").disabled=true;
+  const prog={sent:0,total:totalBytes};
+  try{
+    sendLog("FM-1と接続確認中…");
+    devInfo=parseInfo(await sysexRequest(CMD.INFO,[],{timeout:500,retries:3}));
+    sendLog("接続OK："+devInfo.version+"（P_E0="+devInfo.pe0+"、トラック"+(devInfo.ntrk||"?")+"）");
+    const smp=parseSmpInfo(await sysexRequest(CMD.SMP_INFO,[],{timeout:1000,retries:0}));
+    sendLog("ユーザー スロット数："+smp.nslots);
+    if(slots.some(k=>k>=smp.nslots))throw new Error(dest+" を使うにはスロットが "+smp.nslots+" 個しかありません。このFM-1はSLOOP 2.8.5ですか？");
+    for(let j=0;j<slots.length;j++){
+      const k=slots[j],lanes=parts[j]||[];
+      if(!lanes.length){await smpEraseSlot(k);continue;}
+      await smpUploadSlot(k,lanes.map(l=>byLane.get(l)),kitName,prog);
+    }
+    await sysexRequest(CMD.SMP_INFO,[],{timeout:1000,retries:0});
+    sendProgress(100,"送信完了");
+    sendLog("送信が完了しました："+kitName+" → "+dest);
+    recordSentKit(dest,kitName,filled);
+    toast("送信完了："+kitName+" → "+dest);
+    try{await useKitOnDrumTrack();}
+    catch(e){sendLog("ドラムトラックへの割り当てに失敗："+e.message+"（「ドラムトラックでこのキットを使う」ボタンで再試行できます）");}
+  }catch(e){
+    sendLog("送信を中止しました："+e.message);
+    toast("送信できませんでした："+e.message);
+    sendProgress(0,"送信できませんでした");
+  }finally{
+    sending=false;$("btnSendKit").disabled=false;$("btnUseKit").disabled=false;
+    $("btnSendKit").textContent="⚡ FM-1にキットを送信する";
+  }
+}
+$("btnSendKit").addEventListener("click",sendKit);
+$("btnUseKit").addEventListener("click",async()=>{
+  if(!midiOut){toast("先に「FM-1にMIDI接続する」を押してください");return;}
+  if(sending)return;
+  try{await useKitOnDrumTrack();}
+  catch(e){sendLog("割り当てに失敗："+e.message);toast("割り当てに失敗："+e.message);}
+});
+
+</script>
+</body>
+</html>
