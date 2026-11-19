@@ -96,18 +96,6 @@
       .stage-card{ padding:0; flex:1; min-height:0; position:relative; display:block; background:transparent; border:none; box-shadow:none; border-radius:0; }
       .stage-box{ position:absolute; inset:0; border-radius:0; overflow:hidden; border:none; }
       canvas#pond{ display:block; width:100%; height:100%; touch-action:none; }
-      /* 浮きの大きさスライダー：左端の細い縦スライダー。見た目は細いが、つまみと
-         当たり判定は指で掴みやすい大きさにしてある。画面中央の池や上下のボタンには被らない */
-      .float-size{ position:absolute; left:2px; top:50%; transform:translateY(-50%); z-index:10; width:54px; height:210px; display:flex; flex-direction:row; align-items:stretch; pointer-events:auto; }
-      .float-size .fs-name{ writing-mode:vertical-rl; font-size:.62rem; font-weight:700; letter-spacing:.12em; color:rgba(255,255,255,.92); text-shadow:0 1px 3px rgba(0,0,0,.6); display:flex; align-items:center; justify-content:center; padding:0 1px; }
-      .float-size .fs-col{ flex:1; position:relative; display:flex; flex-direction:column; align-items:center; }
-      .float-size .fs-lab{ font-size:.72rem; font-weight:900; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,.65); line-height:1; padding:2px 0; }
-      .float-size .fs-range-wrap{ flex:1; position:relative; width:40px; }
-      .float-size input[type=range]{ -webkit-appearance:none; appearance:none; position:absolute; left:50%; top:50%; width:160px; height:40px; margin:0; transform:translate(-50%,-50%) rotate(-90deg); background:transparent; touch-action:pan-y; }
-      .float-size input[type=range]::-webkit-slider-runnable-track{ height:6px; border-radius:3px; background:rgba(255,255,255,.55); box-shadow:0 1px 3px rgba(0,0,0,.45); }
-      .float-size input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; appearance:none; width:26px; height:26px; margin-top:-10px; border-radius:50%; background:#fff; border:2px solid rgba(20,40,30,.55); box-shadow:0 1px 5px rgba(0,0,0,.5); }
-      .float-size input[type=range]::-moz-range-track{ height:6px; border-radius:3px; background:rgba(255,255,255,.55); }
-      .float-size input[type=range]::-moz-range-thumb{ width:24px; height:24px; border-radius:50%; background:#fff; border:2px solid rgba(20,40,30,.55); }
       .toolbar{ display:flex; gap:8px; position:absolute; left:0; right:0; top:0; z-index:9; height:calc(50px + env(safe-area-inset-top)); padding:calc(6px + env(safe-area-inset-top)) 8px 6px; background:linear-gradient(180deg, rgba(10,17,12,.78), rgba(10,17,12,.60)); }
       .btn.tool{ flex:1; min-height:38px; font-size:.9rem; padding:5px 4px; background:rgba(255,255,255,.14); color:#fff; border-color:rgba(255,255,255,.35); }
       dialog{
@@ -397,14 +385,6 @@
         </nav>
         <div class="stage-box" id="stageBox">
           <canvas id="pond" width="800" height="640"></canvas>
-          <div class="float-size" id="floatSizeBox" aria-label="浮きの大きさ">
-            <span class="fs-name">浮きの大きさ</span>
-            <div class="fs-col">
-              <span class="fs-lab">大</span>
-              <div class="fs-range-wrap"><input type="range" id="floatSize" min="0.5" max="2" step="0.05" value="1" aria-label="浮きの大きさ"></div>
-              <span class="fs-lab">小</span>
-            </div>
-          </div>
           <div class="ojama-layer" id="ojamaLayer" aria-label="ボール"></div>
           <div class="result" id="resultBox" role="dialog" aria-label="釣果">
             <div class="result-inner">
@@ -501,6 +481,11 @@
         <div class="ctl">
           <div class="lab" id="labRod">竿と糸の表示</div>
           <div class="chips" id="rodChips"></div>
+        </div>
+        <div class="ctl">
+          <div class="lab" id="labFloatSize">浮きの大きさ</div>
+          <div class="volrow"><input type="range" id="rngFloatSize" min="0.5" max="2" step="0.05" value="1" aria-label="浮きの大きさ"><span class="volval" id="rngFloatSizeVal">1倍</span></div>
+          <p class="rank-note">左が小さく、右が大きい浮きになります。設定を開いている間もすぐ反映されます。</p>
         </div>
         <div class="ctl">
           <div class="lab" id="labVolSE">効果音の音量</div>
@@ -4584,7 +4569,7 @@ var rippleTrainT = 0; // 待ちの間に浮きの波紋を出し続ける間隔�
    浮きの位置へ寄せ直すので、浮きが揺れて流れても輪の中心は浮きから離れない。
    魚のジャンプなど浮き以外で直接 push された旧形式（r/a）は、更新ループで新形式へ寄せる */
 function spawnRipple(n){
-  for(var i=0;i<n;i++) ripples.push({x:fxNow(), y:floatY(), age:-i*0.22, life:2.6, maxR:44+i*16, a0:0.55, seed:Math.random(), anchor:true});
+  for(var i=0;i<n;i++) ripples.push({x:fxNow(), y:floatY(), age:-i*0.30, life:3.4, maxR:52+i*20, a0:0.34, seed:Math.random(), anchor:true});
 }
 function spawnSplash(n){
   for(var i=0;i<n;i++) splashes.push({x:fxNow()+(Math.random()-0.5)*36, y:floatY()-2, vx:(Math.random()-0.5)*60, vy:-(40+Math.random()*70), life:0.6+Math.random()*0.3});
@@ -4644,18 +4629,24 @@ function polyTopAt(poly, nx){
   return best;
 }
 /* ウキは大きく見えるように描く（従来の約2倍）。座りの数値はローカル座標なので倍率に連動して見え方も比例する。
-   浮きの大きさスライダー（左端）の倍率 floatSizeMul を掛ける。既定1.0倍＝従来の1.24で、動かすまで見た目は変わらない。
+   浮きの大きさ（設定ダイアログのスライダー）の倍率 floatSizeMul を掛ける。既定1.0倍＝従来の1.24で、動かすまで見た目は変わらない。
    描画だけに使い、座り・当たり判定などの物理量はローカル座標のまま変えない */
 var FLOAT_SCALE = 1.24 * floatSizeMul;
 (function(){
-  var fs = document.getElementById("floatSize");
+  var fs = document.getElementById("rngFloatSize");
+  var fv = document.getElementById("rngFloatSizeVal");
   if(!fs) return;
   fs.value = String(floatSizeMul);
-  fs.addEventListener("input", function(){
+  if(fv) fv.textContent = (Math.round(floatSizeMul*100)/100) + "倍";
+  var applyFloatSize = function(){
     floatSizeMul = Math.min(2, Math.max(0.5, parseFloat(fs.value) || 1));
     FLOAT_SCALE = 1.24 * floatSizeMul;
+    if(fv) fv.textContent = (Math.round(floatSizeMul*100)/100) + "倍";
     save();
-  });
+  };
+  /* input が届かない環境でも離した時点で確実に反映されるよう change でも同じ処理を行う（冪等） */
+  fs.addEventListener("input", applyFloatSize);
+  fs.addEventListener("change", applyFloatSize);
 })();
 /* ウキの座り：餌が付いているかどうかは、目盛りの色が水面に出るかどうかで表す。
    餌打ち直後は餌とオモリの重さで深く沈み、緑の目盛り（paintHeraFloat のローカル座標で -59.5〜-53.5）が
@@ -5081,35 +5072,35 @@ function computeFishDraw(t){
 function drawWaterFxAll(t){
   drawWaterSurface(t);
   ripples.forEach(function(r){
-    /* 輪の寿命で見え方を決める：最初に速く広がってだんだんゆっくりになり（ease-out）、
-       濃さはすぐ立ち上がってからゆっくり消える。山は実写テクスチャの明るい輪、
-       谷はそのすぐ内側と外側の暗い輪で、水の立体感を出す。輪ごとに大きさ・濃さ・
-       テクスチャの潰れ具合を少しだけ変え、完全なコピーに見えないようにする */
+    /* 輪の寿命で見え方を決める：ゆっくり立ち上がり、広がりながらだんだん薄くなって消える。
+       白い線は描かない。山は実写テクスチャを soft-light 合成で水面になじませ（対応しない
+       環境では通常合成で薄く重ねる）、谷はそのすぐ内側と外側の柔らかい暗い輪だけ。
+       光と影の濃淡だけで水の動きを表す。輪ごとに大きさ・濃さ・テクスチャの潰れ具合を
+       少しだけ変え、完全なコピーに見えないようにする */
     if(r.age===undefined || r.age<0) return;
     var p = Math.min(1, r.age / r.life);
     var rr = 4 + (1 - Math.pow(1-p, 2)) * (r.maxR || 40);
-    var ra = (r.a0 || 0.5) * Math.min(1, p/0.10) * Math.pow(1-p, 1.5);
+    var ra = (r.a0 || 0.34) * Math.min(1, p/0.15) * Math.pow(1-p, 1.6);
     if(ra <= 0.01) return;
     var rseed = r.seed || 0;
     if(RIPPLE_IMG.complete && RIPPLE_IMG.naturalWidth){
       var rw = rr*2.6*(0.94 + rseed*0.12), rh = rw*(0.30 + rseed*0.04);
       ctx.save();
-      ctx.globalAlpha = Math.min(1, ra);
+      ctx.globalAlpha = Math.min(1, ra*1.4);
+      if(RIPPLE_SOFT) ctx.globalCompositeOperation = "soft-light";
       ctx.drawImage(RIPPLE_IMG, r.x - rw/2, r.y - rh/2, rw, rh);
       ctx.restore();
     }
     ctx.beginPath(); ctx.ellipse(r.x, r.y, rr*0.86, rr*0.86*0.32, 0, 0, Math.PI*2);
-    ctx.strokeStyle = "rgba(8,28,26," + (ra*0.38).toFixed(3) + ")"; ctx.lineWidth = 2.2; ctx.stroke();
-    ctx.beginPath(); ctx.ellipse(r.x, r.y, rr, rr*0.32, 0, 0, Math.PI*2);
-    ctx.strokeStyle = "rgba(255,255,255," + (ra*0.55).toFixed(3) + ")"; ctx.lineWidth = 1.1; ctx.stroke();
+    ctx.strokeStyle = "rgba(10,30,28," + (ra*0.30).toFixed(3) + ")"; ctx.lineWidth = 2.6; ctx.stroke();
     ctx.beginPath(); ctx.ellipse(r.x, r.y, rr*1.09, rr*1.09*0.32, 0, 0, Math.PI*2);
-    ctx.strokeStyle = "rgba(8,28,26," + (ra*0.16).toFixed(3) + ")"; ctx.lineWidth = 1.4; ctx.stroke();
+    ctx.strokeStyle = "rgba(10,30,28," + (ra*0.12).toFixed(3) + ")"; ctx.lineWidth = 1.6; ctx.stroke();
     if(p < 0.45){
-      var shA = 0.13 * (1 - p/0.45);
+      var shA = 0.06 * (1 - p/0.45);
       for(var k=0;k<3;k++){
         var a0 = rseed*6.28 + k*2.1 + t*0.7*(k%2 ? 1 : -1);
         ctx.beginPath(); ctx.ellipse(r.x, r.y, rr*0.45, rr*0.45*0.32, 0, a0, a0+0.7);
-        ctx.strokeStyle = "rgba(255,255,255," + shA.toFixed(3) + ")"; ctx.lineWidth = 1; ctx.stroke();
+        ctx.strokeStyle = "rgba(200,225,210," + shA.toFixed(3) + ")"; ctx.lineWidth = 1; ctx.stroke();
       }
     }
   });
@@ -5599,6 +5590,8 @@ function paintHeraFloat(alpha){
 /* 波紋の実写テクスチャ：写真の同心円の明るい輪だけを白い線として抜いたもの。
    暗い水面部分は透明にしてあるので、四角い写真の縁は見えない */
 var RIPPLE_IMG = new Image(); RIPPLE_IMG.src = __GD[179];
+/* 波紋テクスチャの soft-light 合成が使えるか（未対応の環境では通常合成に落ちる） */
+var RIPPLE_SOFT = (function(){ try{ var c = document.createElement("canvas").getContext("2d"); c.globalCompositeOperation = "soft-light"; return c.globalCompositeOperation === "soft-light"; }catch(e){ return false; } })();
 /* トンボ（アキアカネ）：ウキのトップ先端に止まる小さな赤い胴体と透明な翅 */
 function drawDragonflyAt(x, y, tilt, flyT){
   ctx.save(); ctx.translate(x, y); ctx.rotate(tilt*0.7 - 0.12);
@@ -6010,7 +6003,7 @@ function loopFrame(ts){
   }
   // 波紋・しぶき・泡の更新
   for(var ri=ripples.length-1; ri>=0; ri--){ var rp=ripples[ri];
-    if(rp.age===undefined){ rp.age=0; rp.life=2.2; rp.maxR=(rp.r||5)+36; rp.a0=rp.a||0.5; rp.seed=Math.random(); rp.anchor=false; }
+    if(rp.age===undefined){ rp.age=0; rp.life=3.0; rp.maxR=(rp.r||5)+36; rp.a0=Math.min(0.34, rp.a||0.5); rp.seed=Math.random(); rp.anchor=false; }
     rp.age += dt;
     if(rp.anchor){ rp.x = fxNow(); rp.y = floatY(); }
     if(rp.age >= rp.life) ripples.splice(ri,1);
