@@ -963,21 +963,42 @@ function rollEncounter(){
 
 /* ================= 音（Web Audio合成） ================= */
 var AC=null, master=null, seBus=null, ambBus=null;
+/* iOS：WebKitは割り込み（他のアプリの音・電話等）のあとに audioSession.type を
+   リセットすることがあるため、ambient は作るとき一度だけでなく、再開のたびに
+   言い直す。言い直さないと WebKit の推論（playback）に戻って他のアプリの
+   再生を止めてしまうことがある */
+function setAmbientSession(){
+  try{ if(navigator.audioSession) navigator.audioSession.type = "ambient"; }catch(e){}
+}
 function audioInit(){
   if(AC) return;
-  /* iOS 17+：オーディオセッションを ambient（混合）にし、他のアプリの音と
+  /* iOS 16.4+：オーディオセッションを ambient（混合）にし、他のアプリの音と
      共存させる。環境音は <audio> 要素を使わず AudioContext のバッファ再生
      だけにするので、独占の playback セッションを取らない（ESELATOR／ORBIT と同じ作法）。
      なお ambient では iPhone のサイレントスイッチONで環境音は鳴らなくなるが、
      それは ESELATOR／ORBIT と同じ仕様として受け入れる。「playback」に変えて
      鳴らすようなことはしない */
-  try{ if(navigator.audioSession) navigator.audioSession.type = "ambient"; }catch(e){}
+  setAmbientSession();
   try{
     AC = new (window.AudioContext||window.webkitAudioContext)();
     master = AC.createGain(); master.gain.value = 0.9; master.connect(AC.destination);
     /* 効果音と環境音（合成側）は別々のバスを通し、設定の音量スライダーで個別に調整できるようにする */
     seBus = AC.createGain(); seBus.gain.value = volSE * SE_SCALE; seBus.connect(master);
     ambBus = AC.createGain(); ambBus.gain.value = volAmb * AMB_SCALE; ambBus.connect(master);
+    /* 割り込みからの自動復帰：他のアプリの音が変わったとき等に iOS が
+       コンテキストを interrupted/suspended にすることがある。放っておくと
+       環境音が死んだままになるので、表示中・環境音ON・開始済みのときだけ
+       ここで再開を試みる（タップを待たない）。OFFのときや隠れているときは
+       何もしない */
+    try{
+      AC.addEventListener("statechange", function(){
+        if(!AC || !ambientOn || !ambStarted || document.hidden) return;
+        if(AC.state==="interrupted" || AC.state==="suspended"){
+          setAmbientSession();
+          try{ AC.resume(); }catch(e){}
+        }
+      });
+    }catch(e){}
   }catch(e){ AC=null; }
 }
 /* 音量スライダーの値を、再生中の音へ即座に反映する */
@@ -991,15 +1012,20 @@ function applyVolumes(){
 /* 最初のタップ（ユーザー操作）で音声を開始する。ブラウザは操作前の自動再生を許可しないため、
    ここで生成・再開して初めて音が出る。音ONのままなら環境音も同時に始める */
 function ensureAudio(){
-  audioInit();
   /* 地元ニュース：最初のタップで位置情報を一度だけ取得する（許可された場合のみ） */
   requestLocalNews();
-  if(!AC) return;
-  /* 環境音OFFのときは、タップで AudioContext を起こさない。タップのたびに
-     コンテキストを再開すると、他のアプリ（YouTube等）の再生を邪魔する。
-     効果音も ambientOn を見て鳴らないので、OFFの間は無音のまま */
+  /* 環境音OFFのときは AudioContext 自体を作らない。作るだけでもセッションに
+     触る可能性があるため、OFFの間はタップしても完全に無音で、他のアプリの
+     再生には一切手を出さない。効果音も ambientOn を見て鳴らない */
   if(!ambientOn) return;
-  if(AC.state==="suspended" || AC.state==="interrupted"){ try{ AC.resume(); }catch(e){} }
+  audioInit();
+  if(!AC) return;
+  /* WebKitは割り込み後に audioSession.type をリセットすることがあるので、
+     再開のたびに ambient を言い直す（一度だけの設定では不十分） */
+  if(AC.state==="suspended" || AC.state==="interrupted"){
+    setAmbientSession();
+    try{ AC.resume(); }catch(e){}
+  }
   ambStarted = true;
   updateAmbience();
 }
@@ -1121,31 +1147,23 @@ function ambRecActive(key){
 }
 /* 録音環境音の1層ぶんの再生状態。
    (重要) 以前は <audio> 要素＋ createMediaElementSource で鳴らしていたが、
-   <audio> 要素は iOS で独占の playback セッションを取るため、YouTube等の
-   他のアプリの再生を止めてしまう（ピクチャーインピクチャーと併用できない）。
-   そこで通常は埋め込みコピーをデコードしたバッファ再生だけを使う
-   （ESELATOR／ORBIT と同じ、AudioContext＋バッファの作法）。
-   <audio> 要素は decodeAudioData が失敗した層だけのフォールバックとして残し、
-   その場合も MediaElementSource は使わず要素の volume で鳴らす */
+   <audio> 要素は iOS で独占の playback セッションを取るため、他のアプリ
+   （Prime Video・YouTube等）の再生を止めてしまう。そこで埋め込みコピーを
+   デコードしたバッファ再生だけを使う（ESELATOR／ORBIT と同じ、
+   AudioContext＋バッファの作法）。デコードに失敗した層のフォールバックに
+   使っていた <audio> 要素も削除した（失敗した層は無音のままにする）。
+   このページには <audio> 要素はもう1つも無い */
 function ambLayer(key){
   if(ambEls[key]) return ambEls[key];
   var layer = { el:null, el2:null, cur:0, xf:false, gain:null, routed:false, buf:null, bufReady:false, bufLoading:false, bufFailed:false, bufSrc:null, bufSrc2:null, bufStart:0, bufNextStart:0 };
   ambEls[key] = layer;
   return layer;
 }
-/* フォールバック専用：デコード失敗時に旧来の <audio> 要素を2つ作る（ループ継ぎ目のクロスフェード用） */
-function ambLayerEls(layer, key){
-  if(layer.el) return;
-  var el = new Audio();
-  el.src = AMB_FILES[key]; el.loop = false; el.preload = "auto"; el.volume = 0;
-  layer.el = el;
-  var el2 = new Audio();
-  el2.src = AMB_FILES[key]; el2.loop = false; el2.preload = "auto"; el2.volume = 0;
-  layer.el2 = el2;
-}
-/* createMediaElementSource による要素→ゲインの接続（ambRoute／ambRouteEl）は
-   削除した。バッファ再生では不要で、フォールバック要素は volume で鳴らす */
-/* 埋め込みコピー（Base64 の data URI）をデコードしてバッファ再生の準備をする（環境音の通常の再生経路。失敗した層だけ <audio> 要素へフォールバックする） */
+/* createMediaElementSource による要素→ゲインの接続（ambRoute／ambRouteEl）と
+   <audio> フォールバック（ambLayerEls／ambPlayEl）は削除した。バッファ再生
+   では不要で、<audio> 要素は iOS で独占の playback セッションを取るため、
+   他のアプリの再生を止めてしまう。デコードに失敗した層は無音のままにする */
+/* 埋め込みコピー（Base64 の data URI）をデコードしてバッファ再生の準備をする（環境音の通常の再生経路。デコードに失敗した層は無音のまま） */
 function ambLoadEmbedded(key, layer){
   if(layer.bufReady || layer.bufLoading || !AC) return;
   var emb = (typeof EMB_AUDIO !== "undefined") ? EMB_AUDIO["amb-" + key] : null;
@@ -1160,22 +1178,17 @@ function ambLoadEmbedded(key, layer){
     }, function(){ layer.bufLoading = false; layer.bufFailed = true; });
   }catch(e){ layer.bufLoading = false; }
 }
-/* その層の現在の出力音量（ゲイン優先、作れない環境では要素の volume） */
+/* その層の現在の出力音量（ゲイン優先。要素はもう作らないのでゲイン経由のみ） */
 function ambCur(layer){
-  return layer.gain ? layer.gain.gain.value : (layer.el ? layer.el.volume : 0);
+  return layer.gain ? layer.gain.gain.value : 0;
 }
-/* フォールバック要素（<audio>）の音量は2つの要素の両方に設定する */
+/* 音量設定（要素はもう無いので、実質ゲイン経由のみ。呼び出し側の互換のため残す） */
 function ambSetEl(layer, v){
   if(layer.el) layer.el.volume = v;
   if(layer.el2) layer.el2.volume = v;
-}
-/* ループ継ぎ目のクロスフェード長（秒）。録音音源の頭・尻のフェード（約2秒）と
+}/* ループ継ぎ目のクロスフェード長（秒）。録音音源の頭・尻のフェード（約2秒）と
    重なるよう、終了の少し前から次の頭を重ね始める */
 var AMB_XF = 2.4;
-function ambPlayEl(el){
-  if(!el) return;
-  try{ var p = el.play(); if(p && p.catch) p.catch(function(){}); }catch(e){}
-}
 function ambMkBufSrc(layer){
   var bs = AC.createBufferSource(); bs.buffer = layer.buf; bs.loop = false;
   bs.connect(layer.gain);
@@ -1183,6 +1196,14 @@ function ambMkBufSrc(layer){
   return bs;
 }
 function ambTick(){
+  /* 割り込みからの回復：他のアプリの音が変わったときに iOS がコンテキストを
+     interrupted にすることがあり、そのままだと環境音が死んだままになる。
+     表示中・環境音ON・開始済みのときだけ、200msごとのこのタイマーで再開を
+     試みる（タップを待たない）。隠れているときやOFFのときは再開しない */
+  if(AC && ambientOn && ambStarted && !document.hidden && (AC.state==="suspended" || AC.state==="interrupted")){
+    setAmbientSession();
+    try{ AC.resume(); }catch(e){}
+  }
   if(!ambTargetsCache) ambTargetsCache = ambTargets();
   if(!ambVarTargets || performance.now() > ambVarNext) refreshAmbVar();
   updateRain();
@@ -1217,35 +1238,10 @@ function ambTick(){
         var cur = layer.gain.gain.value, diff = target - cur;
         layer.gain.gain.value = Math.abs(diff) < 0.004 ? target : cur + diff * 0.35;
       } else if(layer.bufFailed){
-        /* フォールバック：デコード失敗時のみ <audio> 要素で再生。MediaElementSourceは
-           使わない（要素の volume で鳴らす）。iOS ではスライダーが効かない場合がある */
-        ambLayerEls(layer, key);
-        var curEl = (layer.cur === 1 && layer.el2) ? layer.el2 : layer.el;
-        if(curEl.paused && !layer.xf) ambPlayEl(curEl);
-        var durE = curEl.duration;
-        if(isFinite(durE) && durE > AMB_XF + 1 && curEl.currentTime > 0){
-          var remE = durE - curEl.currentTime;
-          if(!layer.xf && remE <= AMB_XF + 0.3){
-            var nxtEl = (curEl === layer.el) ? layer.el2 : layer.el;
-            if(nxtEl){
-              try{ nxtEl.currentTime = 0; }catch(e){}
-              ambPlayEl(nxtEl);
-              layer.xf = true;
-            }
-          } else if(layer.xf && remE <= 0.12){
-            try{ curEl.pause(); curEl.currentTime = 0; }catch(e){}
-            layer.cur = (curEl === layer.el) ? 1 : 0;
-            layer.xf = false;
-          }
-        }
-        /* 万一クロスフェードが間に合わず要素が終わっていたら、頭から再生し直して無音を防ぐ */
-        var nowEl = (layer.cur === 1 && layer.el2) ? layer.el2 : layer.el;
-        if(nowEl.ended){
-          try{ nowEl.currentTime = 0; }catch(e){}
-          ambPlayEl(nowEl);
-        }
-        var curE = ambCur(layer), diffE = target - curE;
-        ambSetEl(layer, Math.abs(diffE) < 0.004 ? target : curE + diffE * 0.35);
+        /* デコードに失敗した層は無音のままにする。以前はここで <audio> 要素を
+           作って鳴らしていたが、<audio> は iOS で独占の playback セッションを
+           取って他のアプリ（Prime Video等）の再生を止めてしまうため、削除した。
+           他の層はバッファ再生で鳴り続ける */
       } else if(!layer.bufLoading){
         /* デコード待ち：要素は作らない。デコードが終わるまで無音（通常1秒未満） */
         ambLoadEmbedded(key, layer);
@@ -3841,6 +3837,11 @@ function speakOjama(kind, lineIdx){
   if(!ambientOn) return; // 環境音OFFのときはボイスも鳴らさない（効果音と同じ扱い）
   try{
     audioInit(); if(!AC) return;
+    /* タイマー発火で声を出すときも、割り込みで止まっていたら再開を試みる */
+    if(AC.state==="suspended" || AC.state==="interrupted"){
+      setAmbientSession();
+      try{ AC.resume(); }catch(e){}
+    }
     var name = "ojama-" + kind + "-" + lineIdx + "-ja";
     if(ojamaVoiceSrc){ try{ ojamaVoiceSrc.stop(); }catch(e){} ojamaVoiceSrc = null; }
     if(ojamaVoiceBufs[name]){ playOjamaBuf(ojamaVoiceBufs[name]); return; }
@@ -6154,16 +6155,9 @@ function drawRodAndFloat(pal, t){
   }
   // 季節のお邪魔（夏の蚊・春の蜂・秋の落ち葉）：浮きの周りに描く
   drawSeasonOjama(t);
-  // 水際の光の輪（メニスカスのハイライト）
-  ctx.beginPath(); ctx.ellipse(fx, wy + 0.6, 10.5*FLOAT_SCALE + Math.sin(t*2.3)*0.8, 2.5*FLOAT_SCALE, 0, 0, Math.PI*2);
-  ctx.strokeStyle = "rgba(255,255,255,0.55)"; ctx.lineWidth = 1.2; ctx.stroke();
-  ctx.beginPath(); ctx.ellipse(fx, wy + 0.6, 4.6*FLOAT_SCALE, 1.15*FLOAT_SCALE, 0, 0, Math.PI*2);
-  ctx.strokeStyle = "rgba(255,255,255,0.75)"; ctx.lineWidth = 1; ctx.stroke();
-  // ウキ周りの小さな波紋
-  if(state==="mae" || state==="hon"){
-    ctx.beginPath(); ctx.ellipse(fx, wy+2, 15 + Math.sin(t*7)*2.5, 4.8, 0, 0, Math.PI*2);
-    ctx.strokeStyle = "rgba(255,255,255,0.55)"; ctx.lineWidth = 1.3; ctx.stroke();
-  }
+  /* ウキの根元の白い輪（メニスカスのハイライト）と mae/hon 時の白い楕円は
+     削除した。ウキの周りに白い線は描かない（ユーザーの要望）。ウキ自体が
+     目立つので代わりの輪は描かない。暗い波紋の輪（drawWaterFxAll）は残る */
 }
 
 /* ================= メインループ ================= */
@@ -6569,7 +6563,11 @@ function buildAmbChips(){
       buildAmbChips();
       if(ambientOn){
         audioInit();
-        if(AC && (AC.state==="suspended" || AC.state==="interrupted")){ try{ AC.resume(); }catch(e){} }
+        if(AC && (AC.state==="suspended" || AC.state==="interrupted")){
+          /* audioInit は AC が既にあると何もしないので、ここでも ambient を言い直す */
+          setAmbientSession();
+          try{ AC.resume(); }catch(e){}
+        }
         ambStarted = true;
         updateAmbience();
       } else {
