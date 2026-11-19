@@ -96,6 +96,18 @@
       .stage-card{ padding:0; flex:1; min-height:0; position:relative; display:block; background:transparent; border:none; box-shadow:none; border-radius:0; }
       .stage-box{ position:absolute; inset:0; border-radius:0; overflow:hidden; border:none; }
       canvas#pond{ display:block; width:100%; height:100%; touch-action:none; }
+      /* 浮きの大きさスライダー：左端の細い縦スライダー。見た目は細いが、つまみと
+         当たり判定は指で掴みやすい大きさにしてある。画面中央の池や上下のボタンには被らない */
+      .float-size{ position:absolute; left:2px; top:50%; transform:translateY(-50%); z-index:10; width:54px; height:210px; display:flex; flex-direction:row; align-items:stretch; pointer-events:auto; }
+      .float-size .fs-name{ writing-mode:vertical-rl; font-size:.62rem; font-weight:700; letter-spacing:.12em; color:rgba(255,255,255,.92); text-shadow:0 1px 3px rgba(0,0,0,.6); display:flex; align-items:center; justify-content:center; padding:0 1px; }
+      .float-size .fs-col{ flex:1; position:relative; display:flex; flex-direction:column; align-items:center; }
+      .float-size .fs-lab{ font-size:.72rem; font-weight:900; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,.65); line-height:1; padding:2px 0; }
+      .float-size .fs-range-wrap{ flex:1; position:relative; width:40px; }
+      .float-size input[type=range]{ -webkit-appearance:none; appearance:none; position:absolute; left:50%; top:50%; width:160px; height:40px; margin:0; transform:translate(-50%,-50%) rotate(-90deg); background:transparent; touch-action:pan-y; }
+      .float-size input[type=range]::-webkit-slider-runnable-track{ height:6px; border-radius:3px; background:rgba(255,255,255,.55); box-shadow:0 1px 3px rgba(0,0,0,.45); }
+      .float-size input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; appearance:none; width:26px; height:26px; margin-top:-10px; border-radius:50%; background:#fff; border:2px solid rgba(20,40,30,.55); box-shadow:0 1px 5px rgba(0,0,0,.5); }
+      .float-size input[type=range]::-moz-range-track{ height:6px; border-radius:3px; background:rgba(255,255,255,.55); }
+      .float-size input[type=range]::-moz-range-thumb{ width:24px; height:24px; border-radius:50%; background:#fff; border:2px solid rgba(20,40,30,.55); }
       .toolbar{ display:flex; gap:8px; position:absolute; left:0; right:0; top:0; z-index:9; height:calc(50px + env(safe-area-inset-top)); padding:calc(6px + env(safe-area-inset-top)) 8px 6px; background:linear-gradient(180deg, rgba(10,17,12,.78), rgba(10,17,12,.60)); }
       .btn.tool{ flex:1; min-height:38px; font-size:.9rem; padding:5px 4px; background:rgba(255,255,255,.14); color:#fff; border-color:rgba(255,255,255,.35); }
       dialog{
@@ -385,6 +397,14 @@
         </nav>
         <div class="stage-box" id="stageBox">
           <canvas id="pond" width="800" height="640"></canvas>
+          <div class="float-size" id="floatSizeBox" aria-label="浮きの大きさ">
+            <span class="fs-name">浮きの大きさ</span>
+            <div class="fs-col">
+              <span class="fs-lab">大</span>
+              <div class="fs-range-wrap"><input type="range" id="floatSize" min="0.5" max="2" step="0.05" value="1" aria-label="浮きの大きさ"></div>
+              <span class="fs-lab">小</span>
+            </div>
+          </div>
           <div class="ojama-layer" id="ojamaLayer" aria-label="ボール"></div>
           <div class="result" id="resultBox" role="dialog" aria-label="釣果">
             <div class="result-inner">
@@ -827,6 +847,7 @@ var LS_KEY = "nobezao-koi-game-v1";
 /* 地元ニュースの場所（位置情報または手動選択）と環境音ON/OFFは、記録と一緒に保存する */
 var newsPlace = null; // {province, city}（都道府県・市区町村）
 var ambientOn = true; // 環境音のON/OFF（設定で切替。初期値はON＝従来どおり）
+var floatSizeMul = 1; // 浮きの大きさスライダーの倍率（1＝従来の大きさ。0.5〜2.0）
 var records = [];
 /* 魚種別ランキング（大きさ・重さ）：釣果画面で名前登録した記録。釣果記録と同じ保存先に残す */
 var rankings = {};
@@ -843,10 +864,10 @@ var SE_SCALE = 1.14, VOICE_SCALE = 0.36;
 var AMB_SCALE = 1 / 2;
 try{
   var raw = localStorage.getItem(LS_KEY);
-  if(raw){ var parsed = JSON.parse(raw); if(parsed && parsed.records) records = parsed.records; if(parsed && parsed.rankings && typeof parsed.rankings==="object") rankings = parsed.rankings; if(parsed && typeof parsed.rankName==="string") rankName = parsed.rankName; if(parsed && parsed.newsPlace && typeof parsed.newsPlace==="object") newsPlace = parsed.newsPlace; if(parsed && typeof parsed.ambientOn==="boolean") ambientOn = parsed.ambientOn; if(parsed && (parsed.lang==="en" || parsed.lang==="ja")) lang = parsed.lang; if(parsed && parsed.vol){ if(typeof parsed.vol.se==="number") volSE = Math.min(1, Math.max(0, parsed.vol.se)); if(typeof parsed.vol.voice==="number") volVoice = Math.min(1, Math.max(0, parsed.vol.voice)); if(typeof parsed.vol.amb==="number") volAmb = Math.min(1, Math.max(0, parsed.vol.amb)); if(parsed.volVer !== 2){ /* 旧スケールで保存された値を新スケール（ベスト＝50%）へ一度だけ換算し、聞こえる大きさを変えない */ volSE = Math.min(1, Math.max(0, volSE * 0.5 / 0.57)); volVoice = Math.min(1, Math.max(0, volVoice * 0.5 / 0.18)); volAmb = Math.min(1, Math.max(0, volAmb * 0.5)); } } }
+  if(raw){ var parsed = JSON.parse(raw); if(parsed && parsed.records) records = parsed.records; if(parsed && parsed.rankings && typeof parsed.rankings==="object") rankings = parsed.rankings; if(parsed && typeof parsed.rankName==="string") rankName = parsed.rankName; if(parsed && parsed.newsPlace && typeof parsed.newsPlace==="object") newsPlace = parsed.newsPlace; if(parsed && typeof parsed.ambientOn==="boolean") ambientOn = parsed.ambientOn; if(parsed && typeof parsed.floatSize==="number") floatSizeMul = Math.min(2, Math.max(0.5, parsed.floatSize)); if(parsed && (parsed.lang==="en" || parsed.lang==="ja")) lang = parsed.lang; if(parsed && parsed.vol){ if(typeof parsed.vol.se==="number") volSE = Math.min(1, Math.max(0, parsed.vol.se)); if(typeof parsed.vol.voice==="number") volVoice = Math.min(1, Math.max(0, parsed.vol.voice)); if(typeof parsed.vol.amb==="number") volAmb = Math.min(1, Math.max(0, parsed.vol.amb)); if(parsed.volVer !== 2){ /* 旧スケールで保存された値を新スケール（ベスト＝50%）へ一度だけ換算し、聞こえる大きさを変えない */ volSE = Math.min(1, Math.max(0, volSE * 0.5 / 0.57)); volVoice = Math.min(1, Math.max(0, volVoice * 0.5 / 0.18)); volAmb = Math.min(1, Math.max(0, volAmb * 0.5)); } } }
 }catch(e){ records = []; }
 function save(){
-  try{ localStorage.setItem(LS_KEY, JSON.stringify({records:records, rankings:rankings, rankName:rankName, lang:lang, vol:{se:volSE, voice:volVoice, amb:volAmb}, volVer:2, newsPlace:newsPlace, ambientOn:ambientOn})); }catch(e){}
+  try{ localStorage.setItem(LS_KEY, JSON.stringify({records:records, rankings:rankings, rankName:rankName, lang:lang, vol:{se:volSE, voice:volVoice, amb:volAmb}, volVer:2, newsPlace:newsPlace, ambientOn:ambientOn, floatSize:floatSizeMul})); }catch(e){}
 }
 
 /* ================= 条件 ================= */
@@ -4556,8 +4577,14 @@ function hexA(hex, a){
   var n = parseInt(hex.slice(1), 16);
   return "rgba(" + ((n>>16)&255) + "," + ((n>>8)&255) + "," + (n&255) + "," + a + ")";
 }
+var rippleTrainT = 0; // 待ちの間に浮きの波紋を出し続ける間隔タイマー
+/* 波紋は「浮きを中心に生まれる輪の列」：1回の発生で、時間差のある数本の輪を
+   仕掛ける。輪は生まれた瞬間は小さく、最初に速く広がってだんだんゆっくりになり、
+   濃さは立ち上がったあとゆっくり消えていく。浮きにくっつく輪（anchor）は毎フレーム
+   浮きの位置へ寄せ直すので、浮きが揺れて流れても輪の中心は浮きから離れない。
+   魚のジャンプなど浮き以外で直接 push された旧形式（r/a）は、更新ループで新形式へ寄せる */
 function spawnRipple(n){
-  for(var i=0;i<n;i++) ripples.push({x:fxNow(), y:floatY(), r:4+i*5, a:0.55});
+  for(var i=0;i<n;i++) ripples.push({x:fxNow(), y:floatY(), age:-i*0.22, life:2.6, maxR:44+i*16, a0:0.55, seed:Math.random(), anchor:true});
 }
 function spawnSplash(n){
   for(var i=0;i<n;i++) splashes.push({x:fxNow()+(Math.random()-0.5)*36, y:floatY()-2, vx:(Math.random()-0.5)*60, vy:-(40+Math.random()*70), life:0.6+Math.random()*0.3});
@@ -4616,8 +4643,20 @@ function polyTopAt(poly, nx){
   }
   return best;
 }
-/* ウキは大きく見えるように描く（従来の約2倍）。座りの数値はローカル座標なので倍率に連動して見え方も比例する */
-var FLOAT_SCALE = 1.24;
+/* ウキは大きく見えるように描く（従来の約2倍）。座りの数値はローカル座標なので倍率に連動して見え方も比例する。
+   浮きの大きさスライダー（左端）の倍率 floatSizeMul を掛ける。既定1.0倍＝従来の1.24で、動かすまで見た目は変わらない。
+   描画だけに使い、座り・当たり判定などの物理量はローカル座標のまま変えない */
+var FLOAT_SCALE = 1.24 * floatSizeMul;
+(function(){
+  var fs = document.getElementById("floatSize");
+  if(!fs) return;
+  fs.value = String(floatSizeMul);
+  fs.addEventListener("input", function(){
+    floatSizeMul = Math.min(2, Math.max(0.5, parseFloat(fs.value) || 1));
+    FLOAT_SCALE = 1.24 * floatSizeMul;
+    save();
+  });
+})();
 /* ウキの座り：餌が付いているかどうかは、目盛りの色が水面に出るかどうかで表す。
    餌打ち直後は餌とオモリの重さで深く沈み、緑の目盛り（paintHeraFloat のローカル座標で -59.5〜-53.5）が
    ちょうど水面に出る（水面＝ローカル -54）。餌が溶け・小さくなるにつれて少しずつ浮き上がり、
@@ -5042,18 +5081,37 @@ function computeFishDraw(t){
 function drawWaterFxAll(t){
   drawWaterSurface(t);
   ripples.forEach(function(r){
-    /* 実写の波紋テクスチャを、浮きを中心に広がる輪として写す。写真の輪だけを
-       抜いた透明PNGなので、水面を四角く覆わず、輪だけが明るく見える。
-       従来の白い楕円の線も薄く残し、輪の芯をはっきりさせる */
+    /* 輪の寿命で見え方を決める：最初に速く広がってだんだんゆっくりになり（ease-out）、
+       濃さはすぐ立ち上がってからゆっくり消える。山は実写テクスチャの明るい輪、
+       谷はそのすぐ内側と外側の暗い輪で、水の立体感を出す。輪ごとに大きさ・濃さ・
+       テクスチャの潰れ具合を少しだけ変え、完全なコピーに見えないようにする */
+    if(r.age===undefined || r.age<0) return;
+    var p = Math.min(1, r.age / r.life);
+    var rr = 4 + (1 - Math.pow(1-p, 2)) * (r.maxR || 40);
+    var ra = (r.a0 || 0.5) * Math.min(1, p/0.10) * Math.pow(1-p, 1.5);
+    if(ra <= 0.01) return;
+    var rseed = r.seed || 0;
     if(RIPPLE_IMG.complete && RIPPLE_IMG.naturalWidth){
-      var rw = r.r*2.6, rh = rw*0.32;
+      var rw = rr*2.6*(0.94 + rseed*0.12), rh = rw*(0.30 + rseed*0.04);
       ctx.save();
-      ctx.globalAlpha = Math.min(1, r.a);
+      ctx.globalAlpha = Math.min(1, ra);
       ctx.drawImage(RIPPLE_IMG, r.x - rw/2, r.y - rh/2, rw, rh);
       ctx.restore();
     }
-    ctx.beginPath(); ctx.ellipse(r.x, r.y, r.r, r.r*0.32, 0, 0, Math.PI*2);
-    ctx.strokeStyle = "rgba(255,255,255,"+(r.a*0.5)+")"; ctx.lineWidth = 1.2; ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(r.x, r.y, rr*0.86, rr*0.86*0.32, 0, 0, Math.PI*2);
+    ctx.strokeStyle = "rgba(8,28,26," + (ra*0.38).toFixed(3) + ")"; ctx.lineWidth = 2.2; ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(r.x, r.y, rr, rr*0.32, 0, 0, Math.PI*2);
+    ctx.strokeStyle = "rgba(255,255,255," + (ra*0.55).toFixed(3) + ")"; ctx.lineWidth = 1.1; ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(r.x, r.y, rr*1.09, rr*1.09*0.32, 0, 0, Math.PI*2);
+    ctx.strokeStyle = "rgba(8,28,26," + (ra*0.16).toFixed(3) + ")"; ctx.lineWidth = 1.4; ctx.stroke();
+    if(p < 0.45){
+      var shA = 0.13 * (1 - p/0.45);
+      for(var k=0;k<3;k++){
+        var a0 = rseed*6.28 + k*2.1 + t*0.7*(k%2 ? 1 : -1);
+        ctx.beginPath(); ctx.ellipse(r.x, r.y, rr*0.45, rr*0.45*0.32, 0, a0, a0+0.7);
+        ctx.strokeStyle = "rgba(255,255,255," + shA.toFixed(3) + ")"; ctx.lineWidth = 1; ctx.stroke();
+      }
+    }
   });
   bubbles.forEach(function(b){
     ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI*2);
@@ -5468,46 +5526,79 @@ function drawRodReal(tipX, tipY){
   });
   ctx.lineCap = "round";
 }
-/* ---- 実写の浮き：写真の細い浮き（赤い先端・黒い軸・緑の胴）を使う ----
-   写真（__GD[178]）は背景を除去した切り抜き。写真の浮きはワグラー型で軸に
-   目盛りが無いので、餌読みに必要な緑・赤の2本の目盛りだけを従来の HERA_BANDS
-   と同じ位置（緑 -59.5〜-53.5、赤 -44〜-38）に軸の上に描き足す。
-   写真の緑の胴は下部にあるため、写すと水面下（ローカル +24〜+45）に来るが、
-   それは本物のヘラ浮きと同じ（胴は沈み、トップだけが出る）ので正しい。
-   写真の赤い先端（ローカル -79〜-65）はそのまま先端に見える。
-   目盛りの位置は一切変えていないので、餌の有無の読みは従来どおり */
+/* ---- ヘラ浮き：日本の古い茅（かや）浮き。渋い朱と生成りのボディ、細身で艶を抑えた手作りの佇まい ---- */
 var HERA_BANDS = [
   ["#b84a32",10],["#232323",2],["#e9dfc2",6.5],["#232323",2],["#8a8f5a",6],
   ["#232323",2],["#c67a3a",5.5],["#232323",2],["#b84a32",6]
-]; // 合計42px：色あせた手塗りの目盛りトップ（緑 -59.5〜-53.5／赤 -44〜-38 は餌読みに使う）
-var FLOAT_PHOTO = new Image(); FLOAT_PHOTO.src = __GD[178]; // 実写の浮き（背景除去済みPNG）
-/* 波紋の実写テクスチャ：写真の同心円の明るい輪だけを白い線として抜いたもの。
-   暗い水面部分は透明にしてあるので、四角い写真の縁は見えない */
-var RIPPLE_IMG = new Image(); RIPPLE_IMG.src = __GD[179];
+]; // 合計42px：色あせた手塗りの目盛りトップ
+function heraBodyPath(){
+  ctx.beginPath();
+  ctx.moveTo(0, -38);
+  ctx.bezierCurveTo(3.6, -33, 4.9, -21, 4.8, -8);
+  ctx.bezierCurveTo(4.7, 4, 2.9, 12.5, 0, 18);
+  ctx.bezierCurveTo(-2.9, 12.5, -4.7, 4, -4.8, -8);
+  ctx.bezierCurveTo(-4.9, -21, -3.6, -33, 0, -38);
+  ctx.closePath();
+}
 function paintHeraFloat(alpha){
   // ローカル座標：原点＝水面との交点、トップ先端 y=-80、足先 y=+42
   ctx.save();
   ctx.globalAlpha = alpha;
-  if(FLOAT_PHOTO.complete && FLOAT_PHOTO.naturalWidth){
-    // 写真 40x518 をローカル 9.8 x 127 に写す（アスペクトは写真通り）
-    ctx.drawImage(FLOAT_PHOTO, -4.9, -80, 9.8, 127);
-  }
-  // 餌読みの目盛り2本（緑・赤）と区切りの黒線を、写真の軸の上に重ねる
-  function band(y0, h, col){
-    var wTop = 2.1 + (y0+80)/42*0.7, wBot = 2.1 + (y0+h+80)/42*0.7;
-    ctx.fillStyle = col;
+  // 竹ひごトップ（手塗りの目盛り、色は渋く色あせた朱・生成り・苔色）
+  var y = -80;
+  for(var i=0;i<HERA_BANDS.length;i++){
+    var bh = HERA_BANDS[i][1];
+    var wTop = 2.1 + (y+80)/42*0.7, wBot = 2.1 + (y+bh+80)/42*0.7;
+    ctx.fillStyle = HERA_BANDS[i][0];
     ctx.beginPath();
-    ctx.moveTo(-wTop/2, y0); ctx.lineTo(wTop/2, y0); ctx.lineTo(wBot/2, y0+h); ctx.lineTo(-wBot/2, y0+h);
+    ctx.moveTo(-wTop/2, y); ctx.lineTo(wTop/2, y); ctx.lineTo(wBot/2, y+bh); ctx.lineTo(-wBot/2, y+bh);
     ctx.closePath(); ctx.fill();
+    y += bh;
   }
-  band(-61.5, 2, "#232323");
-  band(-59.5, 6, "#8a8f5a"); // 緑の目盛り：餌ありで水面
-  band(-53.5, 2, "#232323");
-  band(-46, 2, "#232323");
-  band(-44, 6, "#b84a32"); // 赤の目盛り：餌なしで水面から出る
-  band(-38, 2, "#232323");
+  // 控えめな艶（古い浮きはピカピカしない）
+  ctx.fillStyle = "rgba(255,255,255,0.22)";
+  ctx.fillRect(-0.9, -79, 0.6, 40);
+  // トップ付け根の黒漆の軸
+  ctx.fillStyle = "#2a2118"; ctx.fillRect(-1.1, -38.5, 2.2, 3.5);
+  // ボディ（茅・桐の生成り。肩と裾は茶漆の輪、縦に薄い木目）
+  var bg = ctx.createLinearGradient(0, -38, 0, 18);
+  bg.addColorStop(0, "#6b4a2f"); bg.addColorStop(0.13, "#c9ad72");
+  bg.addColorStop(0.30, "#efe3c0"); bg.addColorStop(0.60, "#e6d3a2");
+  bg.addColorStop(0.84, "#cdb07a"); bg.addColorStop(0.94, "#7a5a34"); bg.addColorStop(1, "#4a3420");
+  heraBodyPath(); ctx.fillStyle = bg; ctx.fill();
+  ctx.save(); heraBodyPath(); ctx.clip();
+  var sg = ctx.createLinearGradient(-5, 0, 5, 0);
+  sg.addColorStop(0, "rgba(70,50,25,0.32)"); sg.addColorStop(0.32, "rgba(255,255,255,0.06)");
+  sg.addColorStop(0.47, "rgba(255,255,255,0.28)"); sg.addColorStop(0.62, "rgba(255,255,255,0.03)");
+  sg.addColorStop(1, "rgba(70,50,25,0.36)");
+  ctx.fillStyle = sg; ctx.fillRect(-6, -39, 12, 58);
+  // 木目（縦の細い筋）と年季の染み
+  ctx.strokeStyle = "rgba(120,90,45,0.20)"; ctx.lineWidth = 0.55;
+  [-2.6,-1.1,1.4,2.8].forEach(function(gx){
+    ctx.beginPath(); ctx.moveTo(gx, -32); ctx.bezierCurveTo(gx+0.5, -16, gx-0.4, 0, gx+0.3, 12); ctx.stroke();
+  });
+  ctx.fillStyle = "rgba(120,88,40,0.16)";
+  ctx.beginPath(); ctx.ellipse(1.8, -6, 1.5, 5, 0.2, 0, Math.PI*2); ctx.fill();
+  // 手書きの小さな墨の銘と朱の点
+  ctx.fillStyle = "rgba(34,28,20,0.78)";
+  ctx.fillRect(-0.5, -15, 1.0, 6); ctx.fillRect(-0.5, -6.5, 1.0, 4);
+  ctx.fillStyle = "rgba(168,62,38,0.85)";
+  ctx.fillRect(-0.5, 0, 1.0, 1.6);
+  ctx.restore();
+  heraBodyPath(); ctx.strokeStyle = "rgba(80,60,30,0.30)"; ctx.lineWidth = 0.7; ctx.stroke();
+  // 足（竹脚：黒ではなく焦げ茶）
+  var fg = ctx.createLinearGradient(-1.1, 0, 1.1, 0);
+  fg.addColorStop(0, "#5a4630"); fg.addColorStop(0.5, "#2e2114"); fg.addColorStop(1, "#171008");
+  ctx.fillStyle = fg;
+  ctx.beginPath();
+  ctx.moveTo(-1.0, 17.5); ctx.lineTo(1.0, 17.5); ctx.lineTo(0.7, 40); ctx.lineTo(-0.7, 40);
+  ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(0, 41.2, 1.3, 1.9, 0, 0, Math.PI*2); ctx.fillStyle = "#171008"; ctx.fill();
   ctx.restore();
 }
+/* 波紋の実写テクスチャ：写真の同心円の明るい輪だけを白い線として抜いたもの。
+   暗い水面部分は透明にしてあるので、四角い写真の縁は見えない */
+var RIPPLE_IMG = new Image(); RIPPLE_IMG.src = __GD[179];
 /* トンボ（アキアカネ）：ウキのトップ先端に止まる小さな赤い胴体と透明な翅 */
 function drawDragonflyAt(x, y, tilt, flyT){
   ctx.save(); ctx.translate(x, y); ctx.rotate(tilt*0.7 - 0.12);
@@ -5918,10 +6009,16 @@ function loopFrame(ts){
     if(fight && Math.random() < dt*2.2) spawnSplash(2);
   }
   // 波紋・しぶき・泡の更新
-  for(var ri=ripples.length-1; ri>=0; ri--){ var rp=ripples[ri]; rp.r += dt*22; rp.a -= dt*0.35; if(rp.a<=0) ripples.splice(ri,1); }
+  for(var ri=ripples.length-1; ri>=0; ri--){ var rp=ripples[ri];
+    if(rp.age===undefined){ rp.age=0; rp.life=2.2; rp.maxR=(rp.r||5)+36; rp.a0=rp.a||0.5; rp.seed=Math.random(); rp.anchor=false; }
+    rp.age += dt;
+    if(rp.anchor){ rp.x = fxNow(); rp.y = floatY(); }
+    if(rp.age >= rp.life) ripples.splice(ri,1);
+  }
   for(var si=splashes.length-1; si>=0; si--){ var pp=splashes[si]; pp.x+=pp.vx*dt; pp.y+=pp.vy*dt; pp.vy+=300*dt; pp.life-=dt; if(pp.life<=0) splashes.splice(si,1); }
   for(var bi=bubbles.length-1; bi>=0; bi--){ var bb=bubbles[bi]; bb.y-=dt*7; bb.life-=dt; if(bb.life<=0) bubbles.splice(bi,1); }
-  if(Math.random() < dt*0.25 && state!=="idle" && state!=="await") spawnRipple(1);
+  rippleTrainT -= dt;
+  if(rippleTrainT<=0 && state!=="idle" && state!=="await" && !rigHidden){ spawnRipple(3); rippleTrainT = 2.0 + Math.random()*1.2; }
   // 秋のトンボ：待ちの間にウキへ止まり、しばらくすると飛び立つ（季節が変われば消える）
   if(sel.season!=="autumn"){
     if(dragonState!=="away"){ dragonState="away"; dragonFly=null; }
