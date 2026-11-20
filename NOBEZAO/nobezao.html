@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="ja">
-  <head><script src="gd1.js"></script><script src="gd2.js"></script><script src="gd3.js"></script><script src="gd4.js"></script><script src="gd5.js"></script><script src="gd6.js"></script><script>window.__SCENE_DATA={morning:__GD[99],day:__GD[100],evening:__GD[101]};</script>
+  <head><script src="gd1.js"></script><script src="gd2.js"></script><script src="gd3.js"></script><script src="gd4.js"></script><script src="gd5.js"></script><script src="gd6.js"></script><script src="gd11.js"></script><script src="gd12.js"></script><script src="gd13.js"></script><script src="gd14.js"></script><script src="gd15.js"></script><script src="gd16.js"></script><script src="gd17.js"></script><script src="gd18.js"></script><script src="gd19.js"></script><script src="gd20.js"></script><script src="gd21.js"></script><script src="gd22.js"></script><script src="gd23.js"></script><script src="gd24.js"></script><script src="gd25.js"></script><script src="gd26.js"></script><script src="gd27.js"></script><script>window.__SCENE_DATA={morning:__GD[99],day:__GD[100],evening:__GD[101]};</script>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="color-scheme" content="light dark" />
@@ -8,7 +8,7 @@
     <title>延べ竿日和</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@600;800&family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@500;600;700;800&display=swap" rel="stylesheet" />
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
     <style>
@@ -54,7 +54,7 @@
         margin:0; height:100dvh; overflow:hidden;
         background:linear-gradient(180deg,var(--bg) 0%,var(--bg2) 100%);
         color:var(--ink);
-        font-family:"Zen Maru Gothic","Hiragino Maru Gothic ProN",sans-serif;
+        font-family:"Shippori Mincho B1","Hiragino Mincho ProN",serif;
         font-weight:500;
         line-height:1.65;
         /* プレイ中の長押しでコピー選択や虫眼鏡（ルーペ）が出ないようにする */
@@ -75,7 +75,7 @@
       }
       .wrap{ max-width:none; width:100%; margin:0; height:100dvh; display:flex; flex-direction:column; gap:0; padding:0; position:relative; }
       h1,h2,h3{ font-family:"Shippori Mincho B1","Hiragino Mincho ProN",serif; }
-      header.top{ position:absolute; top:calc(50px + env(safe-area-inset-top)); left:0; right:0; z-index:8; pointer-events:none; padding:6px 12px 22px; font-size:.84rem; line-height:1.45; color:#f4f7ee; background:linear-gradient(180deg, rgba(10,17,12,.58), rgba(10,17,12,.28) 55%, rgba(10,17,12,0)); text-shadow:0 1px 4px rgba(0,0,0,.55); }
+      header.top{ position:absolute; top:calc(50px + env(safe-area-inset-top) + 98px); left:0; right:0; z-index:8; pointer-events:none; padding:6px 12px 22px; font-size:.84rem; line-height:1.45; color:#f4f7ee; background:linear-gradient(180deg, rgba(10,17,12,.58), rgba(10,17,12,.28) 55%, rgba(10,17,12,0)); text-shadow:0 1px 4px rgba(0,0,0,.55); }
       /* 上部の情報（水温など）はデフォルトで非表示：風景への没頭を優先し、「情報」ボタンで出し入れする */
       header.top[hidden]{ display:none; }
       header.top .top-line{ display:flex; align-items:baseline; gap:4px 12px; flex-wrap:wrap; }
@@ -115,19 +115,23 @@
       .dlg-body{ padding:14px 16px calc(128px + env(safe-area-inset-bottom)); font-size:.92rem; }
       .dlg-body .body{ font-size:.92rem; }
       .msg{
-        min-height:2.7em; display:flex; align-items:center; gap:8px;
-        padding:6px 4px 0; font-size:.95rem;
+        display:flex; align-items:flex-start; gap:8px;
+        box-sizing:border-box; height:calc(3 * 1.45em + 16px); padding:8px 12px;
+        font-size:.95rem; line-height:1.45;
+        border-radius:12px; background:linear-gradient(180deg, rgba(10,17,12,.72), rgba(10,17,12,.45));
+        color:#f2f6ec; text-shadow:0 1px 3px rgba(0,0,0,.5);
       }
+      #msgText{ flex:1; min-width:0; overflow-y:auto; overflow-x:hidden; max-height:calc(3 * 1.45em); scrollbar-width:thin; overscroll-behavior:contain; }
       /* 状況テキスト専用の固定高さゾーン：テキスト量・ゲージ・お邪魔表示が変わっても、風景（ステージ）の大きさと位置は一切動かない */
-      .status-zone{ position:absolute; left:0; right:0; bottom:calc(136px + env(safe-area-inset-bottom)); z-index:7; height:94px; overflow-y:auto; overflow-x:hidden; scrollbar-width:thin; padding:16px 12px 2px; color:#f2f6ec; background:linear-gradient(0deg, rgba(10,17,12,.72), rgba(10,17,12,.45) 62%, rgba(10,17,12,0)); text-shadow:0 1px 3px rgba(0,0,0,.5); }
+      .status-zone{ position:absolute; left:0; right:0; top:calc(50px + env(safe-area-inset-top)); z-index:7; height:auto; overflow:visible; padding:8px 12px; color:#f2f6ec; background:linear-gradient(180deg, rgba(10,17,12,.72), rgba(10,17,12,.45) 62%, rgba(10,17,12,0)); text-shadow:0 1px 3px rgba(0,0,0,.5); }
       .status-zone .gauge-row label{ color:rgba(255,255,255,.85); }
       .status-zone .gauge-row .val{ color:#fff; }
       .status-zone .ojama-speech{ text-shadow:none; }
       /* お邪魔中は状況ゾーンをタップ透過にして、万一ボールが文字の裏に回っても必ずタップできるようにする */
       .stage-card:has(.stage-box.ojama-active) .status-zone{ pointer-events:none; }
-      .msg .dot{ flex:0 0 auto; width:9px; height:9px; border-radius:50%; background:var(--water); }
+      .msg .dot{ flex:0 0 auto; width:9px; height:9px; margin-top:.55em; border-radius:50%; background:var(--water); }
       .msg.strong{ font-weight:700; }
-      .fight-ui{ display:none; padding:6px 4px 0; }
+      .fight-ui{ display:none; position:absolute; left:12px; right:12px; top:100%; margin-top:4px; padding:8px 10px; border-radius:12px; background:linear-gradient(180deg, rgba(10,17,12,.80), rgba(10,17,12,.55)); }
       .fight-ui.on{ display:block; }
       .gauge-row{ display:flex; align-items:center; gap:10px; margin-bottom:6px; }
       .gauge-row label{ flex:0 0 4.4em; font-size:.8rem; font-weight:700; color:var(--ink-soft); }
@@ -185,6 +189,18 @@
       .res-scroll-hint{ font-size:.78rem; font-weight:700; color:var(--ink-soft); text-align:center; padding:2px 0 8px; }
       /* リリースボタンはパネル下端に貼り付けて、スクロールしなくても必ず押せるようにする */
       .result-inner #resClose{ position:sticky; bottom:0; box-shadow:0 -8px 16px rgba(20,30,22,.22), var(--shadow); }
+      /* リリース確認：ランキングに入る魚を登録せずに逃がすときの確認。リリースボタンは
+         パネル下端に貼り付いているので、確認のボタンは画面の上側（パネルの上部）に置き、
+         連打している指がそのまま届かない位置にする。「登録する」を大きく下に、
+         「登録せずにリリースする」を小さく上に置く */
+      .rel-confirm{ position:absolute; inset:0; display:none; align-items:flex-start; justify-content:center; background:rgba(20,30,22,.55); padding:18px 14px calc(14px + env(safe-area-inset-bottom)); z-index:40; }
+      .rel-confirm.on{ display:flex; }
+      .rel-confirm-inner{ background:var(--card); border-radius:16px; border:1px solid var(--line); max-width:420px; width:100%; padding:18px; text-align:center; margin-top:6vh; }
+      .rel-confirm-inner h3{ margin:2px 0 8px; font-size:1.15rem; }
+      .rel-confirm-inner .desc{ font-size:.9rem; color:var(--ink-soft); margin:0 0 12px; text-align:left; }
+      .rel-confirm-inner .btn{ width:100%; margin-top:8px; }
+      .rel-confirm-inner .btn.danger{ border-color:var(--danger); color:var(--danger); background:var(--card); }
+      .rel-confirm-inner .btn.danger:disabled, .rel-confirm-inner .btn:disabled{ opacity:.45; cursor:default; }
       dialog{ touch-action:pan-y; }
       .dlg-body{ touch-action:pan-y; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; }
       .result-inner .fishart{ margin:2px auto 4px; }
@@ -224,9 +240,6 @@
       .rank-status{ font-size:.8rem; color:var(--ink-soft); margin:6px 0 0; }
       .rank-status.err{ color:var(--danger); font-weight:700; }
       .rank-reg-btn:disabled{ opacity:.55; cursor:default; }
-      .rank-rules{ margin-top:10px; font-size:.82rem; color:var(--ink-soft); }
-      .rank-rules summary{ cursor:pointer; font-weight:700; min-height:32px; }
-      .rank-rules pre{ white-space:pre-wrap; word-break:break-all; background:var(--card2); border:1px solid var(--line); border-radius:10px; padding:10px; font-size:.72rem; line-height:1.5; max-height:260px; overflow:auto; touch-action:pan-y; }
       .ctl{ margin-bottom:12px; }
       .ctl:last-child{ margin-bottom:0; }
       .ctl .lab{ font-size:.82rem; font-weight:900; color:var(--ink-soft); margin-bottom:6px; letter-spacing:.06em; }
@@ -250,6 +263,7 @@
       .stat .t{ font-size:.74rem; color:var(--ink-soft); font-weight:700; }
       .zukan{ display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; margin-bottom:14px; }
       .zcard{ border:1px solid var(--line); border-radius:12px; padding:10px; background:var(--card2); text-align:center; }
+      .zcard:not(.unknown){ cursor:pointer; }
       .zcard .nm{ font-weight:900; font-size:.95rem; }
       .zcard .inf{ font-size:.78rem; color:var(--ink-soft); }
       .zcard.unknown{ opacity:.55; }
@@ -286,7 +300,10 @@
       .tackle-photos .tp-float img{ object-position:50% 20%; }
       .tackle-photos figcaption{ font-size:.78rem; color:var(--ink-soft); margin-top:4px; text-align:center; font-weight:700; }
       /* お邪魔の吹き出しは状況ゾーンに埋もれさせず、風景の上部に大きなパネルで重ねる（タップは下のボールへ通す） */
-      .ojama-bar{ position:absolute; left:10px; right:10px; top:calc(118px + env(safe-area-inset-top)); z-index:9; display:flex; flex-wrap:wrap; gap:8px; align-items:flex-start; pointer-events:none; }
+      /* お邪魔カードはメッセージ欄（.status-zone）の上に重ねる。以前は写真の上にあり、
+         カード＋残り数の下端がボールの落下帯にかかってボールを押せなくなった。
+         上に置けばカードは帯にかからず、写真も隠さない */
+      .ojama-bar{ position:absolute; left:10px; right:10px; top:calc(50px + env(safe-area-inset-top)); z-index:9; display:flex; flex-wrap:wrap; gap:8px; align-items:flex-start; pointer-events:none; }
       .ojama-speech{ flex:1 1 280px; min-width:0; display:flex; gap:11px; align-items:flex-start; background:var(--card); border:1.5px solid var(--ink); border-radius:14px; padding:10px 12px; box-shadow:0 8px 24px rgba(10,17,12,.38); font-size:.95rem; line-height:1.55; color:var(--ink); }
       .ojama-speech[hidden]{ display:none; }
       .ojama-art{ flex:0 0 78px; width:78px; height:78px; border-radius:50%; overflow:hidden; border:1.5px solid var(--line); background:var(--card2); }
@@ -303,6 +320,12 @@
       .moya-ball::after{ content:""; position:absolute; inset:-9px; border-radius:50%; background:radial-gradient(circle, rgba(160,150,185,.30) 0 42%, transparent 70%); z-index:-1; }
       .moya-ball.popped{ transform:scale(1.45); opacity:0; }
       .stage-box.ojama-active canvas#pond{ filter:saturate(.82); }
+      /* ARモードのシャッターボタン：ARモードの間だけ画面右下（操作ボタンの上）に出す。
+         キャンバスとは別の実ボタンなので、タップしても浮きは投げられない */
+      .ar-shutter{ position:absolute; right:10px; bottom:calc(136px + env(safe-area-inset-bottom) + 10px); z-index:4; width:52px; height:52px; border-radius:50%; border:2px solid rgba(255,255,255,.75); background:rgba(10,17,12,.55); color:#fff; display:none; align-items:center; justify-content:center; cursor:pointer; padding:0; }
+      .ar-shutter.on{ display:flex; }
+      .ar-shutter svg{ width:26px; height:26px; display:block; }
+      .ar-shutter:active{ background:rgba(10,17,12,.8); }
       .btn.rebait{ flex:1; font-size:.95rem; padding:10px 6px; }
       .btn.rebait:disabled{ opacity:.4; }
       /* 起動スプラッシュ：ロゴマーク（ヘラ浮き＋「延べ竿日和」）を2秒だけ表示してフェードアウトする */
@@ -358,7 +381,7 @@
       <header class="top" id="topInfo" hidden>
         <div class="top-line">
           <h1 id="appTitle">延べ竿日和</h1>
-          <span class="cond-text" id="condText" aria-label="今日の水辺"><span id="condTempLab">水温</span> <b id="condTemp">--℃</b> ・ <span id="condActLab">鯉の活性</span> <b id="condAct">--</b> ・ <span id="condWx">晴れ</span> ・ <span id="condDistLab">距離</span> <b>5.0m</b> ・ <span id="condOjamaLab">お邪魔モード</span> <b id="condOjamaVal">常時ON</b></span>
+          <span class="cond-text" id="condText" aria-label="今日の水辺"><span id="condTempLab">水温</span> <b id="condTemp">--℃</b> ・ <span id="condActLab">鯉の活性</span> <b id="condAct">--</b> ・ <span id="condWx">晴れ</span></span>
         </div>
         <p class="top-note" id="condNote"></p>
       </header>
@@ -371,6 +394,7 @@
         </nav>
         <div class="stage-box" id="stageBox">
           <canvas id="pond" width="800" height="640"></canvas>
+          <button class="ar-shutter" id="arShutter" type="button" aria-label="写真を撮る"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></button>
           <div class="ojama-layer" id="ojamaLayer" aria-label="ボール"></div>
           <div class="result" id="resultBox" role="dialog" aria-label="釣果">
             <div class="result-inner">
@@ -401,6 +425,14 @@
               </div>
               <div class="res-scroll-hint" id="resScrollHint" hidden>▼ スライドで続きが見られます</div>
               <button class="btn primary" id="resClose" style="width:100%;">そっとリリースする</button>
+            </div>
+          </div>
+          <div class="rel-confirm" id="relConfirmBox" role="dialog" aria-label="リリースの確認">
+            <div class="rel-confirm-inner">
+              <h3 id="relConfirmTitle">本当に登録せずにリリースしますか？</h3>
+              <p class="desc" id="relConfirmText"></p>
+              <button class="btn danger" id="relConfirmYes" type="button">登録せずにリリースする</button>
+              <button class="btn primary" id="relConfirmNo" type="button">やっぱり登録する</button>
             </div>
           </div>
         </div>
@@ -461,6 +493,11 @@
           <div class="chips" id="rodChips"></div>
         </div>
         <div class="ctl">
+          <div class="lab" id="labFloatSize">浮きの大きさ</div>
+          <div class="volrow"><input type="range" id="rngFloatSize" min="0.5" max="2" step="0.05" value="1.15" aria-label="浮きの大きさ"><span class="volval" id="rngFloatSizeVal">1.15倍</span></div>
+          <p class="rank-note">左が小さく、右が大きい浮きになります。設定を開いている間もすぐ反映されます。</p>
+        </div>
+        <div class="ctl">
           <div class="lab" id="labVolSE">効果音の音量</div>
           <div class="volrow"><input type="range" id="rngSE" min="0" max="100" step="1" value="50" aria-label="効果音の音量"><span class="volval" id="rngSEVal">50%</span></div>
         </div>
@@ -471,6 +508,26 @@
         <div class="ctl">
           <div class="lab" id="labVolAmb">環境音の音量</div>
           <div class="volrow"><input type="range" id="rngAmb" min="0" max="100" step="1" value="50" aria-label="環境音の音量"><span class="volval" id="rngAmbVal">50%</span></div>
+        </div>
+        <div class="ctl">
+          <div class="lab" id="labAmbOn">環境音</div>
+          <div class="chips" id="ambChips"></div>
+          <p class="rank-note" id="ambNote">OFFにすると環境音が止まり、YouTubeなどの他のアプリの音と一緒に楽しめます。</p>
+        </div>
+        <div class="ctl">
+          <div class="lab" id="labAR">ARモード</div>
+          <div class="chips" id="arChips"></div>
+          <p class="rank-note" id="arNote">オンにするとカメラの映像が背景になり、季節や時間に関係なく、帯の中ならどこにでも浮きを投げられます。カメラの許可が必要です。ARモードの間は画面右下のボタンで写真が撮れ、撮った写真をそのまま背景にできます。</p>
+        </div>
+        <div class="ctl" id="capPhotoCtl" hidden>
+          <div class="lab" id="labCapPhoto">撮影した写真</div>
+          <button class="btn small" type="button" id="capPhotoClearBtn">撮影した写真をやめる</button>
+          <p class="rank-note" id="capPhotoNote">撮影した写真を背景にしています。季節や時間帯を変えると通常の写真に戻ります。</p>
+        </div>
+        <div class="ctl">
+          <div class="lab" id="labNewsPref">地元ニュースの都道府県</div>
+          <select class="rank-sel" id="newsPrefSel" aria-label="地元ニュースの都道府県" style="width:100%;"></select>
+          <p class="rank-note" id="newsPrefNote"></p>
         </div>
       </div>
     </dialog>
@@ -503,59 +560,6 @@
         <p class="rank-note" id="recRankEmpty" hidden></p>
         <p class="rank-status" id="recRankStatus" hidden></p>
         <button type="button" class="rank-tab" id="recRankRetry" hidden>再読み込み</button>
-        <details class="rank-rules">
-          <summary id="rankRulesSummary">オンラインランキングの設定（Firestoreルール）</summary>
-          <p>ランキングが読み込めない・登録できないときは、Firebaseコンソール（プロジェクト jogo-base1）の「Firestore Database → ルール」に以下を丸ごと貼って公開してください。既存の rhythm_scores と page_views も含む統合版です。</p>
-          <pre id="nobezaoRulesText">rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-
-    // ランキング（Rhythm Drums）
-    match /rhythm_scores/{scoreId} {
-      allow read: if true;
-      allow create: if
-        request.resource.data.name is string
-        &amp;&amp; request.resource.data.name.size() &gt;= 1
-        &amp;&amp; request.resource.data.name.size() &lt;= 10
-        &amp;&amp; request.resource.data.score is number
-        &amp;&amp; request.resource.data.score &gt;= 0;
-      allow update, delete: if false;
-    }
-
-    // 魚種別ランキング（延べ竿日和）
-    match /nobezao_scores/{scoreId} {
-      allow read: if true;
-      allow create: if
-        request.resource.data.name is string
-        &amp;&amp; request.resource.data.name.size() &gt;= 1
-        &amp;&amp; request.resource.data.name.size() &lt;= 10
-        &amp;&amp; request.resource.data.speciesId is string
-        &amp;&amp; request.resource.data.speciesId.size() &gt;= 1
-        &amp;&amp; request.resource.data.size is number
-        &amp;&amp; request.resource.data.size &gt; 0
-        &amp;&amp; request.resource.data.size &lt;= 1000
-        &amp;&amp; request.resource.data.weight is number
-        &amp;&amp; request.resource.data.weight &gt; 0
-        &amp;&amp; request.resource.data.weight &lt;= 10000;
-      allow update, delete: if false;
-    }
-
-    // 閲覧カウンター（ORBITなど）
-    match /page_views/{pageId} {
-      allow read: if true;
-      allow create: if request.resource.data.count == 1;
-      allow update: if request.resource.data.count == resource.data.count + 1;
-      allow delete: if false;
-    }
-
-    // それ以外のコレクションは全て禁止
-    match /{document=**} {
-      allow read, write: if false;
-    }
-  }
-}</pre>
-          <button type="button" class="btn small" id="copyNobezaoRules">ルールをコピー</button>
-        </details>
         <div class="zukan" id="zukan"></div>
         <h3 style="font-size:1rem; margin:0 0 6px;" id="itemsTitle">拾い物</h3>
         <div class="items-line" id="itemsLine"><span class="empty">まだ何も拾っていない。</span></div>
@@ -578,10 +582,11 @@ service cloud.firestore {
             <li><b>やり取りは竿を立てて溜める。</b>リールがないので糸は出せない。「竿を立てる」を長押しして張りを保ち、緑の範囲を外さないように。緑の範囲に保てている間は魚がぐっと近づいてきて、走られても少しずつ寄せられる。張りすぎればハリスが切れ、緩めすぎればバレる。<b>張りのシビアさは魚ごとに違う</b>：タナゴやオイカワは適正範囲が広くゆるめだが、マゴイは狭く、大型（50cm超・80cm超）になるほど範囲がさらに狭まり、張りの上下も速く、限界の猶予も短くなる。掛かった瞬間に「適正 ○〜○％」とシビアさが表示されるので、まずそれを見てから小刻みに調整する。魚が疲れて近づいたらタモ入れ。タモは頭から。</li>
             <li><b>操作はボタンと水面タップ。</b>打ち込みは水面をタップした場所へ。打ち直したあとも、水面をタップするまで仕掛けは投入されない。合わせは「竿を持つ」方式：ボタンを押し続けて竿を持ち、本アタリの瞬間に指を離すと合わせる（水面も同じ作法で、触れている間は竿を持ち、離すと合わせる。水面以外は反応しない。スペースキーも、押している間は竿を持ち、離すと合わせる）。やり取り中の糸の張りは「竿を立てる（長押し）」ボタンで調整し、押している間は張り、離すと緩む。お邪魔中は「竿を持つ」ボタンも「餌付け」も使えない（水面・スペースキーでの合わせも同じ）。まずボールを全部消してから合わせること。</li>
             <li><b>お邪魔モード（常時ON）。</b>釣りを始めてから、アタリとまったく同じ確率（最速10秒〜最長1分半に1回）で、おじいさん・おばあさんの話しかけ、悪ガキのルアー投げ込み、野良猫、写真好きの観光客、釣りの先輩、動画配信者、押しの強いセールスマンなどが現れる。静かさに負けて居眠りしてしまうこともある。<b>お邪魔のセリフは、キャラごとに違う声で実際に読み上げられる</b>（おじいさんは低くゆっくり、おばあさんは少し高く、悪ガキは高く速く、居眠りは眠そうに遅く、など）。画面にボールが10〜30個降ってくる（厄介な相手ほど多い）ので、全部タップして消すまでお邪魔は続く（居眠りはボールをはじいて目を覚ます）。お邪魔が終われば声も止まる。<b>アタリはお邪魔の間も通常通り来るが、お邪魔中は合わせも餌付けもできない</b>：「竿を持つ」ボタンと「餌付け」はお邪魔中は使えなくなり、水面・スペースキーでの合わせも効かない（竿を持っている最中にお邪魔が始まると、握りは解けて合わせにはならない）。本アタリは保持されず、通常と同じ持ち時間しかないので、ボール消しに手間取って合わせが遅れれば魚はエサを離して逃げる。釣りたければ、ボールを素早く全部消してお邪魔を終わらせ、本アタリが残っているうちに通常通り合わせること。ルアーが入ると魚が散るので、消えたら打ち直しになる（ただしアタリ進行中に消し終えた場合は、そのアタリの残り時間に任される）。</li>
-            <li><b>風景の音は常時ON。</b>最初のタップで再生が始まる。音は合成ではなく、実際に野外で録音された環境音のループ：水のせせらぎがいつも流れ、早朝は鳥の合唱、昼は池の鳥の声（夏はセミの声も）、夕方は虫の声（夏・秋）、春・夏の朝と夕方にはカエルの合唱が、季節と時間帯に合わせて重なる。長さの違うループを重ねているので、同じ音の並びはめったに戻ってこない。OFFにはならない。録音出典（radio aporee／Internet Archive）：鳥の合唱＝Enquiring Ear（CC BY-NC 3.0）、池の鳥＝Carlos Santos（パブリックドメイン）、カエル＝リトアニア・ティルムーナイ（パブリックドメイン）、虫＝クロアチア・スプリト（パブリックドメイン）、セミと鳥＝Wu Tsan-Cheng（CC BY 3.0）、水音＝Vassar College（パブリックドメイン）。</li><li><b>距離は5メートル。</b>ポイントは竿先から5.0m先。やり取りでは魚との距離がこの5.0mから近づいたり離れたりする。</li><li><b>エサで釣れる魚がガラッと変わる。</b>練り餌はフナ類・タナゴ中心ながら、鯉やブルーギルも来て、たまにカメまで釣れる。コーンは大型コイ・ソウギョ中心で小魚が激減、パンは表層の魚とニシキゴイ中心、ミミズはナマズ・ウナギなど肉食魚中心（カメもミミズが好きだ）。全31種のうち、今のエサではほぼ来ない魚も多いので、狙いを変えたらエサを変える。</li><li><b>正体は釣り上げるまで分からない。</b>掛かった瞬間に魚種や大きさは表示されない。水中の姿も影だけで、タモに入れて初めて名前とサイズが分かる。</li>
-            <li><b>リリースは優しく。</b>鯉は濡れた手で触り、長く空気にさらさず、その場でそっと返すのがマナー。拾ったゴミは持ち帰ろう。</li>
+            <li><b>風景の音は設定でON/OFF。</b>最初のタップで再生が始まる。OFFにすれば、YouTubeなどの他のアプリの音と一緒に楽しめる。音は合成ではなく、実際に野外で録音された環境音のループ：水のせせらぎがいつも流れ、早朝は鳥の合唱、昼は池の鳥の声（夏はセミの声も）、夕方は虫の声（夏・秋）、春・夏の朝と夕方にはカエルの合唱が、季節と時間帯に合わせて重なる。長さの違うループを重ねているので、同じ音の並びはめったに戻ってこない。録音出典（radio aporee／Internet Archive）：鳥の合唱＝Enquiring Ear（CC BY-NC 3.0）、池の鳥＝Carlos Santos（パブリックドメイン）、カエル＝リトアニア・ティルムーナイ（パブリックドメイン）、虫＝クロアチア・スプリト（パブリックドメイン）、セミと鳥＝Wu Tsan-Cheng（CC BY 3.0）、水音＝Vassar College（パブリックドメイン）。風景の写真（全29枚、季節ごと）：春＝Roman Boed from The Nether（CC BY 2.0）、Marathon（CC BY-SA 2.0）、Czeva（CC BY-SA 3.0）、Acabashi（CC BY-SA 4.0）、Sardaka（CC BY-SA 4.0）、EoRdE6（CC BY-SA 4.0）、U.S. Department of Agriculture（CC0）。夏＝Fotoscotty（CC BY-SA 3.0）、BLM Oregon & Washington（パブリックドメイン）、Oast House Archive（CC BY-SA 2.0）、Mimiliz（CC BY-SA 3.0）、Daniel Lepoitt（CC BY-SA 3.0）、sagesolar（CC BY 2.0）、Peter S.（CC BY-SA 2.0）、KirstKG（CC BY-SA 4.0）。秋＝vastateparksstaff（CC BY 2.0）、Holly's Coastal（CC0）、TAKAO_Tsushima（CC BY 4.0）、liz west（CC BY 2.0）、Bernard Spragg. NZ from Ch（CC0）、Calyponte（CC BY-SA 4.0）。冬＝Hossein（CC BY-SA 4.0）、BLM Oregon & Washington（パブリックドメイン）、Acabashi（CC BY-SA 4.0）、Yuri Samoylov（CC BY-SA 4.0）、John Phelan（CC BY 4.0）、Neil Owen（CC BY-SA 2.0）。波紋の写真＝Roger McLassus（CC BY-SA 3.0）。</li><li><b>距離は5メートル。</b>ポイントは竿先から5.0m先。やり取りでは魚との距離がこの5.0mから近づいたり離れたりする。</li><li><b>エサで釣れる魚がガラッと変わる。</b>練り餌はフナ類・タナゴ中心ながら、鯉やブルーギルも来て、たまにカメまで釣れる。コーンは大型コイ・ソウギョ中心で小魚が激減、パンは表層の魚とニシキゴイ中心、ミミズはナマズ・ウナギなど肉食魚中心（カメもミミズが好きだ）。全31種のうち、今のエサではほぼ来ない魚も多いので、狙いを変えたらエサを変える。</li><li><b>正体は釣り上げるまで分からない。</b>掛かった瞬間に魚種や大きさは表示されない。水中の姿も影だけで、タモに入れて初めて名前とサイズが分かる。</li>
+            <li><b>リリースは優しく。</b>鯉は濡れた手で触り、長く空気にさらさず、その場でそっと返すのがマナー。拾ったゴミは持ち帰ろう。ランキングに入る魚を登録せずにリリースしようとすると確認が出る（確認のボタンはリリースボタンと違う位置にあり、表示から600msは押せないので、連打での誤操作を防げる）。</li>
+            <li><b>ARモード。</b>設定でオンにすると、端末のカメラが映す今の景色が背景になり、季節や時間に関係なく遊べる。帯の中ならどこにでも浮きを投げられる。カメラの許可が必要で、オフにすると写真の背景に戻る。ページを開き直したらいつもオフから始まる。ARモードの間、画面右下のボタンで写真を撮ると、その場の景色が背景になり、カメラは止まってARモードはオフになる。撮った写真は、季節や時間帯を変えるか設定でやめるまで背景に残る。</li>
           </ol>
-          <p>風景は画面いっぱいに広がり、下のボタン・状況の言葉は風景の上に重なって表示される。上部の水温などの情報は最初は隠れていて、上の「情報」ボタンで出し入れできる。状況の言葉が増えたり減ったりしても、風景そのものは決して動かない。延べ竿と糸は最初は表示されず、水面にはウキだけが立つ。竿と糸を見たいときは、設定の「竿と糸の表示」から表示できる。背景は実写の写真で、開くたびに季節と時間帯に合った写真（全14枚）からランダムに変わり、色づけの趣（24通り）も重なる。切り取り方や左右の向きまで変わるので、まるで違う場所で釣っているような気分になる（夏に紅葉、冬に桜のような季節外れの風景は出ない）。鳥居や橋、枝といった描き足しのイラストは一切ない。<b>開いた時のデフォルトのステージは、端末のカレンダーと時計に合わせる</b>：日付から季節（3〜5月は春、6〜8月は夏、9〜11月は秋、12〜2月は冬）を、現在時刻から時間帯（5〜10時台は早朝、11〜15時台は昼、16時〜翌4時台は夕方）を選び、その季節・時間帯の風景で始まる。設定で季節や時間帯を変えればその場で切り替わり、開き直すたびにまたカレンダーと時計のステージに戻る。設定で季節を変えると、その季節に合った風景に切り替わる。季節の情景も移ろう（春は桜、夏は日差し、秋は枯れ葉、冬は時々の雪）。待ちの間は、季節・時間帯・天気に寄せた独り言や「気のせいか？」といったウキの小さな揺れのコメント、ネットから取得した、面白いニュースやバズっている話題の見出し（出典・日付つき）への勝手な見解が流れ（取得できないときは、架空の世間話になる）、やり取り中は張りの状態に応じた掛け声が出る。ときどき魚が水面で跳ねることもある。ウキと水面だけを眺めて、静かに没頭してほしい。季節のいたずらもある：夏は蚊が飛んできて耳元を飛び回った末に刺される（かゆいが、釣りは止まらない）。秋はトンボ（アキアカネ）がウキのトップに止まって、その重みでウキが少し沈んでアタリが見えにくくなり、冬はウキに雪が少しずつ積もって、いつもより深く沈む（打ち直すか魚が引くと雪は落ちる）。</p>
+          <p>風景の写真は上の帯に表示され、下のボタンには隠れない。状況の言葉は上のテキストボックスに3行で表示され、長い言葉は箱の中でスクロールできる。池を隠さない。上部の水温などの情報は最初は隠れていて、上の「情報」ボタンで出し入れできる。状況の言葉が増えたり減ったりしても、風景そのものは決して動かない。延べ竿と糸は最初は表示されず、水面にはウキだけが立つ。竿と糸を見たいときは、設定の「竿と糸の表示」から表示できる。背景は実写の写真で、開くたびに季節と時間帯に合った写真（全29枚）からランダムに変わり、色づけの趣（24通り）も重なる。切り取り方や左右の向きまで変わるので、まるで違う場所で釣っているような気分になる（夏に紅葉、冬に桜のような季節外れの風景は出ない）。鳥居や橋、枝といった描き足しのイラストは一切ない。<b>開いた時のデフォルトのステージは、端末のカレンダーと時計に合わせる</b>：日付から季節（3〜5月は春、6〜8月は夏、9〜11月は秋、12〜2月は冬）を、現在時刻から時間帯（5〜10時台は早朝、11〜15時台は昼、16時〜翌4時台は夕方）を選び、その季節・時間帯の風景で始まる。設定で季節や時間帯を変えればその場で切り替わり、開き直すたびにまたカレンダーと時計のステージに戻る。設定で季節を変えると、その季節に合った風景に切り替わる。季節の情景も移ろう（春は桜、夏は日差し、秋は枯れ葉、冬は時々の雪）。待ちの間は、季節・時間帯・天気に寄せた独り言や「気のせいか？」といったウキの小さな揺れのコメント、ネットから取得した、地元のニュースの見出しと要約（出典・日付つき）への勝手な見解が流れ（取得できないときは、架空の世間話になる）、やり取り中は張りの状態に応じた掛け声が出る。ときどき魚が水面で跳ねることもある。ウキと水面だけを眺めて、静かに没頭してほしい。季節のいたずらもある：夏は蚊が飛んできて耳元を飛び回った末に刺される（かゆいが、釣りは止まらない）。秋はトンボ（アキアカネ）がウキのトップに止まって、その重みでウキが少し沈んでアタリが見えにくくなり、冬はウキに雪が少しずつ積もって、いつもより深く沈む（打ち直すか魚が引くと雪は落ちる）。</p>
           <p>サイズの目安：40〜60cmが中心、50cm超が最初の感動ライン、80cm超は記録級。水温15℃以上で活性が上がり、20〜25℃が最適。早朝と夕方が狙い目で、秋は越冬前の荒食いで一年で最も釣りやすい。</p>
           <p class="foot">延べ竿日和 ― ウキひとつ、水面ひとつ。</p>
         </div>
@@ -594,13 +599,14 @@ service cloud.firestore {
             <li><b>Play the fish with the rod raised.</b> There is no reel, so the line cannot run out. Hold “Raise the rod” to keep tension inside the green zone: while you hold the green, the fish comes much closer. Too much tension snaps the leader; too little and the hook comes out. <b>Each fish is different</b>: small fish forgive a wide range, while carp — especially over 50cm and 80cm — allow only a narrow range that moves fast. The ideal range is shown the moment the fish is hooked. When the tired fish is close, net it head-first.</li>
             <li><b>Buttons and water taps.</b> Cast by tapping the water where you want the rig to land — after a re-bait, too, nothing is cast until you tap the water. Striking works by holding the rod: press and hold the “Hold the Rod” button, then release at the instant of the real bite to strike (the water works the same way — touching it holds the rod, letting go strikes; taps off the water do nothing. The space key also holds while pressed and strikes on release). During a fight, hold the raise button to add tension and release to ease off. While interrupted, the “Hold the Rod” button and “Re-bait” cannot be used (water and space-key strikes are off too) — clear all the balls first, then strike.</li>
             <li><b>Interruptions (always on).</b> At exactly the same rate as bites — once every 10 seconds to 1.5 minutes after you start fishing, an old man or woman starts a long chat, a local kid throws a lure in, a stray cat, a camera-happy tourist, a senior angler, a video streamer or a pushy salesman shows up — or you doze off. Tap all 10 to 30 falling balls away to end the interruption (the more troublesome the visitor, the more balls). <b>Each character's line is also spoken aloud, in a recorded voice fitted to the character</b> — the old man low and slow, the old woman a little higher, the kid high and fast, the doze slow and sleepy, and so on. The voice stops when the interruption ends. <b>Bites still arrive while you are interrupted, but you cannot strike or re-bait until the interruption ends</b>: the “Hold the Rod” button and “Re-bait” are disabled, and water and space-key strikes do not work either (if an interruption starts while you are holding the rod, the grip is released without striking). A real bite is not held for you — it lasts only the usual time, so spend too long on the balls and the fish lets go and is gone. To catch, clear every ball quickly to end the interruption, then strike as usual while the real bite still lasts. A lure scatters the fish, so you will need to cast again (unless you clear it while a bite is in progress, in which case that bite simply keeps its remaining time).</li>
-            <li><b>The sounds of the shore are always on.</b> Sound starts with your first tap, and it is not synthesized: it is real field recordings, looped and layered. Trickling water runs underneath everything; mornings bring a birdsong chorus, daytime the birds of a pond (with cicadas in summer), evenings the insects of summer and autumn, and spring and summer mornings and evenings a chorus of frogs — each following the season and time of day. The loops have different lengths, so the same sequence rarely comes round again. Recording credits (radio aporee / Internet Archive): birdsong chorus — Enquiring Ear (CC BY-NC 3.0); pond birds — Carlos Santos (public domain); frogs — Tirmūnai, Lithuania (public domain); crickets — Split, Croatia (public domain); cicadas and birds — Wu Tsan-Cheng (CC BY 3.0); water — Vassar College (public domain).</li>
+            <li><b>The sounds of the shore can be turned on and off in Settings.</b> Sound starts with your first tap (turn it off to enjoy other apps' sound, such as YouTube, alongside the game), and it is not synthesized: it is real field recordings, looped and layered. Trickling water runs underneath everything; mornings bring a birdsong chorus, daytime the birds of a pond (with cicadas in summer), evenings the insects of summer and autumn, and spring and summer mornings and evenings a chorus of frogs — each following the season and time of day. The loops have different lengths, so the same sequence rarely comes round again. Recording credits (radio aporee / Internet Archive): birdsong chorus — Enquiring Ear (CC BY-NC 3.0); pond birds — Carlos Santos (public domain); frogs — Tirmūnai, Lithuania (public domain); crickets — Split, Croatia (public domain); cicadas and birds — Wu Tsan-Cheng (CC BY 3.0); water — Vassar College (public domain). Scenery photos (29, by season): spring — Roman Boed from The Nether (CC BY 2.0), Marathon (CC BY-SA 2.0), Czeva (CC BY-SA 3.0), Acabashi (CC BY-SA 4.0), Sardaka (CC BY-SA 4.0), EoRdE6 (CC BY-SA 4.0), U.S. Department of Agriculture (CC0); summer — Fotoscotty (CC BY-SA 3.0), BLM Oregon & Washington (public domain), Oast House Archive (CC BY-SA 2.0), Mimiliz (CC BY-SA 3.0), Daniel Lepoitt (CC BY-SA 3.0), sagesolar (CC BY 2.0), Peter S. (CC BY-SA 2.0), KirstKG (CC BY-SA 4.0); autumn — vastateparksstaff (CC BY 2.0), Holly's Coastal (CC0), TAKAO_Tsushima (CC BY 4.0), liz west (CC BY 2.0), Bernard Spragg. NZ from Ch (CC0), Calyponte (CC BY-SA 4.0); winter — Hossein (CC BY-SA 4.0), BLM Oregon & Washington (public domain), Acabashi (CC BY-SA 4.0), Yuri Samoylov (CC BY-SA 4.0), John Phelan (CC BY 4.0), Neil Owen (CC BY-SA 2.0). Ripple photo — Roger McLassus (CC BY-SA 3.0).</li>
             <li><b>The spot is 5 metres out.</b> During a fight, the distance changes from that 5.0m as the fish runs and tires.</li>
             <li><b>Bait changes everything.</b> Dough draws crucians and bitterlings — but carp and bluegill come too, and now and then even a turtle. Corn draws big carp and grass carp, bread draws surface fish and koi, and earthworm draws catfish, eels and other predators (turtles love earthworms too). Many of the 31 species rarely come to the wrong bait.</li>
             <li><b>You learn what it is only in the net.</b> Species and size stay hidden while you fight; underwater you see only a shadow.</li>
-            <li><b>Release gently.</b> Handle carp with wet hands, keep them out of the air only briefly, and let them go right where you caught them. Take any litter home.</li>
+            <li><b>Release gently.</b> Handle carp with wet hands, keep them out of the air only briefly, and let them go right where you caught them. Take any litter home. If a fish would make the rankings, releasing it without registering asks for confirmation first (the confirmation buttons sit away from the release button, and cannot be tapped for 600ms after they appear, so rapid taps cannot confirm by accident).</li>
+            <li><b>AR mode.</b> Turn it on in Settings and the live view from your device's camera becomes the background, whatever the season or time. You can cast anywhere in the band. It needs camera permission; turning it off returns to the photo background. It always starts off when you reopen the page. While AR mode is on, the button at the lower right takes a photo: the view becomes the background, the camera stops, and AR mode turns off. The photo stays as the background until you change the season or time of day, or stop using it in Settings.</li>
           </ol>
-          <p>The scenery fills the screen, with the buttons and status words laid over it. The water temperature and other details at the top start hidden — use the “Info” button at the top to show or hide them. The rod and line also start hidden, so only the float stands on the water; you can show them any time under “Rod & Line” in Settings. The background is a real photograph, chosen at random on each open from 14 photos that fit the current season and time of day, layered with one of 24 colour moods — even the framing and the left-right orientation change, so it feels like fishing at a different place (you will never see autumn leaves in summer, or cherry blossoms in winter). Nothing is drawn in: no torii, no bridges, no branches — just the photograph. <b>When you open the page, the default stage follows your device's calendar and clock</b>: the season comes from the date (spring Mar–May, summer Jun–Aug, autumn Sep–Nov, winter Dec–Feb) and the time of day from the current hour (early morning 5–10, daytime 11–15, evening 16–4), and you start with scenery for that season and time. Changing them in Settings switches at once, and reopening the page returns to the calendar-and-clock stage. Changing the season in Settings switches to scenery that fits that season, and each season animates differently (cherry blossoms in spring, sunlight in summer, fallen leaves in autumn, occasional snow in winter). While you wait you will hear muttered thoughts, comments on tiny trembles of the float, and — fetched live from the web — fun, buzzing news headlines with source and date, plus the angler’s own unsolicited opinion (when the news cannot be fetched, the talk is openly fictional). Fish sometimes leap at the surface. Seasonal mischief too: in summer a mosquito may find you and bite (it itches, but the fishing goes on); in autumn a red dragonfly perches on the float tip and sinks it a little; in winter snow settles on the float and makes it sit deeper.</p>
+          <p>The scenery photo is shown as a band above, never hidden under the buttons below. The status words appear in the text box above in 3 lines, scrolling inside the box when long, and the photo sits right under that box — the pond is never hidden. The water temperature and other details at the top start hidden — use the “Info” button at the top to show or hide them. The rod and line also start hidden, so only the float stands on the water; you can show them any time under “Rod & Line” in Settings. The background is a real photograph, chosen at random on each open from 29 photos that fit the current season and time of day, layered with one of 24 colour moods — even the framing and the left-right orientation change, so it feels like fishing at a different place (you will never see autumn leaves in summer, or cherry blossoms in winter). Nothing is drawn in: no torii, no bridges, no branches — just the photograph. <b>When you open the page, the default stage follows your device's calendar and clock</b>: the season comes from the date (spring Mar–May, summer Jun–Aug, autumn Sep–Nov, winter Dec–Feb) and the time of day from the current hour (early morning 5–10, daytime 11–15, evening 16–4), and you start with scenery for that season and time. Changing them in Settings switches at once, and reopening the page returns to the calendar-and-clock stage. Changing the season in Settings switches to scenery that fits that season, and each season animates differently (cherry blossoms in spring, sunlight in summer, fallen leaves in autumn, occasional snow in winter). While you wait you will hear muttered thoughts, comments on tiny trembles of the float, and — fetched live from the web — local news headlines with summaries, source and date, plus the angler’s own unsolicited opinion (when the news cannot be fetched, the talk is openly fictional). Fish sometimes leap at the surface. Seasonal mischief too: in summer a mosquito may find you and bite (it itches, but the fishing goes on); in autumn a red dragonfly perches on the float tip and sinks it a little; in winter snow settles on the float and makes it sit deeper.</p>
           <p>Sizes: most carp run 40–60cm. Over 50cm is the first thrill; over 80cm is record class. Carp feed best at 15°C and above, ideally 20–25°C. Early morning and evening are prime times, and autumn — when carp feed hard before winter — is the easiest season of all.</p>
           <p class="foot">Nobezao Biyori — A Fine Day for Pole Fishing. One float, one sheet of water.</p>
         </div>
@@ -758,7 +764,7 @@ var weather = "晴れ";
 var state = "idle"; // idle | await | wait | mae | hon | fight（await＝打ち直し後、仕掛けを手元に置いて水面タップを待つ状態）
 var enc = null;     // 現在のエンカウント
 var phaseT = 0;     // フェイズ経過秒
-var waitDur = 0, maeDur = 0, honDur = 0, honType = "sink";
+var waitDur = 0, maeDur = 0, honDur = 0, honType = "sink", maePlanned = 1, maeDone = 0;
 /* 消し込みでウキが水面から完全に消えたままの間は、魚がまだエサをくわえている：
    本アタリの通常の持ち時間を過ぎても、消えたままなら少しの間は合わせが利く */
 var honGone = false, honGoneDur = 0;
@@ -788,10 +794,24 @@ function nextEventDelay(spooked){
 }
 function nextOjamaDelay(){ return nextEventDelay(false); } // お邪魔の間隔＝アタリの間隔
 var ojamaEnabled = true, ojamaActive = false, ojamaTimer = nextOjamaDelay(), ojamaRemaining = 0, ojamaTotal = 0, ojamaKind = "";
+/* 季節のお邪魔（夏の蚊・冬のさすり・春の蜂・秋の落ち葉）：お邪魔タイマー（＝アタリと同じ抽選
+   nextOjamaDelay）が鳴ったとき、従来のお邪魔キャラ13種とその季節の季節のお邪魔1種の
+   合計14枠からランダムに1つ選ぶ（triggerOjama）。出現確率はアタリと同一。
+   蚊・蜂・落ち葉はキャンバス上の生き物／葉、冬は画面を擦る。どれも ojamaActive /
+   ojamaRemaining / ojamaTimer を流用し、竿を持つ・餌付けのブロックは従来のお邪魔とまったく同じ。
+   既存の夏の蚊（mosquitoState＝手元の周りを飛ぶだけの演出）とは別物なので名前を分けてある */
+var seasonCritters = []; // 蚊・蜂・落ち葉の共通配列 {kind,x,y,vx,vy,phase,seed,state,stateT,rot,rotV,landX,landY,dead,deadT}
+var rubStroke = null; // 冬のさすり：現在の1ストローク {lastX,lastY,dist}
+var RUB_NEED = 5; // 冬のさすりの回数
+var RUB_MIN_DIST = 90; // 1ストロークとして数える最低の移動距離（px。タップや短いなぞりは数えない）
 var lureAnim = null;
 var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 /* ================= 保存 ================= */
 var LS_KEY = "nobezao-koi-game-v1";
+/* 地元ニュースの場所（位置情報または手動選択）と環境音ON/OFFは、記録と一緒に保存する */
+var newsPlace = null; // {province, city}（都道府県・市区町村）
+var ambientOn = true; // 環境音のON/OFF（設定で切替。初期値はON＝従来どおり）
+var floatSizeMul = 1.15; // 浮きの大きさスライダーの倍率（既定1.15倍。0.5〜2.0）
 var records = [];
 /* 魚種別ランキング（大きさ・重さ）：釣果画面で名前登録した記録。釣果記録と同じ保存先に残す */
 var rankings = {};
@@ -808,10 +828,39 @@ var SE_SCALE = 1.14, VOICE_SCALE = 0.36;
 var AMB_SCALE = 1 / 2;
 try{
   var raw = localStorage.getItem(LS_KEY);
-  if(raw){ var parsed = JSON.parse(raw); if(parsed && parsed.records) records = parsed.records; if(parsed && parsed.rankings && typeof parsed.rankings==="object") rankings = parsed.rankings; if(parsed && typeof parsed.rankName==="string") rankName = parsed.rankName; if(parsed && (parsed.lang==="en" || parsed.lang==="ja")) lang = parsed.lang; if(parsed && parsed.vol){ if(typeof parsed.vol.se==="number") volSE = Math.min(1, Math.max(0, parsed.vol.se)); if(typeof parsed.vol.voice==="number") volVoice = Math.min(1, Math.max(0, parsed.vol.voice)); if(typeof parsed.vol.amb==="number") volAmb = Math.min(1, Math.max(0, parsed.vol.amb)); if(parsed.volVer !== 2){ /* 旧スケールで保存された値を新スケール（ベスト＝50%）へ一度だけ換算し、聞こえる大きさを変えない */ volSE = Math.min(1, Math.max(0, volSE * 0.5 / 0.57)); volVoice = Math.min(1, Math.max(0, volVoice * 0.5 / 0.18)); volAmb = Math.min(1, Math.max(0, volAmb * 0.5)); } } }
+  if(raw){ var parsed = JSON.parse(raw); if(parsed && parsed.records) records = parsed.records; if(parsed && parsed.rankings && typeof parsed.rankings==="object") rankings = parsed.rankings; if(parsed && typeof parsed.rankName==="string") rankName = parsed.rankName; if(parsed && parsed.newsPlace && typeof parsed.newsPlace==="object") newsPlace = parsed.newsPlace; if(parsed && typeof parsed.ambientOn==="boolean") ambientOn = parsed.ambientOn; if(parsed && typeof parsed.floatSize==="number") floatSizeMul = Math.min(2, Math.max(0.5, parsed.floatSize)); if(parsed && parsed.floatSizeVer !== 3){ /* 浮きの大きさの既定を1.15倍に変えたので、古い保存値は一度だけ1.15倍に寄せる */ floatSizeMul = 1.15; } if(parsed && (parsed.lang==="en" || parsed.lang==="ja")) lang = parsed.lang; if(parsed && parsed.vol){ if(typeof parsed.vol.se==="number") volSE = Math.min(1, Math.max(0, parsed.vol.se)); if(typeof parsed.vol.voice==="number") volVoice = Math.min(1, Math.max(0, parsed.vol.voice)); if(typeof parsed.vol.amb==="number") volAmb = Math.min(1, Math.max(0, parsed.vol.amb)); if(parsed.volVer !== 2){ /* 旧スケールで保存された値を新スケール（ベスト＝50%）へ一度だけ換算し、聞こえる大きさを変えない */ volSE = Math.min(1, Math.max(0, volSE * 0.5 / 0.57)); volVoice = Math.min(1, Math.max(0, volVoice * 0.5 / 0.18)); volAmb = Math.min(1, Math.max(0, volAmb * 0.5)); } } }
 }catch(e){ records = []; }
+/* 重さのスケール修正：2026-11-20より前の保存データは、重さが1000倍小さく保存されていた（式に余計な /1000 があったため）。records と rankings の重さを一度だけ1000倍してkgらしい重さに直す。変更があったときだけ保存し、weightVer:2 を書き込むので二重に移行しない。オンライン（Firestore）のデータは触らない */
+(function(){
+  try{
+    var wraw = localStorage.getItem(LS_KEY);
+    if(!wraw) return;
+    var wp = JSON.parse(wraw);
+    if(!wp || wp.weightVer === 2) return;
+    var i, j, k, arr, changed = false;
+    for(i=0;i<records.length;i++){
+      if(records[i] && records[i].kind === "fish" && typeof records[i].weight === "number" && records[i].weight > 0){
+        records[i].weight = Math.round(records[i].weight * 1000 * 100000) / 100000;
+        changed = true;
+      }
+    }
+    if(rankings && typeof rankings === "object"){
+      for(k in rankings){
+        arr = rankings[k];
+        if(!arr || !arr.length) continue;
+        for(j=0;j<arr.length;j++){
+          if(arr[j] && typeof arr[j].weight === "number" && arr[j].weight > 0){
+            arr[j].weight = Math.round(arr[j].weight * 1000 * 100000) / 100000;
+            changed = true;
+          }
+        }
+      }
+    }
+    if(changed) save();
+  }catch(e){}
+})();
 function save(){
-  try{ localStorage.setItem(LS_KEY, JSON.stringify({records:records, rankings:rankings, rankName:rankName, lang:lang, vol:{se:volSE, voice:volVoice, amb:volAmb}, volVer:2})); }catch(e){}
+  try{ localStorage.setItem(LS_KEY, JSON.stringify({records:records, rankings:rankings, rankName:rankName, lang:lang, vol:{se:volSE, voice:volVoice, amb:volAmb}, volVer:2, newsPlace:newsPlace, ambientOn:ambientOn, floatSize:floatSizeMul, floatSizeVer:3, weightVer:2})); }catch(e){}
 }
 
 /* ================= 条件 ================= */
@@ -903,39 +952,79 @@ function rollEncounter(){
     if(size>105) size = 105;
   }
   /* おおよその重量：体長と魚種ごとの肥満度（wf）から推定する。同じ体長でも
-     個体差で重かったり軽かったりするよう、肥満度に±15%ほどのばらつきを持たせる */
-  var cond = 0.85 + ((Math.random()+Math.random()+Math.random())/3) * 0.32; // 0.85〜1.17（中央寄りの分布）
-  var weight = size*size*size*sp2.wf/1000 * cond; // kg
+     痩せた魚や太った魚がいるよう、魚ごとの体つき（肥満度）に 0.75〜1.25 倍の
+     ばらつきを持たせる。係数は釣果レコードに保存する */
+  var cond = Math.round((0.75 + Math.random() * 0.5) * 100) / 100; // 0.75〜1.25（一様分布）
+  var weight = size*size*size*sp2.wf * cond; // kg
   weight = Math.round(weight*100000)/100000;
-  return {kind:"fish", sp:sp2, size:size, weight:weight};
+  return {kind:"fish", sp:sp2, size:size, weight:weight, cond:cond};
 }
 
 /* ================= 音（Web Audio合成） ================= */
-var AC=null, master=null, seBus=null, ambBus=null, ambientOn=true;
+var AC=null, master=null, seBus=null, ambBus=null;
+/* iOS：WebKitは割り込み（他のアプリの音・電話等）のあとに audioSession.type を
+   リセットすることがあるため、ambient は作るとき一度だけでなく、再開のたびに
+   言い直す。言い直さないと WebKit の推論（playback）に戻って他のアプリの
+   再生を止めてしまうことがある */
+function setAmbientSession(){
+  try{ if(navigator.audioSession) navigator.audioSession.type = "ambient"; }catch(e){}
+}
 function audioInit(){
   if(AC) return;
+  /* iOS 16.4+：オーディオセッションを ambient（混合）にし、他のアプリの音と
+     共存させる。環境音は <audio> 要素を使わず AudioContext のバッファ再生
+     だけにするので、独占の playback セッションを取らない（ESELATOR／ORBIT と同じ作法）。
+     なお ambient では iPhone のサイレントスイッチONで環境音は鳴らなくなるが、
+     それは ESELATOR／ORBIT と同じ仕様として受け入れる。「playback」に変えて
+     鳴らすようなことはしない */
+  setAmbientSession();
   try{
     AC = new (window.AudioContext||window.webkitAudioContext)();
     master = AC.createGain(); master.gain.value = 0.9; master.connect(AC.destination);
     /* 効果音と環境音（合成側）は別々のバスを通し、設定の音量スライダーで個別に調整できるようにする */
     seBus = AC.createGain(); seBus.gain.value = volSE * SE_SCALE; seBus.connect(master);
     ambBus = AC.createGain(); ambBus.gain.value = volAmb * AMB_SCALE; ambBus.connect(master);
+    /* 割り込みからの自動復帰：他のアプリの音が変わったとき等に iOS が
+       コンテキストを interrupted/suspended にすることがある。放っておくと
+       環境音が死んだままになるので、表示中・環境音ON・開始済みのときだけ
+       ここで再開を試みる（タップを待たない）。OFFのときや隠れているときは
+       何もしない */
+    try{
+      AC.addEventListener("statechange", function(){
+        if(!AC || !ambientOn || !ambStarted || document.hidden) return;
+        if(AC.state==="interrupted" || AC.state==="suspended"){
+          setAmbientSession();
+          try{ AC.resume(); }catch(e){}
+        }
+      });
+    }catch(e){}
   }catch(e){ AC=null; }
 }
 /* 音量スライダーの値を、再生中の音へ即座に反映する */
 function applyVolumes(){
   if(seBus) seBus.gain.value = volSE * SE_SCALE;
   if(ambBus) ambBus.gain.value = volAmb * AMB_SCALE;
-  if(typeof ojamaAudio !== "undefined" && ojamaAudio) ojamaAudio.volume = volVoice * VOICE_SCALE;
-  /* 録音環境音（<audio>要素側）は ambTick の定期処理だけが音量を動かすので、スライダー操作の瞬間にも1回呼んで即座に追従を始める */
+  /* お邪魔ボイスはバッファ再生（再生時に volVoice をゲインに反映する）ので、ここでの音量操作は不要 */
+  /* 録音環境音（バッファ再生）は ambTick の定期処理だけが音量を動かすので、スライダー操作の瞬間にも1回呼んで即座に追従を始める */
   if(typeof ambStarted !== "undefined" && ambStarted && typeof ambTick === "function") ambTick();
 }
 /* 最初のタップ（ユーザー操作）で音声を開始する。ブラウザは操作前の自動再生を許可しないため、
    ここで生成・再開して初めて音が出る。音ONのままなら環境音も同時に始める */
 function ensureAudio(){
+  /* 地元ニュース：最初のタップで位置情報を一度だけ取得する（許可された場合のみ） */
+  requestLocalNews();
+  /* 環境音OFFのときは AudioContext 自体を作らない。作るだけでもセッションに
+     触る可能性があるため、OFFの間はタップしても完全に無音で、他のアプリの
+     再生には一切手を出さない。効果音も ambientOn を見て鳴らない */
+  if(!ambientOn) return;
   audioInit();
   if(!AC) return;
-  if(AC.state==="suspended" || AC.state==="interrupted"){ try{ AC.resume(); }catch(e){} }
+  /* WebKitは割り込み後に audioSession.type をリセットすることがあるので、
+     再開のたびに ambient を言い直す（一度だけの設定では不十分） */
+  if(AC.state==="suspended" || AC.state==="interrupted"){
+    setAmbientSession();
+    try{ AC.resume(); }catch(e){}
+  }
   ambStarted = true;
   updateAmbience();
 }
@@ -1056,58 +1145,24 @@ function ambRecActive(key){
   return !!(t && t[key] > 0);
 }
 /* 録音環境音の1層ぶんの再生状態。
-   【重要】<audio> 要素の volume プロパティは iPhone の Safari ではハードウェア音量が優先され、
-   JavaScript で書き換えても無視される（＝スライダーを動かしても環境音の大きさが変わらない）。
-   そこで要素の音を Web Audio の MediaElementSource で取り込み、音量は ambBus 側の
-   GainNode で制御する。ゲインノードなら iPhone でも確実に効く。
-   assets/ が読めない環境（GitHub 単体公開など）では、埋め込みコピーをデコードして
-   バッファ再生に切り替え、同じゲインを通すので、そちらでも音量が効く */
+   (重要) 以前は <audio> 要素＋ createMediaElementSource で鳴らしていたが、
+   <audio> 要素は iOS で独占の playback セッションを取るため、他のアプリ
+   （Prime Video・YouTube等）の再生を止めてしまう。そこで埋め込みコピーを
+   デコードしたバッファ再生だけを使う（ESELATOR／ORBIT と同じ、
+   AudioContext＋バッファの作法）。デコードに失敗した層のフォールバックに
+   使っていた <audio> 要素も削除した（失敗した層は無音のままにする）。
+   このページには <audio> 要素はもう1つも無い */
 function ambLayer(key){
   if(ambEls[key]) return ambEls[key];
-  var layer = { el:null, el2:null, cur:0, xf:false, gain:null, routed:false, buf:null, bufReady:false, bufLoading:false, bufSrc:null, bufSrc2:null, bufStart:0, bufNextStart:0 };
-  var el = new Audio();
-  el.src = AMB_FILES[key]; el.loop = false; el.preload = "auto"; el.volume = 0;
-  el.addEventListener("error", function(){
-    if(AC) ambLoadEmbedded(key, layer);
-    else {
-      var emb = (typeof EMB_AUDIO !== "undefined") ? EMB_AUDIO["amb-" + key] : null;
-      if(emb && el.src.indexOf("data:") !== 0) el.src = emb;
-    }
-  });
-  layer.el = el;
-  /* ループの継ぎ目専用の2つ目の要素。録音音源は頭に約2秒のフェードイン、尻に約2秒の
-     フェードアウトが入っている。素の loop=true では「フェードアウト→無音→フェードイン」の
-     谷間ができて、ループのたびに音が途切れて聞こえる。そこで終わり際にもう一方の要素を
-     頭から重ね、フェード同士を補い合わせて継ぎ目を消す（切り替えは ambTick が行う） */
-  var el2 = new Audio();
-  el2.src = AMB_FILES[key]; el2.loop = false; el2.preload = "auto"; el2.volume = 0;
-  layer.el2 = el2;
+  var layer = { el:null, el2:null, cur:0, xf:false, gain:null, routed:false, buf:null, bufReady:false, bufLoading:false, bufFailed:false, bufSrc:null, bufSrc2:null, bufStart:0, bufNextStart:0 };
   ambEls[key] = layer;
   return layer;
 }
-/* 要素の出力を Web Audio のゲインへ接続する（要素ごとに1回だけ）。
-   接続後は要素側の volume は最大に固定し、音量はすべてゲイン側で決める。
-   ゲインは層で共有し、継ぎ目クロスフェード用の2つの要素をまとめて制御する */
-function ambRoute(layer){
-  if(!AC) return;
-  ambRouteEl(layer, layer.el);
-  ambRouteEl(layer, layer.el2);
-  if(layer.el && layer.el._ambRouted) layer.routed = true;
-}
-function ambRouteEl(layer, el){
-  if(!el || el._ambRouted || !AC) return;
-  try{
-    if(!layer.gain){
-      layer.gain = AC.createGain(); layer.gain.gain.value = 0;
-      layer.gain.connect(ambBus || master);
-    }
-    var srcNode = AC.createMediaElementSource(el);
-    srcNode.connect(layer.gain);
-    el._ambRouted = true;
-    el.volume = 1;
-  }catch(e){}
-}
-/* 埋め込みコピー（Base64 の data URI）をデコードしてバッファ再生の準備をする */
+/* createMediaElementSource による要素→ゲインの接続（ambRoute／ambRouteEl）と
+   <audio> フォールバック（ambLayerEls／ambPlayEl）は削除した。バッファ再生
+   では不要で、<audio> 要素は iOS で独占の playback セッションを取るため、
+   他のアプリの再生を止めてしまう。デコードに失敗した層は無音のままにする */
+/* 埋め込みコピー（Base64 の data URI）をデコードしてバッファ再生の準備をする（環境音の通常の再生経路。デコードに失敗した層は無音のまま） */
 function ambLoadEmbedded(key, layer){
   if(layer.bufReady || layer.bufLoading || !AC) return;
   var emb = (typeof EMB_AUDIO !== "undefined") ? EMB_AUDIO["amb-" + key] : null;
@@ -1119,26 +1174,20 @@ function ambLoadEmbedded(key, layer){
     for(var i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
     AC.decodeAudioData(bytes.buffer, function(buf){
       layer.buf = buf; layer.bufReady = true; layer.bufLoading = false;
-      try{ layer.el.pause(); }catch(e){}
-      try{ if(layer.el2) layer.el2.pause(); }catch(e){}
-    }, function(){ layer.bufLoading = false; });
+    }, function(){ layer.bufLoading = false; layer.bufFailed = true; });
   }catch(e){ layer.bufLoading = false; }
 }
-/* その層の現在の出力音量（ゲイン優先、作れない環境では要素の volume） */
+/* その層の現在の出力音量（ゲイン優先。要素はもう作らないのでゲイン経由のみ） */
 function ambCur(layer){
-  return layer.gain ? layer.gain.gain.value : (layer.el ? layer.el.volume : 0);
+  return layer.gain ? layer.gain.gain.value : 0;
 }
-function ambSet(layer, v){
-  if(layer.gain) layer.gain.gain.value = v;
-  else if(layer.el) layer.el.volume = v;
-}
-/* ループ継ぎ目のクロスフェード長（秒）。録音音源の頭・尻のフェード（約2秒）と
+/* 音量設定（要素はもう無いので、実質ゲイン経由のみ。呼び出し側の互換のため残す） */
+function ambSetEl(layer, v){
+  if(layer.el) layer.el.volume = v;
+  if(layer.el2) layer.el2.volume = v;
+}/* ループ継ぎ目のクロスフェード長（秒）。録音音源の頭・尻のフェード（約2秒）と
    重なるよう、終了の少し前から次の頭を重ね始める */
 var AMB_XF = 2.4;
-function ambPlayEl(el){
-  if(!el) return;
-  try{ var p = el.play(); if(p && p.catch) p.catch(function(){}); }catch(e){}
-}
 function ambMkBufSrc(layer){
   var bs = AC.createBufferSource(); bs.buffer = layer.buf; bs.loop = false;
   bs.connect(layer.gain);
@@ -1146,6 +1195,14 @@ function ambMkBufSrc(layer){
   return bs;
 }
 function ambTick(){
+  /* 割り込みからの回復：他のアプリの音が変わったときに iOS がコンテキストを
+     interrupted にすることがあり、そのままだと環境音が死んだままになる。
+     表示中・環境音ON・開始済みのときだけ、200msごとのこのタイマーで再開を
+     試みる（タップを待たない）。隠れているときやOFFのときは再開しない */
+  if(AC && ambientOn && ambStarted && !document.hidden && (AC.state==="suspended" || AC.state==="interrupted")){
+    setAmbientSession();
+    try{ AC.resume(); }catch(e){}
+  }
   if(!ambTargetsCache) ambTargetsCache = ambTargets();
   if(!ambVarTargets || performance.now() > ambVarNext) refreshAmbVar();
   updateRain();
@@ -1154,10 +1211,9 @@ function ambTick(){
     var layer = ambEls[key];
     if(target > 0){
       if(!layer) layer = ambLayer(key);
-      ambRoute(layer);
       if(layer.bufReady){
-        /* 埋め込みコピーのバッファ再生（要素が読めなかった環境用）。同じゲインを通し、
-           継ぎ目は要素側と同じ考え方で、終わり際にもう1本を頭から重ねてつなぐ */
+        /* バッファ再生（通常経路）。同じゲインを通し、継ぎ目は終わり際にもう1本を
+           頭から重ねてつなぐ */
         if(!layer.gain){
           var bg = AC.createGain(); bg.gain.value = 0; bg.connect(ambBus || master);
           layer.gain = bg;
@@ -1178,46 +1234,25 @@ function ambTick(){
             layer.xf = false;
           }
         }
+        var cur = layer.gain.gain.value, diff = target - cur;
+        layer.gain.gain.value = Math.abs(diff) < 0.004 ? target : cur + diff * 0.35;
+      } else if(layer.bufFailed){
+        /* デコードに失敗した層は無音のままにする。以前はここで <audio> 要素を
+           作って鳴らしていたが、<audio> は iOS で独占の playback セッションを
+           取って他のアプリ（Prime Video等）の再生を止めてしまうため、削除した。
+           他の層はバッファ再生で鳴り続ける */
       } else if(!layer.bufLoading){
-        /* 要素再生。再生中の要素が終わり際になったら、もう一方を頭から重ねて
-           フェード同士を補い合わせ、継ぎ目で音が途切れないようにする */
-        var curEl = (layer.cur === 1 && layer.el2) ? layer.el2 : layer.el;
-        if(curEl.paused && !layer.xf) ambPlayEl(curEl);
-        var durE = curEl.duration;
-        if(isFinite(durE) && durE > AMB_XF + 1 && curEl.currentTime > 0){
-          var remE = durE - curEl.currentTime;
-          if(!layer.xf && remE <= AMB_XF + 0.3){
-            var nxtEl = (curEl === layer.el) ? layer.el2 : layer.el;
-            if(nxtEl){
-              ambRouteEl(layer, nxtEl);
-              try{ nxtEl.currentTime = 0; }catch(e){}
-              ambPlayEl(nxtEl);
-              layer.xf = true;
-            }
-          } else if(layer.xf && remE <= 0.12){
-            try{ curEl.pause(); curEl.currentTime = 0; }catch(e){}
-            layer.cur = (curEl === layer.el) ? 1 : 0;
-            layer.xf = false;
-          }
-        }
-        /* 万一クロスフェードが間に合わず要素が終わっていたら、頭から再生し直して無音を防ぐ。
-           判定は入れ替え後の現在の要素でし直す（入れ替えた直後の古い要素は ended が
-           立ったままなので、そちらを見ると二重再生になってしまう） */
-        var nowEl = (layer.cur === 1 && layer.el2) ? layer.el2 : layer.el;
-        if(nowEl.ended){
-          try{ nowEl.currentTime = 0; }catch(e){}
-          ambPlayEl(nowEl);
-        }
+        /* デコード待ち：要素は作らない。デコードが終わるまで無音（通常1秒未満） */
+        ambLoadEmbedded(key, layer);
       }
-      /* 目標音量へ上下両方向に近づける。制御先は Web Audio のゲインなので、
-         iPhone でもスライダーの上げ下げがそのまま再生中の環境音に効く */
-      var cur = ambCur(layer), diff = target - cur;
-      ambSet(layer, Math.abs(diff) < 0.004 ? target : cur + diff * 0.35);
     } else if(layer){
       var cur2 = ambCur(layer);
-      if(cur2 > 0.02) ambSet(layer, Math.max(0, cur2 - 0.02));
-      else {
-        ambSet(layer, 0);
+      if(cur2 > 0.02){
+        if(layer.gain) layer.gain.gain.value = Math.max(0, cur2 - 0.02);
+        else ambSetEl(layer, Math.max(0, cur2 - 0.02));
+      } else {
+        if(layer.gain) layer.gain.gain.value = 0;
+        else ambSetEl(layer, 0);
         if(layer.bufSrc){ try{ layer.bufSrc.stop(); }catch(e){} layer.bufSrc = null; }
         if(layer.bufSrc2){ try{ layer.bufSrc2.stop(); }catch(e){} layer.bufSrc2 = null; }
         layer.xf = false;
@@ -1233,6 +1268,21 @@ function updateAmbience(){
   if(!ambStarted) return;
   if(!ambTimer) ambTimer = setInterval(ambTick, 200);
   ambTick();
+}
+/* 環境音を完全に止める（設定のOFF用）：タイマーを止め、全層の再生を止めて
+   ゲインを0にする。タイマーの clearInterval が従来はどこにも無く、
+   OFFにしても止まらなかった（ambTimer は updateAmbience が作る） */
+function stopAmbience(){
+  if(ambTimer){ clearInterval(ambTimer); ambTimer = null; }
+  for(var key in ambEls){
+    var layer = ambEls[key];
+    if(layer.bufSrc){ try{ layer.bufSrc.stop(); }catch(e){} layer.bufSrc = null; }
+    if(layer.bufSrc2){ try{ layer.bufSrc2.stop(); }catch(e){} layer.bufSrc2 = null; }
+    if(layer.gain) layer.gain.gain.value = 0;
+    if(layer.el && !layer.el.paused) layer.el.pause();
+    if(layer.el2 && !layer.el2.paused) layer.el2.pause();
+    layer.xf = false;
+  }
 }
 function plop(freq, vol, dur){
   if(!AC || !ambientOn) return;
@@ -1788,7 +1838,6 @@ function trSay(txt){
   return SAY_EN[txt] || txt;
 }
 
-
 /* ================= 英語表示用プール ================= */
 function P(jaArr, enArr){ return lang === "en" ? enArr : jaArr; }
 var WAIT_MUSINGS_EN = [
@@ -2122,9 +2171,9 @@ var OJAMA_EVENTS_EN = [
 
 var msgText = document.getElementById("msgText");
 var msgBox = document.getElementById("msg");
-var newsHoldUntil = 0; // ニュースを表示してから10秒間の固定が終わる時刻（perfNow基準）
+var newsHoldUntil = 0; // ニュースを表示してから16秒間の固定が終わる時刻（perfNow基準）
 function say(t, strong){
-  /* ニュースの表示は10秒間固定する。その間、強くないコメント（つぶやき・泡付け・季節の小ネタ等）では
+  /* ニュースの表示は16秒間固定する。その間、強くないコメント（つぶやき・泡付け・季節の小ネタ等）では
      ニュースを上書きしない。アタリ・本アタリ・お邪魔・餌切れなどの重要な知らせ（strong）は常に優先し、固定を解除する */
   if(newsHoldUntil && perfNow < newsHoldUntil){
     if(!strong) return;
@@ -2133,8 +2182,7 @@ function say(t, strong){
   t = trSay(t);
   msgText.textContent = t;
   msgBox.className = "msg" + (strong ? " strong" : "");
-  var sz = document.getElementById("statusZone");
-  if(sz) sz.scrollTop = 0; // 新しい状況は固定ゾーンの先頭から見せる（ゾーンの外＝風景は動かない）
+  msgText.scrollTop = 0; // 新しい状況はテキストの先頭から見せる（風景は動かない）
 }
 
 /* ================= イベントごとのコメント ================= */
@@ -2345,13 +2393,13 @@ var WEATHER_MUSINGS = {
   "曇り":["曇り空。魚の警戒心が解ける、釣りにはいい天気だ。","光が柔らかい。ウキの目盛りが見やすい。","曇りの日は影が消える。魚も油断して、浅場まで出てくる。"],
   "小雨":["小雨が水面を叩いている。雨紋が無数に広がる。","雨の日は魚の活性が上がることがある。濡れるのも悪くない。","雨音だけが聞こえる。世界が少し遠くなった。","雨粒がウキを叩く。アタリと見間違えそうになるが、これも風情だ。"]
 };
-/* ニュースへの勝手な見解：ページを開いたとき（と30分ごと）に、公開プロキシ経由で
-   Googleニュース（日本）のRSSから直近の見出しを実際に取得し、出典・日付つきで短く紹介して、
-   釣り人が勝手な見解を添える。取り上げるのは一般のトップニュースではなく、エンタメ欄と
-   「バズっている」「面白い」といった検索フィードから集めた、面白い・バズっている話題に限る。
+/* 地元ニュースへの勝手な見解：ページを開いたとき（と30分ごと）に、公開プロキシ経由で
+   ニュースのRSSから直近の見出しと要約を実際に取得し、出典・日付つきで紹介して、
+   釣り人が勝手な見解を添える。取り上げるのは、位置情報（または設定で選んだ都道府県）
+   で決まる地元のニュース。面白い・バズっている話題のフィードは使わない。
    暗く重い話題（訃報・事件・災害など）は見出しの言葉で弾き、池のほとりには持ち込まない。
    取得できない環境では、はっきり「架空」と分かる世間話に切り替える */
-var newsItems = []; // {title, source, date} 実際に取得できた見出しだけが入る
+var newsItems = []; // {title, source, date, summary} 実際に取得できた見出しだけが入る
 var NEWS_NG = /訃報|死亡|殺人|逮捕|起訴|戦争|ミサイル|津波|自殺|虐待|重体|重傷|テロ|墜落|行方不明|火災|震度[0-9]|感染拡大|急死|遺体/;
 var NEWS_OPINIONS = [
   "世の中は忙しく動いている。こちらは池で、じっと待つだけだ。",
@@ -2379,6 +2427,15 @@ var FICTION_TALK = [
   "頭の中の架空トレンド。『昭和の遊びが若者に大流行』……ベーゴマより、ヘラブナ釣りのほうが渋いと思うがね。",
   "想像のネットニュース。『巨大な野菜が採れたと農家が大喜び』……池の大物も、負けてはいられない。"
 ];
+/* <description> の要約を整える：HTMLタグを落とし、2文まで・120字までに切る */
+function newsSummaryFrom(raw){
+  var s = String(raw || "").replace(/<[^>]*>/g, " ").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/\s+/g, " ").trim();
+  if(!s) return "";
+  var m = s.match(/^.*?[。！？](?:.*?[。！？])?/);
+  if(m) s = m[0];
+  if(s.length > 120) s = s.slice(0, 120);
+  return s;
+}
 function parseNewsRss(text){
   var out = [];
   try{
@@ -2400,7 +2457,9 @@ function parseNewsRss(text){
         var d = new Date(dateEl.textContent);
         if(!isNaN(d.getTime())) dateStr = (d.getMonth()+1) + "月" + d.getDate() + "日";
       }
-      if(title) out.push({title:title, source:source, date:dateStr});
+      var descEl = it.querySelector("description");
+      var summary = newsSummaryFrom(descEl ? descEl.textContent : "");
+      if(title) out.push({title:title, source:source, date:dateStr, summary:summary});
     }
   }catch(e){}
   return out;
@@ -2419,20 +2478,55 @@ function parseNewsJson(text){
       var dateStr = "";
       var m = String(items[i].pubDate || "").match(/^\d{4}-(\d{2})-(\d{2})/);
       if(m) dateStr = parseInt(m[1], 10) + "月" + parseInt(m[2], 10) + "日";
-      out.push({title:title, source:source, date:dateStr});
+      out.push({title:title, source:source, date:dateStr, summary:newsSummaryFrom(items[i].description || "")});
     }
   }catch(e){}
   return out;
 }
+/* 地元ニュースの取得。位置情報（または手動選択の都道府県）で決まる場所の
+   ニュースを、BingニュースRSS（要約つき）→ GoogleニュースRSS検索の順に試す。
+   場所つきの検索で0件なら都道府県だけでもう一度試し、それでも0件なら
+   NHKの全国ニュースへ。位置が分からなければ最初からNHK全国版。
+   取得は従来どおり公開プロキシ（rss2json → allorigins → codetabs）を順に試す */
+var geoTried = false;
+function requestLocalNews(){
+  if(geoTried) return;
+  geoTried = true;
+  if(newsPlace && newsPlace.province) return; // すでに場所が決まっている
+  if(!navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition(function(pos){
+    var lat = pos.coords.latitude, lon = pos.coords.longitude;
+    fetch("https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=" + lat + "&lon=" + lon + "&accept-language=ja")
+      .then(function(res){ return res.json(); })
+      .then(function(d){
+        var a = (d && d.address) ? d.address : {};
+        var prov = a.province || a.state || "";
+        var city = a.city || a.town || a.village || a.municipality || "";
+        if(prov){
+          newsPlace = {province: prov, city: city};
+          save();
+          updateNewsPrefNote();
+          fetchNews();
+        }
+      })
+      .catch(function(){});
+  }, function(){}, {timeout:8000, maximumAge:86400000});
+}
+function newsFeedLists(){
+  if(newsPlace && newsPlace.province){
+    var q = newsPlace.province + (newsPlace.city ? " " + newsPlace.city : "");
+    var qp = newsPlace.province;
+    return [
+      ["https://www.bing.com/news/search?q=" + encodeURIComponent(q) + "&format=rss",
+       "https://news.google.com/rss/search?q=" + encodeURIComponent(q) + "&hl=ja&gl=JP&ceid=JP:ja"],
+      ["https://www.bing.com/news/search?q=" + encodeURIComponent(qp) + "&format=rss",
+       "https://news.google.com/rss/search?q=" + encodeURIComponent(qp) + "&hl=ja&gl=JP&ceid=JP:ja"]
+    ];
+  }
+  return [["https://www.nhk.or.jp/rss/news/cat0.xml"]];
+}
 function fetchNews(){
-  // 面白い・バズっている話題だけを集めるフィード群（一般のトップニュースは使わない）
-  var feeds = [
-    // エンタメ欄
-    "https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGRqTVhZU0FtVnVHZ0pWVXlnQVAB?hl=ja&gl=JP&ceid=JP:ja",
-    // バズっている・話題の検索
-    "https://news.google.com/rss/search?q=" + encodeURIComponent("バズっている 話題") + "&hl=ja&gl=JP&ceid=JP:ja",
-    "https://news.google.com/rss/search?q=" + encodeURIComponent("面白い 話題 ニュース") + "&hl=ja&gl=JP&ceid=JP:ja"
-  ];
+  var lists = newsFeedLists();
   var collected = [];
   var seen = {};
   function addItems(items){
@@ -2453,37 +2547,46 @@ function fetchNews(){
       {url:"https://api.codetabs.com/v1/proxy?quest=" + enc, parse:parseNewsRss}
     ];
   }
-  function fetchFeed(fi){
-    if(fi >= feeds.length){
-      if(collected.length){
-        // フィードごとの固まりにならないよう軽く混ぜてから使う
-        for(var i=collected.length-1;i>0;i--){
-          var j = Math.floor(Math.random()*(i+1));
-          var tmp = collected[i]; collected[i] = collected[j]; collected[j] = tmp;
-        }
-        newsItems = collected.slice(0, 12);
+  function finish(){
+    if(collected.length){
+      // フィードごとの固まりにならないよう軽く混ぜてから使う
+      for(var i=collected.length-1;i>0;i--){
+        var j = Math.floor(Math.random()*(i+1));
+        var tmp = collected[i]; collected[i] = collected[j]; collected[j] = tmp;
       }
-      return; // 全部失敗したら架空の世間話のまま
+      newsItems = collected.slice(0, 12);
     }
-    var routes = routesFor(feeds[fi]);
-    var idx = 0;
-    function attempt(){
-      if(idx >= routes.length){ fetchFeed(fi + 1); return; }
-      var route = routes[idx++];
-      var ctrl = ("AbortController" in window) ? new AbortController() : null;
-      var timer = ctrl ? setTimeout(function(){ ctrl.abort(); }, 9000) : null;
-      fetch(route.url, ctrl ? {signal:ctrl.signal} : {})
-        .then(function(res){ if(!res.ok) throw new Error("http " + res.status); return res.text(); })
-        .then(function(text){
-          if(timer) clearTimeout(timer);
-          var items = route.parse(text);
-          if(items.length){ addItems(items); fetchFeed(fi + 1); } else attempt();
-        })
-        .catch(function(){ if(timer) clearTimeout(timer); attempt(); });
-    }
-    attempt();
   }
-  fetchFeed(0);
+  function runList(li){
+    if(li >= lists.length){ finish(); return; }
+    var feeds = lists[li];
+    function fetchFeed(fi){
+      if(fi >= feeds.length){
+        if(collected.length){ finish(); return; } // 場所つきで取れたので都道府県だけの再試行はしない
+        runList(li + 1);
+        return;
+      }
+      var routes = routesFor(feeds[fi]);
+      var idx = 0;
+      function attempt(){
+        if(idx >= routes.length){ fetchFeed(fi + 1); return; }
+        var route = routes[idx++];
+        var ctrl = ("AbortController" in window) ? new AbortController() : null;
+        var timer = ctrl ? setTimeout(function(){ ctrl.abort(); }, 9000) : null;
+        fetch(route.url, ctrl ? {signal:ctrl.signal} : {})
+          .then(function(res){ if(!res.ok) throw new Error("http " + res.status); return res.text(); })
+          .then(function(text){
+            if(timer) clearTimeout(timer);
+            var items = route.parse(text);
+            if(items.length){ addItems(items); fetchFeed(fi + 1); } else attempt();
+          })
+          .catch(function(){ if(timer) clearTimeout(timer); attempt(); });
+      }
+      attempt();
+    }
+    fetchFeed(0);
+  }
+  runList(0);
 }
 function newsComments(){
   var out = [];
@@ -2493,11 +2596,15 @@ function newsComments(){
     if(n.date) meta.push(lang==="en" ? n.date.replace("月","/").replace("日","") : n.date);
     if(n.source) meta.push(n.source);
     if(lang==="en"){
-      var headEn = "Trending" + (meta.length ? " (" + meta.join(", ") + ")" : "");
-      out.push(headEn + ": '" + n.title + "' ..." + NEWS_OPINIONS_EN[i % NEWS_OPINIONS_EN.length]);
+      var headEn = "Local news" + (meta.length ? " (" + meta.join(", ") + ")" : "");
+      var sEn = headEn + ": '" + n.title + "'.";
+      if(n.summary) sEn += " " + n.summary;
+      out.push(sEn + " ..." + NEWS_OPINIONS_EN[i % NEWS_OPINIONS_EN.length]);
     } else {
-      var head = "話題のニュース" + (meta.length ? "（" + meta.join("・") + "）" : "");
-      out.push(head + "。『" + n.title + "』。……" + NEWS_OPINIONS[i % NEWS_OPINIONS.length]);
+      var head = "地元のニュース" + (meta.length ? "（" + meta.join("・") + "）" : "");
+      var s = head + "。『" + n.title + "』。";
+      if(n.summary) s += n.summary + (/[。！？]$/.test(n.summary) ? "" : "。");
+      out.push(s + "……" + NEWS_OPINIONS[i % NEWS_OPINIONS.length]);
     }
   }
   return out;
@@ -2587,8 +2694,8 @@ function musing(pool){
   while(pool.length > 1 && m === lastMusing && guard++ < 6) m = pick(pool);
   lastMusing = m;
   say(m);
-  // ニュース（出典・日付つきの本物の見出し）だったら、表示を10秒間固定する
-  if(newsItems.length && newsComments().indexOf(m) >= 0) newsHoldUntil = perfNow + 10;
+  // ニュース（出典・日付つきの本物の見出し）だったら、表示を16秒間固定する
+  if(newsItems.length && newsComments().indexOf(m) >= 0) newsHoldUntil = perfNow + 16;
 }
 var musingT = 16;      // 次のつぶやきまでの秒数（待ちの間だけ進む）
 var twitchT = 24;      // 次にウキが小さく動くまでの秒数
@@ -2771,14 +2878,20 @@ function buzz(ms){
 function startMae(){
   state = "mae"; phaseT = 0;
   maeDur = firstCast ? 1.6 : (2 + Math.random()*2.2);
-  honType = Math.random() < 0.62 ? "sink" : "up";
-  say(pick([
+  var maeN = maeDone; maeDone++;
+  say(pick(maeN === 0 ? [
     "ウキが小さく沈んだ……前アタリ。魚がエサを吸って吐いている。まだ合わせない。",
     "目盛りがひとつ沈んだ。前アタリだ。心臓の音が聞こえる。まだ、まだ合わせない。",
     "ウキがそっと沈む。前アタリ。魚がエサをくわえた……吐くかもしれない。待て。",
     "来た……ウキが静かに沈み始めた。前アタリだ。息を止めて、次を待て。",
     "トップが震えて、沈んだ。前アタリ。魚がエサを確かめている。まだだ、まだ合わせるな。",
     "ウキが一目盛り、また一目盛り。魚が底でエサを転がしている。前アタリだ。"
+  ] : maeN === 1 ? [
+    "二度目の前アタリ。ウキがまた沈んだ。魚はまだエサを確かめている。まだ合わせない。",
+    "また沈んだ。前アタリが続く。次こそ本アタリか。息を止めて待て。"
+  ] : [
+    "三度目の前アタリ。何度も沈んでいる。魚はよほど慎重だ。次こそ来るはず。",
+    "まただ。三度目の前アタリ。焦るな、焦るな。来るときは必ず来る。"
   ]), true);
   plop(500, 0.08, 0.15);
   buzz(90);
@@ -2789,7 +2902,7 @@ function startHon(){
   flyRiskT = 0;
   if(dragonState==="sit") startDragonFly(); // 本アタリの気配に驚いてトンボが飛び立つ
   snowAccum = 0; snowFullNoted = false;      // 魚の引きでウキの雪も落ちる
-  honDur = firstCast ? 2.2 : 1.5;
+  honDur = firstCast ? 3.5 : 3.0;
   if(!rodGrip && !ojamaActive){
     /* 竿を持っていないところへ強いアタリ：このまま持たなければ、竿が沖へ飛ばされる */
     say(pick([
@@ -2831,8 +2944,8 @@ function finishRodLoss(){
   state = "await";
   renderMainBtn();
   say(lang==="en"
-    ? "The rod flew off into the pond — rig and all, lost to the strong bite because you were not holding it. A fresh bait is on a spare rig, still in hand. Start over from the re-bait: tap the water to cast again. Next time, keep hold of the rod while you wait."
-    : "竿は沖へ飛んでいき、仕掛けもろとも失った……。竿を持っていなかったのが響いた。予備の仕掛けに新しい餌を付けたが、まだ手元にある。餌付けからやり直しだ――水面をタップして打ち込もう。待つ間は、竿を持ち続けよう。", true);
+    ? "The rod flew off into the pond — rig and all, lost to the strong bite because you were not holding it."
+    : "竿は沖へ飛んでいき、仕掛けもろとも失った……。竿を持っていなかったのが響いた。", true);
   plop(300, 0.15, 0.2);
 }
 /* 餌付け：①回収アニメーション（ウキが水面から上がって竿先へ戻る）
@@ -2945,6 +3058,7 @@ function clearOjamaSilent(){
   var ct1 = document.getElementById("ojamaCount"); if(ct1) ct1.hidden = true;
   var ly1 = document.getElementById("ojamaLayer"); if(ly1){ ly1.innerHTML = ""; ly1.classList.remove("on"); }
   var sb1 = document.getElementById("stageBox"); if(sb1) sb1.classList.remove("ojama-active");
+  seasonCritters = []; rubStroke = null; // 季節のお邪魔の生き物・葉っぱ・さすり追跡も一緒に片付ける
   ojamaTimer = nextOjamaDelay();
 }
 function startFight(){
@@ -3039,7 +3153,7 @@ function landFish(){
     if(size >= 80) badges.push({t:L("80cm超・記録級","Over 80cm — record class"), cls:""});
     else if(size >= 50) badges.push({t:L("50cm超・感動ライン","Over 50cm — the thrill line"), cls:""});
   }
-  records.unshift({kind:"fish", speciesId:sp.id, name:sp.name, size:size, weight:enc.weight,
+  records.unshift({kind:"fish", speciesId:sp.id, name:sp.name, size:size, weight:enc.weight, cond:(typeof enc.cond==="number" ? enc.cond : 1),
     bait:sel.bait, season:sel.season, time:sel.time, date:now.toISOString()});
   save(); renderRecords();
   showResult({
@@ -3344,23 +3458,6 @@ function validateRankName(raw){
   if(sel) sel.addEventListener("change", function(){ rankSelSpecies = sel.value; renderRankings(); });
   var retry = document.getElementById("recRankRetry");
   if(retry) retry.addEventListener("click", function(){ loadOnlineRankings(); });
-  var copyBtn = document.getElementById("copyNobezaoRules");
-  if(copyBtn) copyBtn.addEventListener("click", function(){
-    var pre = document.getElementById("nobezaoRulesText");
-    if(!pre) return;
-    var text = pre.textContent;
-    var btn = this;
-    function done(){ btn.textContent = L("コピーしました", "Copied"); setTimeout(function(){ btn.textContent = L("ルールをコピー", "Copy rules"); }, 1600); }
-    if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(text).then(done).catch(function(){ fallback(); }); }
-    else fallback();
-    function fallback(){
-      var ta = document.createElement("textarea");
-      ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
-      document.body.appendChild(ta); ta.select();
-      try{ document.execCommand("copy"); done(); }catch(e){}
-      ta.remove();
-    }
-  });
   var reg = document.getElementById("resRankReg");
   if(reg) reg.addEventListener("click", function(){
     if(!pendingRank || pendingRank.entry || rankSubmitting) return;
@@ -3435,6 +3532,39 @@ var OJAMA_EVENTS = [
   {kind:"neighbor", balls:25, who:"隣の釣り人", lines:["「隣、入っていい？」 断る間もなく、すぐ隣に座られた。仕掛けが絡みそうだ。","隣の釣り人が、こちらのポイントめがけて投げてくる。……人の寄せた魚を狙う気だな。","「そっち、当たってる？ エサ、何使ってる？」 隣からの質問攻めが止まらない。","隣の釣り人のウキが、こちらのウキのすぐ横に着水した。近い、近すぎる。"]},
   {kind:"tvcrew", balls:30, who:"テレビ取材班", lines:["「あのー、テレビの取材なんですが、釣りの様子を撮らせてもらえませんか！」 カメラとマイクと照明が一斉にこちらを向いた。最強クラスのお邪魔だ。","「釣れた瞬間に、いい表情をお願いしますね！」 注文が多い。照明が水面を照らして、魚が散りそうだ。","ディレクターの「もう一回お願いします！」が池に響く。何をもう一回するのだろう。","「視聴者の皆さん、今まさに釣り人が大物と対峙しています！」 対峙しているのは、取材班とだ。"]}
 ];
+/* 季節のお邪魔のセリフ（夏の蚊・春の蜂・秋の落ち葉・冬のさすり）。triggerOjama が季節で振り分け、
+   従来のボールのお邪魔と同じ ojamaActive / ojamaRemaining で進行する。英語表示では En 側を使う。
+   蚊はタップで潰す、蜂はタップで追い払う（潰さない）、落ち葉はタップで片付ける、冬は画面を5回さする */
+var SEASON_OJAMA = {
+  mosquito:{ who:"夏の蚊", whoEn:"Summer mosquitoes",
+    lines:["ブーン……蚊が何匹も寄ってきた！ 刺される前に、全部タップして潰そう。","蚊の大群だ！ ウキから目を離せないのに……タップして潰すしかない。"],
+    linesEn:["Bzzz... a swarm of mosquitoes is closing in! Tap them all to squash them before they bite.","A cloud of mosquitoes! I can't take my eyes off the float... tap them to squash them."],
+    explain:["蚊が出てきた！ お邪魔中は「竿を持つ」も餌付けも使えない。アタリはその間も通常通り来るから、蚊を全部タップして潰すまで、お邪魔は続く。消し込みが来たら、急いで潰し終えてから合わせよう。"],
+    explainEn:["Mosquitoes! While interrupted, both 'Strike' and re-baiting are disabled. Bites still come exactly as usual meanwhile. The interruption lasts until you tap every mosquito to squash it. If the float sinks away, squash them fast, then strike."],
+    end:["蚊を全部潰した。耳元のブーンが消えた。さあ、ウキを見よう。","やっと静かになった。蚊のいない水辺は最高だ。"],
+    endEn:["Every mosquito squashed. The buzzing by my ear is gone. Back to the float.","Quiet at last. A pond without mosquitoes is the best."] },
+  bee:{ who:"春のミツバチ", whoEn:"Spring honeybees",
+    lines:["ミツバチが寄ってきた。刺されないよう、そっとタップして追い払おう。潰しちゃダメだよ。","ブンブン……ミツバチが花と間違えたみたい。タップして、そっと追い払おう。"],
+    linesEn:["Honeybees have drifted over. Tap gently to shoo them away — don't squash them.","Bzzz... the bees seem to mistake us for flowers. Tap to shoo them away, gently."],
+    explain:["ミツバチが寄ってきた！ お邪魔中は「竿を持つ」も餌付けも使えない。アタリはその間も通常通り来る。蜂を全部タップして追い払うまで、お邪魔は続く。潰さずに、そっと追い払おう。"],
+    explainEn:["Honeybees! While interrupted, both 'Strike' and re-baiting are disabled. Bites still come exactly as usual meanwhile. The interruption lasts until you tap every bee to shoo it away. Don't squash them — just shoo them off, gently."],
+    end:["ミツバチはみんな飛んでいった。花の方へ帰ったみたい。さあ、釣りの続きだ。","蜂たちを追い払えた。刺されずにすんだ。ウキに集中しよう。"],
+    endEn:["The bees have all flown off, back to the flowers. Back to fishing.","Bees shooed away, and nobody got stung. Eyes on the float again."] },
+  leaves:{ who:"秋の落ち葉", whoEn:"Autumn leaves",
+    lines:["ひらひら……落ち葉が水面を覆っちゃった。ウキが見えない！ タップして、葉っぱをどかそう。","風で落ち葉が舞い込んで、水面が葉っぱだらけ。タップして片付けよう。"],
+    linesEn:["Flutter... fallen leaves have covered the water — I can't see the float! Tap the leaves away.","The wind blew leaves all over the water. Tap them away to clear it."],
+    explain:["落ち葉が水面を覆っちゃった！ お邪魔中は「竿を持つ」も餌付けも使えない。アタリはその間も通常通り来る。葉っぱを全部タップして片付けるまで、お邪魔は続く。"],
+    explainEn:["Fallen leaves have covered the water! While interrupted, both 'Strike' and re-baiting are disabled. Bites still come exactly as usual meanwhile. The interruption lasts until you tap every leaf away."],
+    end:["水面がすっきりした。ウキがまた見える。さあ、続きを釣ろう。","葉っぱを片付けた。水面が鏡みたいに戻った。"],
+    endEn:["The water is clear again — I can see the float. Back to fishing.","Leaves cleared. The water is a mirror again."] },
+  rub:{ who:"冬の寒さ", whoEn:"Winter cold",
+    lines:["寒くなったのでさすって温めよう。画面を5回こすって、手を温めよう。","寒い……手がかじかんできた。画面を5回さすって温めよう。"],
+    linesEn:["It's gotten cold — let's rub to warm up. Rub the screen 5 times to warm your hands.","Brrr... my hands are freezing. Rub the screen 5 times to warm them up."],
+    explain:["寒くなったのでさすって温めよう。お邪魔中は「竿を持つ」も餌付けも使えない。アタリはその間も通常通り来る。画面を5回さすって温まるまで、お邪魔は続く。タップだけでは数えないよ。"],
+    explainEn:["It's gotten cold — let's rub to warm up. While interrupted, both 'Strike' and re-baiting are disabled. Bites still come exactly as usual meanwhile. Rub the screen 5 times to warm up — taps alone don't count."],
+    end:["手がぽかぽか温まった。さあ、ウキを見よう。","温まった！ 指が動くようになった。釣りの続きだ。"],
+    endEn:["My hands are warm again. Back to the float.","Warm at last! My fingers move again. Back to fishing."] }
+};
 /* 登場人物のイラスト（吹き出しの横に絵で表示する） */
 var OJAMA_ART = {
   jiisan: "<svg viewBox='0 0 96 96' xmlns='http://www.w3.org/2000/svg' role='img' aria-label='おじいさん'>"
@@ -3631,6 +3761,38 @@ var OJAMA_ART = {
     + "<circle cx='60' cy='65' r='7.5' fill='#7fb3d9'/><circle cx='60' cy='65' r='3.6' fill='#16222e'/>"
     + "<circle cx='80' cy='57' r='2.6' fill='#e23c2e'/>"
     + "<rect x='50' y='45' width='12' height='7' rx='2' fill='#2c3540'/>"
+    + "</svg>",
+  mosquito: "<svg viewBox='0 0 96 96' xmlns='http://www.w3.org/2000/svg' role='img' aria-label='蚊'>"
+    + "<rect width='96' height='96' fill='#e8e4d2'/>"
+    + "<ellipse cx='30' cy='38' rx='16' ry='7' fill='rgba(230,230,215,0.9)' transform='rotate(-28 30 38)'/>"
+    + "<ellipse cx='66' cy='38' rx='16' ry='7' fill='rgba(230,230,215,0.9)' transform='rotate(28 66 38)'/>"
+    + "<ellipse cx='48' cy='52' rx='16' ry='7' fill='#2e2a26' transform='rotate(18 48 52)'/>"
+    + "<circle cx='62' cy='44' r='6' fill='#2e2a26'/>"
+    + "<path d='M67 46l10 4' stroke='#2e2a26' stroke-width='2' stroke-linecap='round'/>"
+    + "<path d='M40 56l-6 10M48 58l-2 11M56 56l3 10' stroke='#2e2a26' stroke-width='1.8' stroke-linecap='round'/>"
+    + "</svg>",
+  bee: "<svg viewBox='0 0 96 96' xmlns='http://www.w3.org/2000/svg' role='img' aria-label='ミツバチ'>"
+    + "<rect width='96' height='96' fill='#f2e8c8'/>"
+    + "<ellipse cx='34' cy='34' rx='15' ry='8' fill='rgba(255,255,255,0.85)' transform='rotate(-30 34 34)'/>"
+    + "<ellipse cx='62' cy='34' rx='15' ry='8' fill='rgba(255,255,255,0.85)' transform='rotate(30 62 34)'/>"
+    + "<ellipse cx='48' cy='56' rx='24' ry='17' fill='#f2b705'/>"
+    + "<path d='M34 44q4 12 0 24M48 40q4 15 0 32M62 44q-4 12 0 24' stroke='#2e2a26' stroke-width='5' fill='none'/>"
+    + "<circle cx='70' cy='50' r='3' fill='#2e2a26'/>"
+    + "<path d='M70 40q4-6 9-5' stroke='#2e2a26' stroke-width='2' fill='none' stroke-linecap='round'/>"
+    + "</svg>",
+  leaves: "<svg viewBox='0 0 96 96' xmlns='http://www.w3.org/2000/svg' role='img' aria-label='落ち葉'>"
+    + "<rect width='96' height='96' fill='#dce8dd'/>"
+    + "<path d='M48 14l7 14 15-6-6 15 16 2-12 11 10 12-15 2 3 15-13-8-6 14-6-14-13 8 3-15-15-2 10-12-12-11 16-2-6-15 15 6z' fill='#c33d21'/>"
+    + "<path d='M48 52v26' stroke='#7a3a1a' stroke-width='3' stroke-linecap='round'/>"
+    + "<path d='M62 76l8 8M34 76l-8 8' stroke='#d2691e' stroke-width='4' stroke-linecap='round'/>"
+    + "<circle cx='70' cy='22' r='7' fill='#d2691e'/>"
+    + "<circle cx='24' cy='30' r='5' fill='#e07b39'/>"
+    + "</svg>",
+  rub: "<svg viewBox='0 0 96 96' xmlns='http://www.w3.org/2000/svg' role='img' aria-label='寒さ'>"
+    + "<rect width='96' height='96' fill='#dce6f2'/>"
+    + "<path d='M48 18v60M24 34l48 28M72 34l-48 28M30 22l36 52M66 22l-36 52' stroke='#7fa8d9' stroke-width='4' stroke-linecap='round'/>"
+    + "<circle cx='48' cy='48' r='10' fill='none' stroke='#7fa8d9' stroke-width='3'/>"
+    + "<path d='M20 82q14-12 28 0t28 0' stroke='#e07b39' stroke-width='5' fill='none' stroke-linecap='round'/>"
     + "</svg>"
 };
 /* お邪魔キャラの声：セリフは表示と同時に、キャラごとに録音済みの声で読み上げる。
@@ -3638,60 +3800,50 @@ var OJAMA_ART = {
    音声合成が無言で破棄され「喋らない」状態になるため、全セリフを録音音声に切り替えた。
    音声ファイルは assets/voice/ojama-<キャラ>-<行番号>-ja.mp3（英語版の音声は廃止し、英語表示では声なし）。
    鍵括弧のセリフがある行はセリフ部分だけ、地の文だけの行（猫・カラス等）は全文を録音してある。
-   再生は環境音と同じ <audio> 方式（専用要素を1つ共有）なので、タイマー発火でも鳴らせる */
-var ojamaAudio = null;      // お邪魔の声専用の共有 <audio> 要素（同時に喋るのは一人だけ）
-var ojamaVoicePrimed = false;
-var ojamaVoiceName = "";    // いま要素にセットしている音声の名前（拡張子なし）。読み込み失敗時に埋め込み版を探す鍵
-function ojamaVoiceEl(){
-  if(!ojamaAudio){
-    ojamaAudio = new Audio();
-    ojamaAudio.preload = "auto";
-    /* assets/voice/ のファイルが読めない環境（GitHub に HTML 単体で公開した場合など）では、
-       HTML に埋め込んだ圧縮コピーへ切り替えて、その場で再生し直す */
-    ojamaAudio.addEventListener("error", function(){
-      var emb = (typeof EMB_AUDIO !== "undefined") ? EMB_AUDIO[ojamaVoiceName] : null;
-      if(emb && ojamaAudio.src.indexOf("data:") !== 0){
-        ojamaAudio.src = emb;
-        /* 再生し直すのはお邪魔の最中だけ（終了直後にエラーが届いても声が蘇らないように） */
-        if(ojamaActive){
-          var p = ojamaAudio.play();
-          if(p && p.catch) p.catch(function(){});
-        }
-      }
-    });
-  }
-  return ojamaAudio;
-}
-/* iPhone では、ユーザー操作の最中に一度も再生していない <audio> 要素は、
-   タイマーからの再生が無言で弾かれることがある。お邪魔はタイマーで発生するので、
-   最初のタップで無音クリップを再生して共有要素を「解錠」しておく（環境音と同じ作法） */
-function primeOjamaSpeech(){
-  if(ojamaVoicePrimed) return;
-  ojamaVoicePrimed = true;
+   再生は AudioContext のバッファ再生なので、タイマー発火でも鳴らせる */
+/* お邪魔の声：バッファ再生に変更。以前は共有の <audio> 要素で鳴らしていたが、
+   <audio> 要素は iOS で独占の playback セッションを取るため、他のアプリの
+   再生を止めてしまう。無音クリップで要素を「解錠」する primeOjamaSpeech の
+   仕掛けも、バッファ再生では不要なので削除した */
+var ojamaVoiceBufs = {}; // デコード済みボイスのキャッシュ（名前→AudioBuffer）
+var ojamaVoiceSrc = null; // 再生中のボイス（止めるとき用）
+function playOjamaBuf(buf){
+  if(!AC) return;
   try{
-    var el = ojamaVoiceEl();
-    ojamaVoiceName = "silence";
-    el.src = __GD[98];
-    var p = el.play();
-    if(p && p.catch) p.catch(function(){});
+    var src = AC.createBufferSource(); src.buffer = buf;
+    var g = AC.createGain(); g.gain.value = volVoice * VOICE_SCALE;
+    src.connect(g); g.connect(master);
+    ojamaVoiceSrc = src;
+    src.start(0);
   }catch(e){}
 }
 function speakOjama(kind, lineIdx){
   /* 英語版の音声は廃止：英語表示のときは声を出さず、セリフのテキスト表示だけにする */
   if(lang === "en") return;
+  if(!ambientOn) return; // 環境音OFFのときはボイスも鳴らさない（効果音と同じ扱い）
   try{
-    var el = ojamaVoiceEl();
-    ojamaVoiceName = "ojama-" + kind + "-" + lineIdx + "-ja";
-    el.src = "assets/voice/" + ojamaVoiceName + ".mp3";
-    el.volume = volVoice * VOICE_SCALE;
-    try{ el.currentTime = 0; }catch(e){}
-    var p = el.play();
-    if(p && p.catch) p.catch(function(){});
+    audioInit(); if(!AC) return;
+    /* タイマー発火で声を出すときも、割り込みで止まっていたら再開を試みる */
+    if(AC.state==="suspended" || AC.state==="interrupted"){
+      setAmbientSession();
+      try{ AC.resume(); }catch(e){}
+    }
+    var name = "ojama-" + kind + "-" + lineIdx + "-ja";
+    if(ojamaVoiceSrc){ try{ ojamaVoiceSrc.stop(); }catch(e){} ojamaVoiceSrc = null; }
+    if(ojamaVoiceBufs[name]){ playOjamaBuf(ojamaVoiceBufs[name]); return; }
+    var emb = (typeof EMB_AUDIO !== "undefined") ? EMB_AUDIO[name] : null;
+    if(!emb) return;
+    var bin = atob(emb.slice(emb.indexOf(",") + 1));
+    var bytes = new Uint8Array(bin.length);
+    for(var i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
+    AC.decodeAudioData(bytes.buffer, function(buf){
+      ojamaVoiceBufs[name] = buf;
+      playOjamaBuf(buf);
+    }, function(){});
   }catch(e){}
 }
 function stopOjamaSpeech(){
-  if(!ojamaAudio) return;
-  try{ ojamaAudio.pause(); ojamaAudio.currentTime = 0; }catch(e){}
+  if(ojamaVoiceSrc){ try{ ojamaVoiceSrc.stop(); }catch(e){} ojamaVoiceSrc = null; }
 }
 function ojamaSay(kind, who, line, lineIdx){
   document.getElementById("ojamaArt").innerHTML = OJAMA_ART[kind] || "";
@@ -3702,12 +3854,27 @@ function ojamaSay(kind, who, line, lineIdx){
 }
 function updateOjamaCount(){
   var el = document.getElementById("ojamaCount");
-  el.textContent = lang==="en" ? ("Left: " + ojamaRemaining + " / " + ojamaTotal + " — tap them away") : ("残り " + ojamaRemaining + " / " + ojamaTotal + "個 ・ タップして消そう");
+  if(ojamaKind==="rub"){
+    el.textContent = lang==="en" ? ("Rub " + ojamaRemaining + " more time" + (ojamaRemaining===1 ? "" : "s") + " to warm up") : ("あと " + ojamaRemaining + " 回さすろう");
+  } else if(ojamaKind==="mosquito" || ojamaKind==="bee"){
+    el.textContent = lang==="en" ? ("Left: " + ojamaRemaining + " / " + ojamaTotal) : ("残り " + ojamaRemaining + " / " + ojamaTotal + "匹 ・ タップして" + (ojamaKind==="bee" ? "追い払おう" : "潰そう"));
+  } else if(ojamaKind==="leaves"){
+    el.textContent = lang==="en" ? ("Left: " + ojamaRemaining + " / " + ojamaTotal + " leaves — tap them away") : ("残り " + ojamaRemaining + " / " + ojamaTotal + "枚 ・ タップして片付けよう");
+  } else {
+    el.textContent = lang==="en" ? ("Left: " + ojamaRemaining + " / " + ojamaTotal + " — tap them away") : ("残り " + ojamaRemaining + " / " + ojamaTotal + "個 ・ タップして消そう");
+  }
   el.hidden = !ojamaActive;
 }
 function triggerOjama(){
   if(ojamaActive || state==="idle" || state==="await" || state==="fight") return;
+  /* お邪魔の抽選：従来のお邪魔キャラ13種と、その季節の季節のお邪魔1種を同じプールから
+     ランダムに1つ選ぶ（合計14枠、各1/14）。季節のお邪魔はその季節だけプールに入る
+     （夏は蚊、冬はさすり、春は蜂、秋は落ち葉）。お邪魔タイマー（＝アタリと同じ抽選
+     nextOjamaDelay）はそのまま使い、出現確率はアタリと同一。旧キャラの各エントリの
+     重みは従来通り（等確率） */
+  var seasonKind = (sel.season==="summer") ? "mosquito" : (sel.season==="winter") ? "rub" : (sel.season==="spring") ? "bee" : (sel.season==="autumn") ? "leaves" : "";
   var evList = P(OJAMA_EVENTS, OJAMA_EVENTS_EN);
+  if(seasonKind && Math.floor(Math.random()*(evList.length + 1)) === evList.length){ startSeasonOjama(seasonKind); return; }
   var ev = evList[Math.floor(Math.random()*evList.length)];
   ojamaKind = ev.kind;
   ojamaActive = true;
@@ -3739,30 +3906,35 @@ function spawnMoyaBalls(total){
       b.style.width = size + "px"; b.style.height = size + "px";
       b.style.left = (3 + Math.random()*88) + "%";
       b.style.top = "-80px";
-      /* 落下先は、上のお邪魔パネルの実測下端より下、かつ下のボタン・状況ゾーン（下から約210px）より上の
-         帯の中だけにする。パネルやボタンの後ろに隠れて押せなくなるのを防ぐ */
+      /* 落下先は、上のお邪魔パネルの実測下端より下、かつ下のボタン（下から約210px）より上の
+         帯の中だけにする。パネルやボタンの後ろに隠れて押せなくなるのを防ぐ。
+         上端は必ずパネルの下端＋10pxにする（以前の box.height*0.45 の上限は、パネルが
+         それより背が高いときに帯の上端をパネルの下端より上に置いてしまい、ボールが
+         カードの下に隠れて押せなくなった） */
       var barEl = document.getElementById("ojamaBar");
       var barBottom = barEl ? (barEl.getBoundingClientRect().bottom - box.top) : 260;
-      var topMin = Math.round(Math.max(120, Math.min(box.height * 0.45, barBottom + 10)));
-      /* 下限は固定値ではなく、状況コメントのゾーンと操作ボタンの実測位置から決める。
-         ボールの下端がコメントやボタンに少しも被らない位置で止めるので、端末の画面サイズや
+      var topMin = Math.round(Math.max(120, barBottom + 10));
+      /* 下限は固定値ではなく、操作ボタンの実測位置から決める。状況ゾーンは上部へ移ったので
+         下限には使わない。ボールの下端がボタンに少しも被らない位置で止めるので、端末の画面サイズや
          セーフエリアが変わっても、ボールは必ずタップできる帯の中にだけ落ちる */
       var limitBottom = box.height - 216;
-      var szEl = document.getElementById("statusZone");
-      if(szEl){ var szTop = szEl.getBoundingClientRect().top - box.top; if(szTop > 100) limitBottom = Math.min(limitBottom, szTop - 12); }
       var actEl = document.getElementById("actMain");
       if(actEl){ var actTop = actEl.getBoundingClientRect().top - box.top; if(actTop > 100) limitBottom = Math.min(limitBottom, actTop - 12); }
       var topMax = Math.round(limitBottom - size);
       if(topMax < topMin) topMax = topMin;
       var targetTopPx = Math.round(topMin + Math.random() * (topMax - topMin));
-      b.addEventListener("click", function(){
+      var popBall = function(){
         if(!ojamaActive || b.classList.contains("popped")) return;
         b.classList.add("popped");
         ojamaRemaining--; updateOjamaCount();
         plop(760 + Math.random()*300, 0.14, 0.12);
         setTimeout(function(){ if(b.parentNode) b.parentNode.removeChild(b); }, 170);
         if(ojamaRemaining<=0) setTimeout(endOjama, 380);
-      });
+      };
+      /* タップしたらすぐ消す。click だけだと iOS でタップが抑止されることがあるため
+         pointerdown でも消す（2回目以降は popped ガードで何もしない）。 */
+      b.addEventListener("pointerdown", function(e){ e.preventDefault(); e.stopPropagation(); popBall(); });
+      b.addEventListener("click", popBall);
       layer.appendChild(b);
       setTimeout(function(){ b.style.top = targetTopPx + "px"; }, 60 + idx*110);
     })(i);
@@ -3782,12 +3954,252 @@ function endOjama(){
     /* アタリ進行中（前アタリ／本アタリ）なら通常と同じ残り時間に任せる：保持も延長もしない。
        進行中でなければ、ルアーで散った魚を寄せ直すために待ち直す */
     if(state!=="mae" && state!=="hon") scheduleWait(true);
+  } else if(ojamaKind==="mosquito" || ojamaKind==="bee" || ojamaKind==="leaves" || ojamaKind==="rub"){
+    var sDef = SEASON_OJAMA[ojamaKind];
+    say(pick(P(sDef.end, sDef.endEn)));
+    // お邪魔の間もアタリの時計は通常通り進んでいるので、そのまま再開する（本アタリは保持されず、制限を過ぎていれば既に逃げている）
+    if(state!=="wait" && state!=="mae" && state!=="hon") scheduleWait(false);
   } else {
     say(ojamaKind==="inemuri" ? pick(["ボールをはじいて、すっかり目が覚めた。ウキに集中し直そう。","はっ、と目が覚めた。夢の続きは、ウキが消し込むところからだ。"]) : pick(["静けさが戻ってきた。さっきの騒ぎが嘘みたいだ。ウキを見よう。","やっと静かになった。ウキに集中し直そう。","話し相手も去っていった。さあ、釣りの時間に戻ろう。"]));
     // お邪魔の間もアタリの時計は通常通り進んでいるので、そのまま再開する（本アタリは保持されず、制限を過ぎていれば既に逃げている）
     if(state!=="wait" && state!=="mae" && state!=="hon") scheduleWait(false);
   }
+  seasonCritters = []; rubStroke = null;
   ojamaKind = "";
+}
+
+/* ================= 季節のお邪魔（夏の蚊・冬のさすり・春の蜂・秋の落ち葉） =================
+   triggerOjama の抽選で、従来のお邪魔キャラ13種と合わせて14枠から選ばれたときに始まる。
+   蚊・蜂・落ち葉はキャンバスに描く生き物／葉で、タップして処理する。冬は画面を5回さする。
+   どれも ojamaActive / ojamaRemaining / ojamaTimer を流用するので、竿を持つ・餌付けの
+   ブロックと、アタリがその間も通常通り来る点は、従来のボールのお邪魔とまったく同じ */
+function startSeasonOjama(kind){
+  var def = SEASON_OJAMA[kind]; if(!def) return;
+  ojamaKind = kind;
+  ojamaActive = true;
+  document.getElementById("stageBox").classList.add("ojama-active");
+  ojamaSay(kind, lang==="en" ? def.whoEn : def.who, pick(lang==="en" ? def.linesEn : def.lines), 0);
+  say(pick(P(def.explain, def.explainEn)), true);
+  if(kind==="rub"){
+    ojamaTotal = RUB_NEED; ojamaRemaining = RUB_NEED; rubStroke = null;
+  } else {
+    var n = kind==="leaves" ? 6 : 4; // 落ち葉は6枚、蚊・蜂は4匹
+    ojamaTotal = n; ojamaRemaining = n;
+    setTimeout(function(){ if(ojamaActive && ojamaKind===kind) spawnSeasonCritters(kind, n); }, 900);
+  }
+  updateOjamaCount();
+}
+function spawnSeasonCritters(kind, n){
+  var fx = fxNow(), fy = floatY(), i, c;
+  var zones = null;
+  if(kind==="leaves"){
+    /* 6枚の葉が画面全体に広がるよう、幅を6区画に分け、区画をシャッフルして1枚ずつ割り当てる。
+       従来は浮きの周り（±140px）に固まっていたため、画面を覆う配置にならなかった */
+    zones = [0,1,2,3,4,5];
+    for(var zi=zones.length-1; zi>0; zi--){ var zj = Math.floor(Math.random()*(zi+1)); var zt = zones[zi]; zones[zi] = zones[zj]; zones[zj] = zt; }
+  }
+  for(i=0;i<n;i++){
+    if(kind==="leaves"){
+      /* 渡される kind は "leaves"（SEASON_OJAMA のキー）。以前はここが "leaf" と
+         判定していたため葉の分岐に入らず、蚊・蜂と同じ扱いになり、描画の振り分けにも
+         合わず葉が一切描かれなかった（見えなかった原因） */
+      var land = leafLandingSpot(zones ? zones[i % zones.length] : -1, n);
+      c = {kind:"leaf", x:land.x + (Math.random()-0.5)*60, y:Math.max(-40, Math.min(land.y - 60, land.y - 150 - Math.random()*90)),
+        vx:0, vy:52 + Math.random()*34, phase:Math.random()*6.28, seed:Math.random(),
+        rot:Math.random()*6.28, rotV:(Math.random()-0.5)*1.2, landX:land.x, landY:land.y,
+        col:pick(["#c33d21","#d2691e","#b03a2e","#e07b39","#c65a1e"]), state:"fall", dead:false, deadT:0};
+    } else {
+      c = {kind:kind, x:Math.max(24, Math.min(CW-24, fx + (Math.random()-0.5)*280)),
+        y:Math.max(48, Math.min(CH-64, fy - 46 + (Math.random()-0.5)*100)),
+        vx:0, vy:0, phase:Math.random()*6.28, seed:Math.random()*6.28,
+        rot:0, rotV:0, landX:0, landY:0, col:"", state:"fly", dead:false, deadT:0};
+    }
+    seasonCritters.push(c);
+  }
+}
+/* 落ち葉が着水する場所：画面全体に広がるよう、幅の区画ごとに1枚ずつ割り当て、
+   その区画の中で水面ポリゴンの内側に着水させる。水際から帯の下端まで使う。
+   従来は浮きの周り（±140px）・水際直下だけだったため、6枚が小さな範囲に固まっていた。
+   水面に入る位置が見つからなければ8回まで試し、ダメなら浮きの周りに落とす（安全策） */
+function leafLandingSpot(zone, total){
+  var fb = photoBand || photoBandRect();
+  var bot = Math.min(CH - 16, fb.bottom - 55);
+  var x, y, top, k;
+  for(k=0;k<8;k++){
+    if(typeof zone === "number" && zone >= 0 && total > 0){
+      var zw = CW / total;
+      x = zone * zw + (0.12 + Math.random()*0.76) * zw;
+    } else {
+      x = CW * 0.06 + Math.random() * CW * 0.88;
+    }
+    x = Math.max(24, Math.min(CW - 24, x));
+    top = waterTopAtScreen(x);
+    if(top !== null) y = top + 16 + Math.random() * Math.max(24, bot - top - 16);
+    else y = floatY() + 20 + Math.random()*40;
+    y = Math.min(y, bot);
+    if(pointInPoly(waterPoints(), x, y)) return {x:x, y:y};
+  }
+  x = fxNow(); y = floatY() + 24 + Math.random()*36;
+  return {x:x, y:y};
+}
+/* 蚊・蜂の飛行と落ち葉の舞い降り。毎フレームの tick から呼ぶ。お邪魔中でなければ何もしない */
+function updateSeasonCritters(dt){
+  if(!ojamaActive || !seasonCritters.length) return;
+  var fx = fxNow(), fy = floatY();
+  for(var i=seasonCritters.length-1;i>=0;i--){
+    var c = seasonCritters[i];
+    if(c.dead){
+      c.deadT += dt;
+      if(c.kind==="bee" && c.state==="flyoff"){ c.x += c.vx*dt; c.y += c.vy*dt; }
+      if(c.kind==="leaf"){ c.y -= 26*dt; }
+      if(c.deadT > 0.6) seasonCritters.splice(i,1);
+      continue;
+    }
+    if(c.kind==="leaf"){
+      if(c.state==="fall"){
+        c.phase += dt;
+        c.x += Math.sin(c.phase*2 + c.seed)*14*dt;
+        c.y += c.vy*dt; c.rot += c.rotV*dt;
+        if(c.y >= c.landY){ c.y = c.landY; c.state = "float"; }
+      }
+      continue;
+    }
+    /* 蚊・蜂：浮きの周りを漂いながらブンブン飛ぶ（ゆっくりした正弦波の漂い＋細かい揺れ） */
+    c.phase += dt;
+    var tx = fx + Math.cos(c.phase*0.9 + c.seed)*95 + Math.sin(c.phase*2.3)*14;
+    var ty = fy - 34 + Math.sin(c.phase*1.3 + c.seed*2)*38 + Math.cos(c.phase*3.1)*6;
+    c.x += (tx - c.x) * Math.min(1, dt*1.6);
+    c.y += (ty - c.y) * Math.min(1, dt*1.6);
+  }
+}
+/* 蚊・蜂・落ち葉へのタップ。どれか1匹／1枚に当たれば処理して true を返す（竿の操作には進まない） */
+function tapSeasonCritter(tx, ty){
+  for(var i=0;i<seasonCritters.length;i++){
+    var c = seasonCritters[i];
+    if(c.dead) continue;
+    var hitR = c.kind==="leaf" ? 62 : 34; // タップの当たり半径（落ち葉は約100px幅なので62px、蚊・蜂は34pxのまま）
+    var dx = tx - c.x, dy = ty - c.y;
+    if(dx*dx + dy*dy <= hitR*hitR){
+      c.dead = true; c.deadT = 0;
+      if(c.kind==="bee"){
+        /* 蜂は潰さない：追い払い（画面の外へ飛び去る）＋小さなパフ */
+        c.state = "flyoff";
+        var ang = Math.atan2(c.y - floatY(), c.x - fxNow());
+        c.vx = Math.cos(ang)*260; c.vy = -120 - Math.random()*60;
+        plop(980 + Math.random()*200, 0.10, 0.10);
+      } else if(c.kind==="leaf"){
+        plop(620 + Math.random()*160, 0.10, 0.10);
+      } else {
+        /* 蚊は潰す */
+        plop(420 + Math.random()*120, 0.16, 0.10);
+      }
+      ojamaRemaining--; updateOjamaCount();
+      if(ojamaRemaining<=0) setTimeout(endOjama, 380);
+      return true;
+    }
+  }
+  return false;
+}
+/* 冬のさすり：1ストロークが終わったときに呼ぶ。十分な長さのなぞりだけ1回と数える */
+function finishRubStroke(){
+  if(!rubStroke) return;
+  var d = rubStroke.dist; rubStroke = null;
+  if(!ojamaActive || ojamaKind!=="rub") return;
+  if(d < RUB_MIN_DIST) return; // タップや短いなぞりは数えない
+  ojamaRemaining--; updateOjamaCount();
+  plop(300 + (RUB_NEED - ojamaRemaining)*60, 0.12, 0.12); // さするたび少しずつ高い音
+  if(ojamaRemaining<=0) setTimeout(endOjama, 380);
+}
+/* 蚊・蜂・落ち葉の描画。draw() の浮きの直後から呼ぶ（水面の上に重なる） */
+function drawSeasonOjama(t){
+  if(!ojamaActive || !seasonCritters.length) return;
+  for(var i=0;i<seasonCritters.length;i++){
+    var c = seasonCritters[i];
+    if(c.kind==="mosquito") drawOjamaMosquito(c, t);
+    else if(c.kind==="bee") drawOjamaBee(c, t);
+    else if(c.kind==="leaf") drawOjamaLeaf(c, t);
+  }
+}
+function drawOjamaMosquito(c, t){
+  var fade = c.dead ? Math.max(0, 1 - c.deadT/0.6) : 1;
+  ctx.save(); ctx.translate(c.x, c.y); ctx.globalAlpha = fade;
+  if(c.dead){
+    /* 潰した跡：小さな黒い星型のしぶき */
+    ctx.strokeStyle = "rgba(30,26,22,0.85)"; ctx.lineWidth = 1.6; ctx.lineCap = "round";
+    for(var k=0;k<6;k++){
+      var a = k*1.047 + c.seed;
+      ctx.beginPath(); ctx.moveTo(Math.cos(a)*3, Math.sin(a)*3); ctx.lineTo(Math.cos(a)*10, Math.sin(a)*10); ctx.stroke();
+    }
+    ctx.fillStyle = "#2e2a26";
+    ctx.beginPath(); ctx.ellipse(0, 0, 4.5, 1.8, 0.3, 0, Math.PI*2); ctx.fill();
+  } else {
+    var flap = Math.sin(t*70 + c.seed*9)*0.9;
+    ctx.fillStyle = "rgba(220,220,210,0.6)"; ctx.strokeStyle = "rgba(90,90,80,0.4)"; ctx.lineWidth = 0.6;
+    [-1, 1].forEach(function(sd){
+      ctx.save(); ctx.rotate(sd*(0.7 + flap*0.5));
+      ctx.beginPath(); ctx.ellipse(sd*4.5, -2.5, 5, 1.7, sd*0.5, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+      ctx.restore();
+    });
+    ctx.fillStyle = "#2e2a26";
+    ctx.beginPath(); ctx.ellipse(0, 0, 5.2, 2.1, 0.35, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(5.4, -1.2, 1.9, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = "rgba(30,26,22,0.85)"; ctx.lineWidth = 0.8;
+    ctx.beginPath(); ctx.moveTo(7, -0.6); ctx.lineTo(10.5, 1.6); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-1, 1.6); ctx.lineTo(-3.5, 5); ctx.moveTo(1.5, 1.8); ctx.lineTo(1, 5.4); ctx.moveTo(-3.5, 1.2); ctx.lineTo(-6.5, 4.2);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+function drawOjamaBee(c, t){
+  var fade = c.dead ? Math.max(0, 1 - c.deadT/0.6) : 1;
+  ctx.save(); ctx.translate(c.x, c.y); ctx.globalAlpha = fade;
+  if(c.dead){
+    /* 追い払いのパフ：薄いベージュの輪が広がって消える（潰した跡は描かない） */
+    ctx.strokeStyle = "rgba(210,200,170," + (0.55*fade).toFixed(3) + ")"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(0, 0, 6 + c.deadT*36, 0, Math.PI*2); ctx.stroke();
+  }
+  var flap = Math.sin(t*64 + c.seed*9)*0.8;
+  ctx.fillStyle = "rgba(235,235,220,0.65)"; ctx.strokeStyle = "rgba(90,90,80,0.4)"; ctx.lineWidth = 0.6;
+  [-1, 1].forEach(function(sd){
+    ctx.save(); ctx.rotate(sd*(0.7 + flap*0.5));
+    ctx.beginPath(); ctx.ellipse(sd*5, -3.5, 6, 2.2, sd*0.5, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+    ctx.restore();
+  });
+  ctx.fillStyle = "#f2b705";
+  ctx.beginPath(); ctx.ellipse(0, 0, 7.5, 4.2, 0.25, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = "#2e2a26";
+  ctx.beginPath(); ctx.ellipse(-1.5, -0.6, 2.2, 3.6, 0.25, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(2.5, 0.6, 2.2, 3.4, 0.25, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(7.2, -1.8, 2.2, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = "rgba(30,26,22,0.85)"; ctx.lineWidth = 0.8;
+  ctx.beginPath(); ctx.moveTo(-3, 3.2); ctx.lineTo(-5.5, 7); ctx.moveTo(1, 3.8); ctx.lineTo(0.5, 7.4); ctx.stroke();
+  ctx.restore();
+}
+function drawOjamaLeaf(c, t){
+  var fade = c.dead ? Math.max(0, 1 - c.deadT/0.6) : 1;
+  var bobY = (c.state==="float" && !c.dead) ? Math.sin(t*1.5 + c.seed)*1.6 : 0;
+  var s = 50; // 葉は約100px幅（以前は s=28 で約56px。スマホで一目で分かる大きさにした）
+  ctx.save(); ctx.translate(c.x, c.y + bobY); ctx.globalAlpha = fade;
+  if(c.state==="float" && !c.dead){
+    /* 水面に落ちる影（明るい水面でも葉が見えるように。回転させない） */
+    ctx.fillStyle = "rgba(20,30,20,0.25)";
+    ctx.beginPath(); ctx.ellipse(0, s*0.45, s*1.05, s*0.42, 0, 0, 6.2832); ctx.fill();
+  }
+  ctx.rotate(c.rot + (c.state==="float" ? Math.sin(t*0.9 + c.seed)*0.12 : 0));
+  ctx.fillStyle = c.col;
+  ctx.beginPath();
+  ctx.moveTo(0, -s);
+  ctx.lineTo(s*0.28, -s*0.34); ctx.lineTo(s*0.95, -s*0.62); ctx.lineTo(s*0.62, -s*0.02);
+  ctx.lineTo(s*0.95, s*0.45); ctx.lineTo(s*0.34, s*0.34); ctx.lineTo(s*0.2, s*0.95);
+  ctx.lineTo(0, s*0.42); ctx.lineTo(-s*0.2, s*0.95); ctx.lineTo(-s*0.34, s*0.34);
+  ctx.lineTo(-s*0.95, s*0.45); ctx.lineTo(-s*0.62, -s*0.02); ctx.lineTo(-s*0.95, -s*0.62);
+  ctx.lineTo(-s*0.28, -s*0.34);
+  ctx.closePath(); ctx.fill();
+  /* 輪郭と葉脈をはっきりさせる（明るい水面でも葉の形が読めるように） */
+  ctx.strokeStyle = "rgba(90,50,20,0.65)"; ctx.lineWidth = 2; ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0, -s*0.7); ctx.lineTo(0, s*1.15); ctx.stroke();
+  ctx.restore();
 }
 
 /* ---- ファイト更新 ---- */
@@ -3937,9 +4349,63 @@ function showResult(o){
     if(Date.now() - dragMovedAt < 200){ e.stopPropagation(); e.preventDefault(); dragMovedAt = 0; }
   }, true);
 })();
-document.getElementById("resClose").addEventListener("click", function(){
+/* ランキングに登録できる魚を、登録せずにリリースしようとしたときの確認。
+   釣れた直後の驚きでボタンを連打していると、リリースボタンを誤って押して
+   しまうことがある。そこで確認を挟み、確認のボタンはリリースボタン（パネル下端）
+   とは違う位置＝画面の上側に置き、表示から600msは押せないようにする。
+   連打の指が届く下側には「やっぱり登録する」（安全な選択）を大きく置く */
+var relConfirmShownAt = 0;
+function rankCanRegisterNow(){
+  if(!pendingRank || pendingRank.entry) return false;
+  var form = document.getElementById("resRankForm");
+  return !!form && !form.hidden; // 登録フォームが出ている＝いま登録できる
+}
+function doRelease(){
+  var box = document.getElementById("relConfirmBox");
+  if(box) box.classList.remove("on");
   resultBox.className = "result"; resultOpen = false; pendingRank = null;
   if(state==="idle") say(pick(["魚は静かに深みへ帰っていった。またウキを眺めよう。","魚が尾を振って、水の底へ消えていった。いい出会いだった。","波紋だけが残って、池は静かになった。さあ、次を待とう。"]));
+}
+function showReleaseConfirm(){
+  var box = document.getElementById("relConfirmBox");
+  var txt = document.getElementById("relConfirmText");
+  var yes = document.getElementById("relConfirmYes");
+  var no = document.getElementById("relConfirmNo");
+  if(!box){ doRelease(); return; }
+  var title = document.getElementById("relConfirmTitle");
+  if(title) title.textContent = L("本当に登録せずにリリースしますか？", "Release without registering in the rankings?");
+  if(txt && pendingRank){
+    var ps = rankPosition(pendingRank.sp.id, "size", pendingRank.size);
+    var pw = rankPosition(pendingRank.sp.id, "weight", pendingRank.weight);
+    var parts = [];
+    if(ps <= 5) parts.push(L("大きさ ", "Size #") + ps + L("位", ""));
+    if(pw <= 5) parts.push(L("重さ ", "Weight #") + pw + L("位", ""));
+    txt.textContent = L("この魚は「" + speciesName(pendingRank.sp) + "」のランキングで" + parts.join("・") + "に入ります。登録せずにリリースすると、この記録はランキングに残りません。", "This fish would place " + parts.join(" / ") + " in the " + speciesName(pendingRank.sp) + " ranking. Releasing without registering leaves no record in the ranking.");
+  }
+  if(yes){ yes.textContent = L("登録せずにリリースする", "Release without registering"); yes.disabled = true; }
+  if(no){ no.textContent = L("やっぱり登録する", "Register instead"); no.disabled = true; }
+  box.classList.add("on");
+  relConfirmShownAt = Date.now();
+  // 連打の誤タップ防止：表示から600msはどちらのボタンも押せない
+  setTimeout(function(){
+    if(yes) yes.disabled = false;
+    if(no) no.disabled = false;
+  }, 600);
+}
+document.getElementById("relConfirmYes").addEventListener("click", function(){
+  if(Date.now() - relConfirmShownAt < 600) return; // 600msガード（二重の安全策）
+  doRelease();
+});
+document.getElementById("relConfirmNo").addEventListener("click", function(){
+  if(Date.now() - relConfirmShownAt < 600) return;
+  var box = document.getElementById("relConfirmBox");
+  if(box) box.classList.remove("on");
+  var inp = document.getElementById("resRankName");
+  if(inp) inp.focus();
+});
+document.getElementById("resClose").addEventListener("click", function(){
+  if(rankCanRegisterNow()){ showReleaseConfirm(); return; }
+  doRelease();
 });
 
 /* ================= 魚・アイテムの絵（SVG） ================= */
@@ -4081,6 +4547,13 @@ function renderRecords(){
       d.innerHTML = fishSVG(sp, 110) + '<div class="nm"></div><div class="inf"></div>';
       d.querySelector(".nm").textContent = speciesName(sp);
       d.querySelector(".inf").textContent = lang==="en" ? ("Best " + bestBySpecies[sp.id].toFixed(1) + "cm · caught " + countBySpecies[sp.id]) : ("最大 " + bestBySpecies[sp.id].toFixed(1) + "cm ・ " + countBySpecies[sp.id] + "尾");
+      /* 図鑑の魚種をタップしたら、その魚種のランキングを表示する */
+      d.addEventListener("click", function(){
+        rankSelSpecies = sp.id;
+        renderRankings();
+        var rt = document.getElementById("rankTitle");
+        if(rt && rt.scrollIntoView) rt.scrollIntoView({behavior:"smooth", block:"start"});
+      });
     } else {
       d.className = "zcard unknown";
       d.innerHTML = fishSVG({body:"#c9cfc4",belly:"#dde2d6",fin:"#b7beb0"}, 110) + '<div class="nm">？？？</div><div class="inf">' + L("まだ出会っていない", "Not yet encountered") + '</div>';
@@ -4144,6 +4617,8 @@ function buildChips(elId, list, key){
       if(key==="season" || key==="time"){ weather = pickWeather(); updateCond(); }
       /* 季節や時間帯を変えたら、それに合った背景写真と風景の趣に選び直す。季節外れの写真（夏に紅葉など）は出さない */
       if((key==="season" || key==="time") && changed){
+        /* 季節や時間帯を変えたら撮影した写真は破棄して、通常の季節の写真に戻る */
+        if(capturedPhoto) discardCapturedPhoto(true);
         if(typeof pickSceneVariant === "function") pickSceneVariant();
         if(typeof pickScenePhoto === "function") pickScenePhoto();
         if(typeof updateAmbience === "function") updateAmbience();
@@ -4236,6 +4711,17 @@ document.getElementById("pond").addEventListener("pointerdown", function(e){
   var r = cv.getBoundingClientRect();
   if(!r.width || !r.height) return;
   var tx = e.clientX - r.left, ty = e.clientY - r.top;
+  /* 季節のお邪魔（蚊・蜂・落ち葉）のタップ：水面判定より先に、生き物・葉っぱへの当たり判定をする
+     （蚊・蜂は水際の少し上に飛ぶこともあるため）。当たればその場で処理し、竿の操作には進まない */
+  if(ojamaActive && (ojamaKind==="mosquito" || ojamaKind==="bee" || ojamaKind==="leaves")){
+    if(tapSeasonCritter(tx, ty)) return;
+  }
+  /* 冬のさすり：この pointerdown から1ストロークの追跡を始める（タップだけでは数えない）。
+     お邪魔中は竿の操作が無効なので、ここで返しても釣りの操作は壊れない */
+  if(ojamaActive && ojamaKind==="rub"){
+    rubStroke = {lastX:tx, lastY:ty, dist:0};
+    return;
+  }
   if(!isWaterTap(tx, ty)) return; // 水面以外は反応しない
   if(state==="idle" || state==="await"){
     // タップした場所を打ち込む場所にする。水際すれすれなら少し水の中へ寄せ、画面端にも寄せすぎない
@@ -4261,6 +4747,19 @@ document.getElementById("pond").addEventListener("pointerdown", function(e){
 var pondEl = document.getElementById("pond");
 pondEl.addEventListener("touchstart", function(e){ e.preventDefault(); }, {passive:false});
 pondEl.addEventListener("touchmove", function(e){ e.preventDefault(); }, {passive:false});
+/* 冬のさすり：池の上で指を滑らせた距離を数える。お邪魔（rub）の間だけ追跡する。
+   指を離した時点で、十分な長さのなぞりなら1回と数える（finishRubStroke）。
+   通常のタップは距離が短いので数えず、打ち込み・合わせの操作とも重ならない */
+pondEl.addEventListener("pointermove", function(e){
+  if(!rubStroke || !ojamaActive || ojamaKind!=="rub") return;
+  var r = cv.getBoundingClientRect(); if(!r.width || !r.height) return;
+  var tx = e.clientX - r.left, ty = e.clientY - r.top;
+  var dx = tx - rubStroke.lastX, dy = ty - rubStroke.lastY;
+  rubStroke.dist += Math.sqrt(dx*dx + dy*dy);
+  rubStroke.lastX = tx; rubStroke.lastY = ty;
+});
+document.addEventListener("pointerup", function(){ finishRubStroke(); });
+document.addEventListener("pointercancel", function(){ rubStroke = null; });
 mainBtn.addEventListener("touchstart", function(e){ if(state==="wait" || state==="mae" || state==="hon") e.preventDefault(); }, {passive:false});
 mainBtn.addEventListener("touchmove", function(e){ if(rodGrip) e.preventDefault(); }, {passive:false});
 holdBtn.addEventListener("touchstart", function(e){ e.preventDefault(); }, {passive:false});
@@ -4300,10 +4799,15 @@ document.addEventListener("contextmenu", function(e){ e.preventDefault(); });
 document.addEventListener("selectstart", function(e){ e.preventDefault(); });
 document.addEventListener("dragstart", function(e){ e.preventDefault(); });
 document.addEventListener("gesturestart", function(e){ e.preventDefault(); });
-document.addEventListener("pointerdown", function(){ ensureAudio(); primeOjamaSpeech(); }, {passive:true});
-document.addEventListener("touchstart", function(){ ensureAudio(); primeOjamaSpeech(); }, {passive:true});
-document.addEventListener("keydown", function(){ ensureAudio(); primeOjamaSpeech(); });
-document.addEventListener("visibilitychange", function(){ if(!document.hidden) ensureAudio(); });
+document.addEventListener("pointerdown", function(){ ensureAudio(); }, {passive:true});
+document.addEventListener("touchstart", function(){ ensureAudio(); }, {passive:true});
+document.addEventListener("keydown", function(){ ensureAudio(); });
+document.addEventListener("visibilitychange", function(){
+  if(document.hidden){
+    /* 隠れたら環境音を止める（他のアプリの音を邪魔しない）。再表示時は ensureAudio が ambientOn を見て再開する */
+    if(AC && AC.state==="running"){ try{ AC.suspend(); }catch(e){} }
+  } else if(ambientOn) ensureAudio();
+});
 
 /* 上部の情報（水温など）はデフォルトで非表示。「情報」ボタンで出し入れする */
 var condToggleBtn = document.getElementById("condToggle");
@@ -4414,8 +4918,14 @@ function hexA(hex, a){
   var n = parseInt(hex.slice(1), 16);
   return "rgba(" + ((n>>16)&255) + "," + ((n>>8)&255) + "," + (n&255) + "," + a + ")";
 }
+var rippleTrainT = 0; // 待ちの間に浮きの波紋を出し続ける間隔タイマー
+/* 波紋は「浮きを中心に生まれる輪の列」：1回の発生で、時間差のある数本の輪を
+   仕掛ける。輪は生まれた瞬間は小さく、最初に速く広がってだんだんゆっくりになり、
+   濃さは立ち上がったあとゆっくり消えていく。浮きにくっつく輪（anchor）は毎フレーム
+   浮きの位置へ寄せ直すので、浮きが揺れて流れても輪の中心は浮きから離れない。
+   魚のジャンプなど浮き以外で直接 push された旧形式（r/a）は、更新ループで新形式へ寄せる */
 function spawnRipple(n){
-  for(var i=0;i<n;i++) ripples.push({x:fxNow(), y:floatY(), r:4+i*5, a:0.55});
+  for(var i=0;i<n;i++) ripples.push({x:fxNow(), y:floatY(), age:-i*0.30, life:3.4, maxR:52+i*20, a0:0.34, seed:Math.random(), anchor:true});
 }
 function spawnSplash(n){
   for(var i=0;i<n;i++) splashes.push({x:fxNow()+(Math.random()-0.5)*36, y:floatY()-2, vx:(Math.random()-0.5)*60, vy:-(40+Math.random()*70), life:0.6+Math.random()*0.3});
@@ -4474,8 +4984,26 @@ function polyTopAt(poly, nx){
   }
   return best;
 }
-/* ウキは大きく見えるように描く（従来の約2倍）。座りの数値はローカル座標なので倍率に連動して見え方も比例する */
-var FLOAT_SCALE = 1.24;
+/* ウキは大きく見えるように描く（従来の約2倍）。座りの数値はローカル座標なので倍率に連動して見え方も比例する。
+   浮きの大きさ（設定ダイアログのスライダー）の倍率 floatSizeMul を掛ける。既定1.15倍で、動かすまで見た目は変わらない。
+   描画だけに使い、座り・当たり判定などの物理量はローカル座標のまま変えない */
+var FLOAT_SCALE = 1.24 * floatSizeMul;
+(function(){
+  var fs = document.getElementById("rngFloatSize");
+  var fv = document.getElementById("rngFloatSizeVal");
+  if(!fs) return;
+  fs.value = String(floatSizeMul);
+  if(fv) fv.textContent = (Math.round(floatSizeMul*100)/100) + "倍";
+  var applyFloatSize = function(){
+    floatSizeMul = Math.min(2, Math.max(0.5, parseFloat(fs.value) || 1));
+    FLOAT_SCALE = 1.24 * floatSizeMul;
+    if(fv) fv.textContent = (Math.round(floatSizeMul*100)/100) + "倍";
+    save();
+  };
+  /* input が届かない環境でも離した時点で確実に反映されるよう change でも同じ処理を行う（冪等） */
+  fs.addEventListener("input", applyFloatSize);
+  fs.addEventListener("change", applyFloatSize);
+})();
 /* ウキの座り：餌が付いているかどうかは、目盛りの色が水面に出るかどうかで表す。
    餌打ち直後は餌とオモリの重さで深く沈み、緑の目盛り（paintHeraFloat のローカル座標で -59.5〜-53.5）が
    ちょうど水面に出る（水面＝ローカル -54）。餌が溶け・小さくなるにつれて少しずつ浮き上がり、
@@ -4515,18 +5043,58 @@ var WATER_POLYS = {
 };
 var SUN_NX = { morning:0.335, day:null, evening:0.515 }; // 写真の中の太陽の反射柱の位置
 var imgGeom = {ox:0, oy:0, sw:1, sh:1};
+/* ARモード：セッションごとのトグル。ページを開き直したら必ずオフから始まる
+   （カメラの自動起動は iOS でブロックされるため、設定の保存対象にしない） */
+var arMode = false, arVideo = null, arStream = null, arVideoReady = false;
+/* 撮影した写真（ARモードで撮った風景）：1枚だけ localStorage（別キー）に保存し、
+   次に撮るまで・季節や時間帯を変えるまで・設定でやめるまで背景として使う。
+   端末の中だけに保存し、どこにもアップロードしない */
+var CAPTURED_PHOTO_KEY = "nobezao-captured-photo-v1";
+var capturedPhoto = null;     // 撮影した写真の data URL（JPEG）、無ければ null
+var capturedPhotoImg = null;  // 撮影した写真の Image、読み込み済みのときだけ使える
+function capPhotoActive(){ return !!(capturedPhotoImg && capturedPhotoImg.complete && capturedPhotoImg.naturalWidth > 0); }
+function loadCapturedPhotoImg(){
+  capturedPhotoImg = null;
+  if(!capturedPhoto || capturedPhoto.indexOf("data:image/") !== 0) return;
+  var im = new Image();
+  im.onload = function(){ capturedPhotoImg = im; };
+  im.onerror = function(){ capturedPhoto = null; capturedPhotoImg = null; try{ localStorage.removeItem(CAPTURED_PHOTO_KEY); }catch(e){} updateCapturedPhotoUI(); };
+  im.src = capturedPhoto;
+}
 var scenePhotoOk = false;
 var currentPhoto = null; // 今選ばれている背景写真（SCENE_PHOTOSの要素）
 var drawnPhoto = null;   // 直近のフレームで実際に描いた写真（水面マスクはこちらに合わせる）
+/* 写真を描く帯（バンド）：上はツールバー＋状況ゾーンの下端、下は操作ボタンの上端。
+   写真はこの帯の中だけに描き、ボタンや状況の言葉が池を隠さないようにする。
+   水面ポリゴン・ウキ位置・タップ判定はすべてこの帯のジオメトリ（imgGeom）から決まる */
+var photoBand = null;
+function photoBandRect(){
+  var tb = document.querySelector(".toolbar");
+  var topH = tb ? tb.offsetHeight : 50;
+  var sz = document.getElementById("statusZone");
+  var zoneH = sz ? sz.offsetHeight : 140;
+  var ac = document.getElementById("actMain");
+  var actH = ac ? ac.offsetHeight : 136;
+  var top = topH + zoneH;
+  var bottom = CH - actH;
+  if(bottom - top < 160){ top = Math.max(0, bottom - 160); }
+  return {top:top, bottom:bottom, h:Math.max(160, bottom - top)};
+}
 /* 水面ポリゴンは1フレームに何度も参照される。ジオメトリが変わらない間は
    計算結果（頂点配列とPath2D）を使い回し、毎フレームの再構築を避ける */
 var wpCachePts = null, wpCacheKey = "", wp2Cache = null;
 function waterPoints(){
-  var key = CW + "x" + CH + "|" + imgGeom.ox + "," + imgGeom.oy + "," + imgGeom.sw + "," + imgGeom.sh + "|" + (drawnPhoto ? drawnPhoto.id : "-") + "|" + (currentPhoto ? currentPhoto.id : "-") + "|" + sel.time + "|" + (sceneVariant && sceneVariant.flip ? 1 : 0) + "|" + (scenePhotoOk ? 1 : 0);
+  var key = CW + "x" + CH + "|" + imgGeom.ox + "," + imgGeom.oy + "," + imgGeom.sw + "," + imgGeom.sh + "|" + (drawnPhoto ? drawnPhoto.id : "-") + "|" + (currentPhoto ? currentPhoto.id : "-") + "|" + sel.time + "|" + (sceneVariant && sceneVariant.flip ? 1 : 0) + "|" + (scenePhotoOk ? 1 : 0) + "|" + (photoBand ? photoBand.top + "," + photoBand.bottom : "-") + "|" + (arMode ? 1 : 0) + "|" + (capPhotoActive() ? 1 : 0);
   if(wpCachePts && key === wpCacheKey) return wpCachePts;
   var pts;
-  if(!scenePhotoOk){
-    pts = [{x:0,y:CH*0.40},{x:CW,y:CH*0.40},{x:CW,y:CH},{x:0,y:CH}];
+  if(arMode || capPhotoActive()){
+    /* ARモード・撮影した写真：帯全体が水面。どこにでも投げられ、魚のシルエットも帯全体を泳ぐ */
+    var fbA = photoBand || photoBandRect();
+    pts = [{x:0,y:fbA.top},{x:CW,y:fbA.top},{x:CW,y:fbA.bottom},{x:0,y:fbA.bottom}];
+  } else if(!scenePhotoOk){
+    var fb = photoBand || photoBandRect();
+    var fbTop = Math.max(fb.top, CH*0.40);
+    pts = [{x:0,y:fbTop},{x:CW,y:fbTop},{x:CW,y:fb.bottom},{x:0,y:fb.bottom}];
   } else {
     var poly = (drawnPhoto && drawnPhoto.poly) || (currentPhoto && currentPhoto.poly) || WATER_POLYS[sel.time] || WATER_POLYS.day;
     pts = [];
@@ -4557,7 +5125,7 @@ var fxCv = document.createElement("canvas"), fxCtx = fxCv.getContext("2d");
 var maskCv = document.createElement("canvas"), maskCtx = maskCv.getContext("2d");
 var maskKey = "";
 function buildWaterMask(){
-  var key = CW + "x" + CH + "|" + (drawnPhoto ? drawnPhoto.id : sel.time) + "|" + (typeof sceneVariant !== "undefined" && sceneVariant ? sceneVariant.name : "") + "|" + (typeof sceneVariant !== "undefined" && sceneVariant && sceneVariant.flip ? 1 : 0) + "|" + (scenePhotoOk ? 1 : 0);
+  var key = CW + "x" + CH + "|" + (drawnPhoto ? drawnPhoto.id : sel.time) + "|" + (typeof sceneVariant !== "undefined" && sceneVariant ? sceneVariant.name : "") + "|" + (typeof sceneVariant !== "undefined" && sceneVariant && sceneVariant.flip ? 1 : 0) + "|" + (scenePhotoOk ? 1 : 0) + "|" + (photoBand ? photoBand.top + "," + photoBand.bottom : "-") + "|" + (arMode ? 1 : 0) + "|" + (capPhotoActive() ? 1 : 0);
   if(key === maskKey) return true;
   var wp = waterPath2D(); if(!wp) return false;
   maskCv.width = cv.width; maskCv.height = cv.height;
@@ -4642,34 +5210,50 @@ function drawWaterSurface(t){
     ctx.restore();
   }
   // さざ波：沖では短く細かく、手前では長く大きく。風で流れる速さと量が変わる
+  // 1本ずつ両端の尖ったレンズ形で描く（水面のきらめき）。手前は太さを
+  // 2.5〜3pxまでふくらませ、傾きとうねりもはっきりさせて直線に見せない。
+  // 行のy位置も大きく崩して列が揃って見えないようにする。色は白一辺倒では
+  // なく時間帯に合う柔らかい色にして、透明度は低めに保つ
   ctx.lineCap = "round";
   var rows = perfLevel >= 1 ? 11 : 17;
+  var rowH = (maxY - minY) / rows;
+  var hiCol = sel.time === "evening" ? "255,214,175" : (sel.time === "morning" ? "255,234,198" : "205,227,238");
   for(var r=0;r<rows;r++){
     var fr = r/(rows-1); // 0=沖, 1=手前
-    var ry = minY + 5 + Math.pow(fr, 1.35)*(maxY - minY - 9);
-    var segLen = 4 + fr*fr*30;
-    var gap = 15 + fr*26;
+    var ry = minY + 5 + Math.pow(fr, 1.35)*(maxY - minY - 9) + (hash01(r*91 + 7) - 0.5)*rowH*1.5;
+    if(ry < minY + 2) ry = minY + 2; if(ry > maxY - 2) ry = maxY - 2;
+    var segLen = (4 + fr*fr*30) * (0.8 + hash01(r*29 + 11)*0.4);
+    var gap = (15 + fr*26) * (0.8 + hash01(r*43 + 3)*0.45);
     var drift = reduced ? 0 : wavePhase*(0.45 + fr*0.8);
-    var alphaBase = 0.045 + fr*0.095 + windGust*0.05;
+    var alphaBase = 0.04 + fr*0.06 + windGust*0.025;
     var cell = segLen + gap;
     var startCi = Math.floor((-drift - cell)/cell);
     for(var ci=startCi; ci*cell - drift < W + cell; ci++){
-      var hx = ci*cell - drift + hash01(r*131 + ci*17)*gap*0.5;
+      var hx = ci*cell - drift + hash01(r*131 + ci*17)*gap*0.85;
       if(hx + segLen < 0 || hx > W) continue;
       var hh = hash01(r*57 + ci*29);
       if(hh < 0.28) continue; // 歯抜けにして自然に
-      var len = segLen*(0.55 + hh*0.8);
-      var wyy = ry + Math.sin(t*1.25 + ci*1.7 + r*2.3)*(0.4 + fr*0.9);
-      var al = alphaBase*(0.5 + hh*0.8);
-      if(hh > 0.80){ ctx.strokeStyle = "rgba(14,34,30," + (al*0.9).toFixed(3) + ")"; }
-      else { ctx.strokeStyle = "rgba(255,255,255," + al.toFixed(3) + ")"; }
-      ctx.lineWidth = 0.8 + fr*1.1;
-      ctx.beginPath(); ctx.moveTo(hx, wyy); ctx.lineTo(hx + len, wyy + (hh - 0.5)*0.8); ctx.stroke();
+      var len = segLen*(0.4 + hh*1.2);
+      var wyy = ry + Math.sin(t*1.25 + ci*1.7 + r*2.3)*(0.6 + fr*1.4);
+      var al = alphaBase*(0.45 + hh*0.9);
+      var dy = (hash01(r*67 + ci*23) - 0.5)*(1.5 + fr*5.0);
+      var sag = (hash01(r*37 + ci*11) - 0.5)*(1.5 + fr*4.5);
+      // レンズの半厚：描かれる太さは約0.85*th。沖は細いまま、手前は
+      // th=3.5前後で太さ約3pxになり、両端のテーパーが目に見える
+      var th = (0.55 + Math.pow(fr, 1.6)*2.95) * (0.75 + hh*0.5);
+      var mx = hx + len/2, my = wyy + dy/2;
+      if(hh > 0.62){ ctx.fillStyle = "rgba(12,30,26," + al.toFixed(3) + ")"; }
+      else { ctx.fillStyle = "rgba(" + hiCol + "," + al.toFixed(3) + ")"; }
+      ctx.beginPath();
+      ctx.moveTo(hx, wyy);
+      ctx.quadraticCurveTo(mx, my - sag - th, hx + len, wyy + dy);
+      ctx.quadraticCurveTo(mx, my - sag + th*0.7, hx, wyy);
+      ctx.fill();
     }
   }
-  // 太陽の反射柱のきらめき（晴れの日だけ強く、曇りは弱く）
+  // 太陽の反射柱のきらめき（晴れの日だけ強く、曇りは弱く。撮影した写真には使わない）
   var sunNx = drawnPhoto ? drawnPhoto.sun : SUN_NX[sel.time];
-  if(sunNx !== null && sunNx !== undefined && weather!=="小雨"){
+  if(sunNx !== null && sunNx !== undefined && weather!=="小雨" && !capPhotoActive()){
     var sunX = imgGeom.ox + sunNx*imgGeom.sw;
     if(sceneVariant && sceneVariant.flip) sunX = CW - sunX;
     var wob = weather==="曇り" ? 0.35 : 1;
@@ -4680,12 +5264,23 @@ function drawWaterSurface(t){
       var spread = 14 + f2*f2*(CW*0.16);
       var sx2 = sunX + (hash01(s2*37 + 5) - 0.5)*2*spread + Math.sin(t*0.9 + s2)*2;
       var tw = 0.5 + 0.5*Math.sin(t*(2.4 + hash01(s2*19)*3.5) + hash01(s2*23)*40);
-      var a2 = (0.10 + 0.38*tw) * wob * (0.4 + f2*0.6);
+      var a2 = (0.08 + 0.26*tw) * wob * (0.4 + f2*0.6);
       if(a2 < 0.03) continue;
-      ctx.strokeStyle = "rgba(255,246,214," + a2.toFixed(3) + ")";
-      ctx.lineWidth = 1 + f2*0.8;
+      // きらめきもさざ波と同じく両端の尖った薄いレンズ形で描く。
+      // 直線の stroke だと白いダッシュに見えるため。傾きとうねりを
+      // 少し付けて柱の中で向きが揃って見えないようにする
       var gl = 2 + f2*8;
-      ctx.beginPath(); ctx.moveTo(sx2 - gl/2, sy2); ctx.lineTo(sx2 + gl/2, sy2); ctx.stroke();
+      var gx0 = sx2 - gl/2;
+      var dy2 = (hash01(s2*53 + 7) - 0.5)*2.0;
+      var sag2 = (hash01(s2*41 + 3) - 0.5)*2.0;
+      var th2 = 0.45 + f2*1.1;
+      var mx2 = sx2, my2 = sy2 + dy2/2;
+      ctx.fillStyle = "rgba(255,246,214," + a2.toFixed(3) + ")";
+      ctx.beginPath();
+      ctx.moveTo(gx0, sy2);
+      ctx.quadraticCurveTo(mx2, my2 - sag2 - th2, gx0 + gl, sy2 + dy2);
+      ctx.quadraticCurveTo(mx2, my2 - sag2 + th2*0.7, gx0, sy2);
+      ctx.fill();
     }
   }
   // 小雨の雨紋（水面の内側だけ）
@@ -4704,7 +5299,7 @@ var SCENE_IMGS = {};
 ["morning","day","evening"].forEach(function(k){
   var im = new Image(); im.src = window.__SCENE_DATA[k]; SCENE_IMGS[k] = im;
 });
-/* ================= 背景写真（全14枚・実写のみ） =================
+/* ================= 背景写真（全29枚・実写のみ） =================
    開くたびに、今の季節と時間帯に合う写真から1枚がランダムに選ばれる。
    描き足しのイラスト（鳥居・橋・枝・小物など）は一切重ねない。
    poly はその写真の「開けた水面」の範囲（正規化座標）、sun は太陽の反射柱の位置、
@@ -4712,20 +5307,35 @@ var SCENE_IMGS = {};
    実際に描くときは、ウキの真下の水際（poly の上端）がウキの水面位置へ来るよう
    縦位置を計算し直すので、どの写真でもウキは必ず写真の水面に浮く */
 var SCENE_PHOTOS = [
-  {id:"morning", src:__GD[99], times:["morning"], seasons:null, sun:0.335, dy:0, poly:[[0.205,0.385],[0.615,0.378],[0.635,0.43],[0.575,0.56],[0.545,0.70],[0.50,0.80],[0.40,0.845],[0.285,0.83],[0.225,0.68],[0.20,0.52]]},
-  {id:"day", src:__GD[100], times:["day"], seasons:null, sun:null, dy:0, poly:[[0.135,0.412],[1,0.405],[1,1],[0.315,1],[0.325,0.82],[0.365,0.63],[0.315,0.52],[0.20,0.45]]},
-  {id:"evening", src:__GD[101], times:["evening"], seasons:null, sun:0.515, dy:0, poly:[[0.45,0.372],[1,0.362],[1,1],[0,1],[0,0.735],[0.20,0.715],[0.44,0.695],[0.452,0.55],[0.448,0.44]]},
-  {id:"mist", src:__GD[102], times:["morning","evening"], seasons:null, sun:0.50, dy:-0.03, poly:[[0,0.44],[1,0.44],[1,1],[0.66,1],[0.635,0.90],[0.60,0.865],[0.38,0.865],[0.335,0.92],[0.30,1],[0,1]]},
-  {id:"sunrise", src:__GD[103], times:["morning"], seasons:["spring","summer","autumn"], sun:0.315, dy:-0.10, poly:[[0,0.505],[1,0.505],[1,1],[0,1]]},
-  {id:"forest", src:__GD[104], times:["day"], seasons:["spring","summer","autumn"], sun:null, dy:-0.145, poly:[[0,0.545],[1,0.545],[1,1],[0,1]]},
-  {id:"sunset", src:__GD[105], times:["evening"], seasons:null, sun:0.505, dy:-0.10, poly:[[0,0.505],[1,0.505],[1,1],[0,1]]},
-  {id:"sunset2", src:__GD[106], times:["morning","evening"], seasons:["spring","summer","autumn"], sun:0.71, dy:-0.17, poly:[[0.315,0.595],[0.99,0.585],[0.99,0.82],[0.66,0.85],[0.615,0.71],[0.34,0.685],[0.315,0.63]]},
-  {id:"winter2", src:__GD[107], times:["morning","day"], seasons:["winter"], sun:null, dy:-0.07, poly:[[0,0.495],[0.31,0.48],[0.42,0.465],[1,0.455],[1,1],[0,1]]},
-  {id:"winter3", src:__GD[108], times:["day"], seasons:["winter"], sun:null, dy:-0.13, poly:[[0.35,0.51],[0.55,0.585],[1,0.60],[1,1],[0.14,1],[0.15,0.79],[0.35,0.615]]},
-  {id:"autumn", src:__GD[109], times:["day"], seasons:["autumn"], sun:null, dy:-0.02, poly:[[0,0.525],[1,0.525],[1,1],[0,1]]},
-  {id:"autumn2", src:__GD[110], times:["day","evening"], seasons:["autumn"], sun:null, dy:-0.02, poly:[[0,0.53],[1,0.53],[1,1],[0,1]]},
-  {id:"mist2", src:__GD[111], times:["morning"], seasons:["spring","summer","autumn"], sun:0.50, dy:-0.04, poly:[[0,0.49],[1,0.49],[1,1],[0,1]]},
-  {id:"spring", src:__GD[112], times:["morning","day"], seasons:["spring","summer"], sun:null, dy:-0.05, poly:[[0,0.535],[1,0.535],[1,1],[0,1]]}
+  {id:"spring-morning-1", src:__GD[180], times:["morning"], seasons:["spring"], sun:0.58, dy:0, poly:[[0,0.55],[0.2,0.53],[0.35,0.51],[0.5,0.50],[0.65,0.50],[0.8,0.50],[1,0.52],[1,1],[0,1]]},
+  {id:"spring-morning-2", src:__GD[181], times:["morning"], seasons:["spring"], sun:0.43, dy:0, poly:[[0,0.55],[0.2,0.53],[0.35,0.51],[0.5,0.50],[0.7,0.50],[1,0.50],[1,1],[0,1]]},
+  {id:"spring-day-1", src:__GD[182], times:["day"], seasons:["spring"], sun:null, dy:0, poly:[[0,0.40],[0.2,0.40],[0.4,0.40],[0.6,0.40],[0.8,0.42],[1,0.45],[1,1],[0,1]]},
+  {id:"spring-day-2", src:__GD[104], times:["day"], seasons:["spring"], sun:null, dy:0, poly:[[0,0.42],[0.2,0.39],[0.35,0.37],[0.5,0.37],[0.65,0.37],[0.8,0.38],[1,0.38],[1,1],[0,1]]},
+  {id:"spring-evening-1", src:__GD[183], times:["evening"], seasons:["spring"], sun:0.42, dy:0, poly:[[0,0.46],[0.2,0.45],[0.4,0.45],[0.6,0.45],[0.8,0.44],[1,0.44],[1,1],[0,1]]},
+  {id:"spring-evening-2", src:__GD[184], times:["evening"], seasons:["spring"], sun:null, dy:0, poly:[[0,0.50],[0.2,0.47],[0.35,0.44],[0.5,0.42],[0.6,0.44],[0.7,0.48],[0.8,0.55],[0.9,0.60],[1,0.63],[1,1],[0,1]]},
+  {id:"spring-free-1", src:__GD[185], times:["morning"], seasons:["spring"], sun:null, dy:0, poly:[[0,0.55],[0.2,0.49],[0.4,0.46],[0.6,0.45],[0.8,0.47],[1,0.52],[1,1],[0,1]]},
+  {id:"spring-free-2", src:__GD[186], times:["morning"], seasons:["spring"], sun:null, dy:0, poly:[[0,0.43],[0.25,0.43],[0.5,0.43],[0.75,0.42],[1,0.42],[1,1],[0,1]]},
+  {id:"summer-morning-1", src:__GD[187], times:["morning"], seasons:["summer"], sun:0.46, dy:0, poly:[[0,0.50],[0.25,0.49],[0.5,0.48],[0.75,0.47],[1,0.47],[1,1],[0,1]]},
+  {id:"summer-morning-2", src:__GD[99], times:["morning"], seasons:["summer"], sun:null, dy:0, poly:[[0,0.59],[0.25,0.60],[0.5,0.60],[0.75,0.61],[1,0.61],[1,1],[0,1]]},
+  {id:"summer-day-1", src:__GD[188], times:["day"], seasons:["summer"], sun:null, dy:0, poly:[[0,0.52],[0.25,0.53],[0.5,0.53],[0.7,0.54],[0.8,0.62],[0.88,0.75],[0.95,0.90],[1,1],[0,1]]},
+  {id:"summer-day-2", src:__GD[189], times:["day"], seasons:["summer"], sun:null, dy:0, poly:[[0,0.33],[0.25,0.32],[0.5,0.32],[0.7,0.33],[0.8,0.40],[0.88,0.55],[0.95,0.78],[1,1],[0,1]]},
+  {id:"summer-evening-1", src:__GD[190], times:["evening"], seasons:["summer"], sun:null, dy:0, poly:[[0,0],[1,0],[1,1],[0,1]]},
+  {id:"summer-evening-2", src:__GD[101], times:["evening"], seasons:["summer"], sun:null, dy:0, poly:[[0,0.50],[0.25,0.50],[0.5,0.50],[0.75,0.50],[1,0.50],[1,1],[0,1]]},
+  {id:"summer-free-1", src:__GD[191], times:["day"], seasons:["summer"], sun:null, dy:0, poly:[[0,0.52],[0.25,0.52],[0.5,0.52],[0.75,0.53],[0.87,0.60],[0.94,0.75],[1,1],[0,1]]},
+  {id:"summer-free-2", src:__GD[111], times:["morning"], seasons:["summer"], sun:null, dy:0, poly:[[0,0.56],[0.25,0.56],[0.5,0.56],[0.75,0.56],[1,0.56],[1,1],[0,1]]},
+  {id:"autumn-morning-1", src:__GD[192], times:["morning"], seasons:["autumn"], sun:0.90, dy:0, poly:[[0,0.52],[0.25,0.52],[0.5,0.53],[0.75,0.53],[1,0.53],[1,1],[0,1]]},
+  {id:"autumn-morning-2", src:__GD[193], times:["morning"], seasons:["autumn"], sun:null, dy:0, poly:[[0,0.53],[0.25,0.52],[0.4,0.52],[0.5,0.56],[0.62,0.61],[0.75,0.66],[0.88,0.70],[1,0.72],[1,1],[0,1]]},
+  {id:"autumn-day-1", src:__GD[194], times:["day"], seasons:["autumn"], sun:null, dy:0, poly:[[0,0.51],[0.5,0.51],[1,0.51],[1,1],[0,1]]},
+  {id:"autumn-day-2", src:__GD[110], times:["day"], seasons:["autumn"], sun:null, dy:0, poly:[[0,0.55],[0.12,0.55],[0.22,0.52],[0.32,0.46],[0.5,0.45],[0.68,0.45],[0.85,0.47],[1,0.49],[1,1],[0,1]]},
+  {id:"autumn-evening-1", src:__GD[195], times:["evening"], seasons:["autumn"], sun:0.95, dy:0, poly:[[0,0.64],[0.15,0.62],[0.3,0.60],[0.45,0.60],[0.6,0.59],[0.75,0.56],[1,0.56],[1,1],[0,1]]},
+  {id:"autumn-free-1", src:__GD[196], times:["day"], seasons:["autumn"], sun:null, dy:0, poly:[[0,0.52],[0.25,0.52],[0.5,0.52],[0.75,0.52],[1,0.53],[1,1],[0,1]]},
+  {id:"winter-morning-1", src:__GD[197], times:["morning"], seasons:["winter"], sun:null, dy:0, poly:[[0,0.56],[0.15,0.50],[0.30,0.47],[0.50,0.47],[0.70,0.48],[0.85,0.53],[0.93,0.64],[1,0.80],[1,1],[0,1]]},
+  {id:"winter-morning-2", src:__GD[202], times:["morning"], seasons:["winter"], sun:0.45, dy:0, poly:[[0,0.53],[0.25,0.53],[0.5,0.52],[0.75,0.53],[1,0.53],[1,1],[0,1]]},
+  {id:"winter-day-1", src:__GD[108], times:["day"], seasons:["winter"], sun:0.83, dy:0, poly:[[0,0.54],[0.25,0.51],[0.50,0.50],[0.75,0.51],[1,0.55],[1,1],[0,1]]},
+  {id:"winter-day-2", src:__GD[198], times:["day"], seasons:["winter"], sun:null, dy:0, poly:[[0,0.40],[0.15,0.44],[0.30,0.48],[0.50,0.50],[0.70,0.51],[0.85,0.51],[1,0.52],[1,1],[0,1]]},
+  {id:"winter-day-3", src:__GD[203], times:["day"], seasons:["winter"], sun:null, dy:0, poly:[[0,0.33],[0.2,0.34],[0.4,0.35],[0.6,0.36],[0.8,0.37],[1,0.38],[1,0.92],[0,0.92]]},
+  {id:"winter-evening-2", src:__GD[200], times:["evening"], seasons:["winter"], sun:null, dy:0, poly:[[0,0.50],[0.25,0.50],[0.50,0.50],[0.75,0.51],[1,0.51],[1,1],[0.30,1],[0.24,0.92],[0.16,0.80],[0.08,0.70],[0,0.62]]},
+  {id:"winter-free-1", src:__GD[201], times:["day"], seasons:["winter"], sun:null, dy:0, poly:[[0,0.56],[0.20,0.54],[0.40,0.53],[0.60,0.54],[0.80,0.55],[1,0.56],[1,1],[0,1]]}
 ];
 SCENE_PHOTOS.forEach(function(ph){ ph.img = new Image(); ph.img.src = ph.src; });
 function photoById(id){ for(var i=0;i<SCENE_PHOTOS.length;i++) if(SCENE_PHOTOS[i].id===id) return SCENE_PHOTOS[i]; return null; }
@@ -4880,10 +5490,12 @@ function computeFishDraw(t){
     };
   }
   if((state==="wait" || state==="mae" || state==="hon") && enc && enc.kind==="fish"){
+    var fy = CH*0.74 + Math.sin(t*0.6)*10;
+    if((arMode || capPhotoActive()) && photoBand) fy = photoBand.top + photoBand.h * (0.5 + 0.28*Math.sin(t*0.45));
     return {
       sp: shadowSp, size: 42,
       x: ((t*16) % (CW+220)) - 110,
-      y: CH*0.74 + Math.sin(t*0.6)*10,
+      y: fy,
       a: 0.16, wag: 2.2, flip: 1
     };
   }
@@ -4895,12 +5507,38 @@ function computeFishDraw(t){
 function drawWaterFxAll(t){
   drawWaterSurface(t);
   ripples.forEach(function(r){
-    ctx.beginPath(); ctx.ellipse(r.x, r.y, r.r, r.r*0.32, 0, 0, Math.PI*2);
-    ctx.strokeStyle = "rgba(255,255,255,"+r.a+")"; ctx.lineWidth = 1.6; ctx.stroke();
+    /* 輪の寿命で見え方を決める：ゆっくり立ち上がり、広がりながらだんだん薄くなって消える。
+       白は一切使わない。実写テクスチャの白い輪のスタンプは描かない。
+       輪は「谷」の柔らかい暗い輪2本と、光側へ寄せたごく薄い暖色のハイライト弧だけで作る。
+       光と影の濃淡だけで水の動きを表す。輪ごとに大きさ・濃さ・潰れ具合を
+       少しだけ変え、完全なコピーに見えないようにする */
+    if(r.age===undefined || r.age<0) return;
+    var p = Math.min(1, r.age / r.life);
+    var rr = 4 + (1 - Math.pow(1-p, 2)) * (r.maxR || 40);
+    var ra = (r.a0 || 0.34) * Math.min(1, p/0.15) * Math.pow(1-p, 1.6);
+    if(ra <= 0.01) return;
+    var rseed = r.seed || 0;
+    ctx.beginPath(); ctx.ellipse(r.x, r.y, rr*0.86, rr*0.86*0.32, 0, 0, Math.PI*2);
+    ctx.strokeStyle = "rgba(10,30,28," + (ra*0.30).toFixed(3) + ")"; ctx.lineWidth = 2.6; ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(r.x, r.y, rr*1.09, rr*1.09*0.32, 0, 0, Math.PI*2);
+    ctx.strokeStyle = "rgba(10,30,28," + (ra*0.12).toFixed(3) + ")"; ctx.lineWidth = 1.6; ctx.stroke();
+    if(p < 0.45){
+      /* 暖色のハイライト弧（白ではない。薄いベージュを光側＝左上に寄せて3本だけ）。
+         輪が薄く見えすぎるときは、まずここの 0.08 を上げる */
+      var shA = 0.08 * (1 - p/0.45);
+      for(var k=0;k<3;k++){
+        var a0 = Math.PI*1.05 + rseed*0.9 + k*0.35 + t*0.25*(k%2 ? 1 : -1);
+        ctx.beginPath(); ctx.ellipse(r.x, r.y, rr*0.45, rr*0.45*0.32, 0, a0, a0+0.7);
+        ctx.strokeStyle = "rgba(210,200,170," + shA.toFixed(3) + ")"; ctx.lineWidth = 1; ctx.stroke();
+      }
+    }
   });
   bubbles.forEach(function(b){
+    /* 泡も白で描かない。暗い輪郭に、左上のごく小さな暖色のきらめきを添えるだけ */
     ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI*2);
-    ctx.strokeStyle = "rgba(255,255,255,0.75)"; ctx.lineWidth = 1; ctx.stroke();
+    ctx.strokeStyle = "rgba(12,32,30,0.45)"; ctx.lineWidth = 1; ctx.stroke();
+    ctx.beginPath(); ctx.arc(b.x, b.y, b.r*0.7, Math.PI*1.05, Math.PI*1.65);
+    ctx.strokeStyle = "rgba(215,205,175,0.5)"; ctx.lineWidth = 1; ctx.stroke();
   });
   var fd = computeFishDraw(t);
   if(fd) drawWaterFish(fd, t);
@@ -4908,35 +5546,70 @@ function drawWaterFxAll(t){
 function draw(){
   var pal = PALETTES[sel.time] || PALETTES.day;
   var W = CW, H = CH, horizon = H*0.34, t = perfNow;
-  // 実写の風景（選ばれた背景写真を全面に敷く。読み込み前は時間帯の既定写真で代用する）
+  // 実写の風景（選ばれた背景写真を帯に敷く。読み込み前は時間帯の既定写真で代用する）
   var actPhoto = currentPhoto;
   if(!actPhoto || !actPhoto.img || !actPhoto.img.complete || !actPhoto.img.naturalWidth){
     actPhoto = photoById(sel.time) || photoById("day") || currentPhoto;
   }
   drawnPhoto = actPhoto;
   var simg = actPhoto ? actPhoto.img : (SCENE_IMGS[sel.time] || SCENE_IMGS.day);
+  var band = photoBandRect(); photoBand = band;
+  var bandTop = band.top, bandH = band.h, bandBottom = band.bottom;
+  ctx.fillStyle = "#0a110c"; ctx.fillRect(0, 0, W, H);
+  /* ARモード：カメラ映像を帯いっぱいに描く（写真の代わり）。ポリゴン切り取り・
+     季節や時間の色づけ・太陽の反射は使わない。映像がまだ無い間は写真に戻る */
+  var arOn = arMode && arVideo && arVideo.readyState >= 2 && arVideo.videoWidth > 0;
   var photoOk = false;
-  if(simg && simg.complete && simg.naturalWidth > 0){
+  var capOn = false;
+  if(arOn){
+    var vw = arVideo.videoWidth, vh = arVideo.videoHeight;
+    var sc2 = Math.max(W / vw, bandH / vh);
+    var dw = vw * sc2, dh = vh * sc2;
+    var dx2 = (W - dw) / 2, dy2 = bandTop + (bandH - dh) / 2;
+    ctx.save();
+    ctx.beginPath(); ctx.rect(0, bandTop, W, bandH); ctx.clip();
+    ctx.drawImage(arVideo, dx2, dy2, dw, dh);
+    ctx.restore();
+    surfaceY = Math.max(bandTop + 50, Math.min(H * 0.40, bandBottom - 80));
+    imgGeom = {ox:dx2, oy:dy2, sw:dw, sh:dh};
+  } else if(capPhotoActive()){
+    /* 撮影した写真：帯いっぱい（cover）に描く。ポリゴン切り取り・季節や時間の
+       色づけ・太陽の反射・季節の漂いものは使わない（ARモードと同じ扱い） */
+    var pw = capturedPhotoImg.naturalWidth, ph = capturedPhotoImg.naturalHeight;
+    var sc3 = Math.max(W / pw, bandH / ph);
+    var dw3 = pw * sc3, dh3 = ph * sc3;
+    var dx3 = (W - dw3) / 2, dy3 = bandTop + (bandH - dh3) / 2;
+    ctx.save();
+    ctx.beginPath(); ctx.rect(0, bandTop, W, bandH); ctx.clip();
+    ctx.drawImage(capturedPhotoImg, dx3, dy3, dw3, dh3);
+    ctx.restore();
+    surfaceY = Math.max(bandTop + 50, Math.min(H * 0.40, bandBottom - 80));
+    imgGeom = {ox:dx3, oy:dy3, sw:dw3, sh:dh3};
+    capOn = true;
+  } else if(simg && simg.complete && simg.naturalWidth > 0){
     var vZoom = Math.max((sceneVariant && sceneVariant.zoom) || 1, (actPhoto && actPhoto.minZoom) || 1);
-    var sc = Math.max(W / simg.naturalWidth, H / simg.naturalHeight) * vZoom;
+    var sc = Math.max(W / simg.naturalWidth, bandH / simg.naturalHeight) * vZoom;
     var sw = simg.naturalWidth * sc, sh = simg.naturalHeight * sc;
     var ox = Math.max(W - sw, Math.min(0, (W - sw) / 2 + ((sceneVariant && sceneVariant.panX) || 0) * W));
-    var oy = Math.max(H - sh, Math.min(0, (H - sh) / 2 + ((actPhoto && actPhoto.dy) || 0) * H));
+    var oy = Math.max(bandTop + bandH - sh, Math.min(bandTop, bandTop + (bandH - sh) / 2 + ((actPhoto && actPhoto.dy) || 0) * bandH));
     /* ウキが写真の水面に浮くようにする：ウキの真下にある写真の水際（水面ポリゴンの上端）が
        ウキの水面位置（画面の約40%・少しだけ水の中）へ来るよう、写真の縦位置を決め直す。
        写真の縦幅が足りず水際をそこまで動かせない場合は、動かせる限界まで寄せたうえで
        ウキの水面位置そのものを実際の水際に合わせる（ウキが空中に浮くことは決してない） */
-    surfaceY = H * 0.40;
+    var floatTargetY = Math.max(bandTop + 50, Math.min(H * 0.40, bandBottom - 80));
+    surfaceY = floatTargetY;
     if(actPhoto && actPhoto.poly){
       var fxScr = W * 0.44;
       var nxF = (sceneVariant && sceneVariant.flip) ? (W - fxScr - ox) / sw : (fxScr - ox) / sw;
       var wlN = polyTopAt(actPhoto.poly, nxF);
       if(wlN !== null && isFinite(wlN)){
         var dropIn = H * 0.045; // 水際より少しだけ手前（水の中）にウキを立てる
-        oy = Math.max(H - sh, Math.min(0, (H * 0.40 - dropIn) - wlN * sh));
+        oy = Math.max(bandTop + bandH - sh, Math.min(bandTop, (floatTargetY - dropIn) - wlN * sh));
         surfaceY = oy + wlN * sh + dropIn;
       }
     }
+    ctx.save();
+    ctx.beginPath(); ctx.rect(0, bandTop, W, bandH); ctx.clip();
     if(sceneVariant && sceneVariant.flip){
       ctx.save(); ctx.translate(W, 0); ctx.scale(-1, 1);
       ctx.drawImage(simg, ox, oy, sw, sh);
@@ -4944,13 +5617,15 @@ function draw(){
     } else {
       ctx.drawImage(simg, ox, oy, sw, sh);
     }
+    ctx.restore();
     photoOk = true;
     imgGeom = {ox:ox, oy:oy, sw:sw, sh:sh};
   }
   scenePhotoOk = photoOk;
   /* タップで決めた打ち込む場所が、写真の切り替わりで水面から外れてしまったら、
      その x の水際の少し下へ寄せ直す（ウキが陸に立つことは決してない） */
-  if(castSpot){
+  /* ARモード・撮影した写真ではポリゴン外を前提にした位置補正をしない（帯の中ならどこでもよい） */
+  if(castSpot && !arOn && !capOn){
     var csx = castSpot.nx * W, csy = castSpot.ny * H;
     if(!pointInPoly(waterPoints(), csx, csy)){
       var cTop = waterTopAtScreen(csx);
@@ -4958,27 +5633,29 @@ function draw(){
       else castSpot = null;
     }
   }
-  if(!photoOk){
-    surfaceY = H * 0.40; // 写真が無い間はウキの水面位置は従来どおり
-    var sky = ctx.createLinearGradient(0,0,0,H);
+  if(!photoOk && !arOn && !capOn){
+    surfaceY = Math.max(bandTop + 50, Math.min(H * 0.40, bandBottom - 80)); // 写真が無い間はウキの水面位置は帯の中
+    var sky = ctx.createLinearGradient(0,bandTop,0,bandBottom);
     sky.addColorStop(0, pal.sky[0]); sky.addColorStop(0.38, pal.sky[1]);
     sky.addColorStop(0.42, pal.water[0]); sky.addColorStop(1, pal.water[1]);
-    ctx.fillStyle = sky; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle = sky; ctx.fillRect(0,bandTop,W,bandH);
   }
-  // 時間帯・季節・天気の色づけ（写真への薄いグレーディング）
-  var grade = ctx.createLinearGradient(0,0,0,H);
-  if(sel.time==="morning"){ grade.addColorStop(0,"rgba(255,196,120,0.10)"); grade.addColorStop(1,"rgba(70,90,60,0.05)"); }
-  else if(sel.time==="evening"){ grade.addColorStop(0,"rgba(255,130,60,0.15)"); grade.addColorStop(0.6,"rgba(120,60,60,0.07)"); grade.addColorStop(1,"rgba(30,30,60,0.13)"); }
-  else { grade.addColorStop(0,"rgba(255,255,255,0.03)"); grade.addColorStop(1,"rgba(40,70,50,0.04)"); }
-  ctx.fillStyle = grade; ctx.fillRect(0,0,W,H);
-  if(sel.season==="autumn"){ ctx.fillStyle = "rgba(205,120,35,0.10)"; ctx.fillRect(0,0,W,H); }
-  else if(sel.season==="winter"){ ctx.fillStyle = "rgba(140,170,205,0.17)"; ctx.fillRect(0,0,W,H); }
-  else if(sel.season==="spring"){ ctx.fillStyle = "rgba(255,175,195,0.06)"; ctx.fillRect(0,0,W,H); }
-  if(weather==="曇り"){ ctx.fillStyle = "rgba(110,125,135,0.16)"; ctx.fillRect(0,0,W,H); }
-  else if(weather==="小雨"){ ctx.fillStyle = "rgba(85,105,125,0.13)"; ctx.fillRect(0,0,W,H); }
-  // 開くたびに変わる風景の趣（20種）と、季節の情景アニメーション
-  drawSceneVariant(t);
-  drawSeasonScene(t);
+  // 時間帯・季節・天気の色づけ（写真への薄いグレーディング。ARモード・撮影した写真では使わない）
+  if(!arOn && !capOn){
+    var grade = ctx.createLinearGradient(0,0,0,H);
+    if(sel.time==="morning"){ grade.addColorStop(0,"rgba(255,196,120,0.10)"); grade.addColorStop(1,"rgba(70,90,60,0.05)"); }
+    else if(sel.time==="evening"){ grade.addColorStop(0,"rgba(255,130,60,0.15)"); grade.addColorStop(0.6,"rgba(120,60,60,0.07)"); grade.addColorStop(1,"rgba(30,30,60,0.13)"); }
+    else { grade.addColorStop(0,"rgba(255,255,255,0.03)"); grade.addColorStop(1,"rgba(40,70,50,0.04)"); }
+    ctx.fillStyle = grade; ctx.fillRect(0,0,W,H);
+    if(sel.season==="autumn"){ ctx.fillStyle = "rgba(205,120,35,0.10)"; ctx.fillRect(0,0,W,H); }
+    else if(sel.season==="winter"){ ctx.fillStyle = "rgba(140,170,205,0.17)"; ctx.fillRect(0,0,W,H); }
+    else if(sel.season==="spring"){ ctx.fillStyle = "rgba(255,175,195,0.06)"; ctx.fillRect(0,0,W,H); }
+    if(weather==="曇り"){ ctx.fillStyle = "rgba(110,125,135,0.16)"; ctx.fillRect(0,0,W,H); }
+    else if(weather==="小雨"){ ctx.fillStyle = "rgba(85,105,125,0.13)"; ctx.fillRect(0,0,W,H); }
+    // 開くたびに変わる風景の趣（20種）と、季節の情景アニメーション
+    drawSceneVariant(t);
+    drawSeasonScene(t);
+  }
   // 鳥
   if(bird){
     ctx.strokeStyle = "rgba(50,60,50,0.65)"; ctx.lineWidth = 2; ctx.lineCap = "round";
@@ -5034,8 +5711,8 @@ function draw(){
     }
     ctx.stroke();
   }
-  // 季節の漂いもの（花びら・落ち葉・雪）：種類ごとに形を描き分ける
-  motes.forEach(function(m){
+  // 季節の漂いもの（花びら・落ち葉・雪）：種類ごとに形を描き分ける（ARモードでは描かない）
+  if(!arOn) motes.forEach(function(m){
     ctx.save(); ctx.translate(m.x, m.y); ctx.rotate(m.rot);
     ctx.fillStyle = m.col;
     if(m.kind==="snow"){
@@ -5074,8 +5751,8 @@ function draw(){
     var jAng = -0.85 + 1.7 * jp; // 飛び出しは頭を上へ、落下では頭を下へ
     var JL = jumpFish.size, JD = JL * 0.30;
     ctx.save(); ctx.translate(jx2, jy2); ctx.rotate(jAng); ctx.scale(jumpFish.dir, 1);
-    // 尾ビレ
-    ctx.fillStyle = "rgba(42,56,48,0.62)";
+    // 尾ビレ（跳ねる魚も単色のシルエット）
+    ctx.fillStyle = "rgba(42,56,48,0.66)";
     ctx.beginPath();
     ctx.moveTo(-JL*0.36, 0);
     ctx.lineTo(-JL*0.62, -JD*0.66); ctx.lineTo(-JL*0.52, 0); ctx.lineTo(-JL*0.62, JD*0.66);
@@ -5086,8 +5763,8 @@ function draw(){
     ctx.quadraticCurveTo(JL*0.08, -JD*0.85, JL*0.24, -JD*0.40);
     ctx.quadraticCurveTo(JL*0.08, -JD*0.33, -JL*0.05, -JD*0.42);
     ctx.fill();
-    // 体（水から出た瞬間は銀色の腹が光る）
-    ctx.fillStyle = "rgba(52,66,58,0.60)";
+    // 体（跳ねる魚もイラストではなく単色のシルエット。銀色の腹・目は描かない）
+    ctx.fillStyle = "rgba(42,56,48,0.66)";
     ctx.beginPath();
     ctx.moveTo(JL*0.5, 0);
     ctx.quadraticCurveTo(JL*0.26, -JD*0.68, -JL*0.16, -JD*0.52);
@@ -5095,14 +5772,6 @@ function draw(){
     ctx.quadraticCurveTo(-JL*0.36, JD*0.44, -JL*0.16, JD*0.52);
     ctx.quadraticCurveTo(JL*0.26, JD*0.68, JL*0.5, 0);
     ctx.fill();
-    ctx.fillStyle = "rgba(226,234,222,0.55)";
-    ctx.beginPath();
-    ctx.moveTo(JL*0.42, JD*0.14);
-    ctx.quadraticCurveTo(JL*0.1, JD*0.58, -JL*0.2, JD*0.42);
-    ctx.quadraticCurveTo(JL*0.1, JD*0.30, JL*0.42, JD*0.14);
-    ctx.fill();
-    ctx.fillStyle = "rgba(15,15,12,0.8)";
-    ctx.beginPath(); ctx.arc(JL*0.36, -JD*0.14, Math.max(1.4, JL*0.04), 0, Math.PI*2); ctx.fill();
     ctx.restore();
     // 体から落ちる水滴
     ctx.fillStyle = "rgba(255,255,255,0.75)";
@@ -5141,25 +5810,34 @@ function draw(){
   drawRodAndFloat(pal, t);
 }
 function drawWaterFish(f, t){
+  /* 水中の魚はイラストではなく、暗い単色のシルエットで描く（目・腹・模様なし）。
+     動き・位置・大きさ・透明度は computeFishDraw のまま。 */
   var sp = f.sp;
   var L = 36 + f.size*0.62, D = L*0.30;
+  var col = hexA(sp.body, f.a);
   ctx.save(); ctx.translate(f.x, f.y);
   ctx.rotate(Math.sin(t*f.wag)*0.10);
   ctx.scale(f.flip, 1);
-  // 尾ビレ
-  ctx.fillStyle = hexA(sp.fin, f.a);
+  // 柔らかい輪郭：本体より少し大きく薄く描いて、水中の滲みにする
+  ctx.fillStyle = hexA(sp.body, f.a*0.35);
+  ctx.beginPath();
+  ctx.moveTo(L*0.52, 0);
+  ctx.quadraticCurveTo(L*0.26, -D*0.70, -L*0.16, -D*0.56);
+  ctx.quadraticCurveTo(-L*0.38, -D*0.48, -L*0.42, 0);
+  ctx.quadraticCurveTo(-L*0.38, D*0.48, -L*0.16, D*0.56);
+  ctx.quadraticCurveTo(L*0.26, D*0.70, L*0.52, 0);
+  ctx.fill();
+  // 尾ビレ・背ビレ・体はすべて同じ単色（鯉らしいシルエット）
+  ctx.fillStyle = col;
   ctx.beginPath();
   ctx.moveTo(-L*0.36, 0);
   ctx.lineTo(-L*0.60, -D*0.62); ctx.lineTo(-L*0.52, 0); ctx.lineTo(-L*0.60, D*0.62);
   ctx.closePath(); ctx.fill();
-  // 背ビレ
   ctx.beginPath();
   ctx.moveTo(-L*0.05, -D*0.42);
   ctx.quadraticCurveTo(L*0.08, -D*0.80, L*0.24, -D*0.40);
   ctx.quadraticCurveTo(L*0.08, -D*0.33, -L*0.05, -D*0.42);
   ctx.fill();
-  // 体
-  ctx.fillStyle = hexA(sp.body, f.a);
   ctx.beginPath();
   ctx.moveTo(L*0.5, 0);
   ctx.quadraticCurveTo(L*0.26, -D*0.66, -L*0.16, -D*0.52);
@@ -5167,21 +5845,6 @@ function drawWaterFish(f, t){
   ctx.quadraticCurveTo(-L*0.36, D*0.44, -L*0.16, D*0.52);
   ctx.quadraticCurveTo(L*0.26, D*0.66, L*0.5, 0);
   ctx.fill();
-  // 模様と腹
-  if(sp.patch){
-    ctx.fillStyle = hexA(sp.patch, f.a*0.9);
-    ctx.beginPath(); ctx.ellipse(-L*0.02, -D*0.12, L*0.17, D*0.30, 0, 0, Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(L*0.22, D*0.05, L*0.10, D*0.20, 0, 0, Math.PI*2); ctx.fill();
-  }
-  ctx.fillStyle = hexA(sp.belly, f.a*0.8);
-  ctx.beginPath();
-  ctx.moveTo(L*0.42, D*0.16);
-  ctx.quadraticCurveTo(L*0.1, D*0.55, -L*0.2, D*0.42);
-  ctx.quadraticCurveTo(L*0.1, D*0.30, L*0.42, D*0.16);
-  ctx.fill();
-  // 目
-  ctx.fillStyle = "rgba(15,15,12," + Math.min(1, f.a + 0.25) + ")";
-  ctx.beginPath(); ctx.arc(L*0.36, -D*0.14, Math.max(1.6, L*0.035), 0, Math.PI*2); ctx.fill();
   ctx.restore();
 }
 function drawReeds(baseX, horizon, col, t, dir){
@@ -5381,6 +6044,11 @@ function paintHeraFloat(alpha){
   ctx.beginPath(); ctx.ellipse(0, 41.2, 1.3, 1.9, 0, 0, Math.PI*2); ctx.fillStyle = "#171008"; ctx.fill();
   ctx.restore();
 }
+/* 波紋の実写テクスチャ：写真の同心円の明るい輪だけを白い線として抜いたもの。
+   暗い水面部分は透明にしてあるので、四角い写真の縁は見えない */
+var RIPPLE_IMG = new Image(); if(__GD[179]) RIPPLE_IMG.src = __GD[179]; /* gd10.js は読み込まなくなったため、__GD[179] が無いときは設定しない（波紋テクスチャは現在描画に使われていない） */
+/* 波紋テクスチャの soft-light 合成が使えるか（未対応の環境では通常合成に落ちる） */
+var RIPPLE_SOFT = (function(){ try{ var c = document.createElement("canvas").getContext("2d"); c.globalCompositeOperation = "soft-light"; return c.globalCompositeOperation === "soft-light"; }catch(e){ return false; } })();
 /* トンボ（アキアカネ）：ウキのトップ先端に止まる小さな赤い胴体と透明な翅 */
 function drawDragonflyAt(x, y, tilt, flyT){
   ctx.save(); ctx.translate(x, y); ctx.rotate(tilt*0.7 - 0.12);
@@ -5614,16 +6282,11 @@ function drawRodAndFloat(pal, t){
     var ft2 = dragonFly.t;
     drawDragonflyAt(dragonFly.x + ft2*88, dragonFly.y - ft2*56 - Math.sin(ft2*9)*4, -0.2, ft2);
   }
-  // 水際の光の輪（メニスカスのハイライト）
-  ctx.beginPath(); ctx.ellipse(fx, wy + 0.6, 10.5*FLOAT_SCALE + Math.sin(t*2.3)*0.8, 2.5*FLOAT_SCALE, 0, 0, Math.PI*2);
-  ctx.strokeStyle = "rgba(255,255,255,0.55)"; ctx.lineWidth = 1.2; ctx.stroke();
-  ctx.beginPath(); ctx.ellipse(fx, wy + 0.6, 4.6*FLOAT_SCALE, 1.15*FLOAT_SCALE, 0, 0, Math.PI*2);
-  ctx.strokeStyle = "rgba(255,255,255,0.75)"; ctx.lineWidth = 1; ctx.stroke();
-  // ウキ周りの小さな波紋
-  if(state==="mae" || state==="hon"){
-    ctx.beginPath(); ctx.ellipse(fx, wy+2, 15 + Math.sin(t*7)*2.5, 4.8, 0, 0, Math.PI*2);
-    ctx.strokeStyle = "rgba(255,255,255,0.55)"; ctx.lineWidth = 1.3; ctx.stroke();
-  }
+  // 季節のお邪魔（夏の蚊・春の蜂・秋の落ち葉）：浮きの周りに描く
+  drawSeasonOjama(t);
+  /* ウキの根元の白い輪（メニスカスのハイライト）と mae/hon 時の白い楕円は
+     削除した。ウキの周りに白い線は描かない（ユーザーの要望）。ウキ自体が
+     目立つので代わりの輪は描かない。暗い波紋の輪（drawWaterFxAll）は残る */
 }
 
 /* ================= メインループ ================= */
@@ -5692,6 +6355,8 @@ function loopFrame(ts){
     ojamaTimer -= dt;
     if(ojamaTimer <= 0) triggerOjama();
   }
+  // 季節のお邪魔の生き物・葉っぱの動き（蚊・蜂は浮きの周りを飛び、落ち葉は水面へ舞い降りる）
+  updateSeasonCritters(dt);
   // フェイズ進行（付け替え中・投げ／回収アニメーション中は止める。お邪魔中もアタリの時計は進み、前アタリ・本アタリが来る）
   if(rebaiting || rigAnim || rigHidden){
     // 何も進めない
@@ -5730,6 +6395,12 @@ function loopFrame(ts){
           honSudden = true;
           startHon();
         } else {
+          /* 前アタリの回数を決める：初回は1回だけ。2回目以降は1回が約半分、2回が約3割、3回が約2割。
+             本アタリの種類（消し込み／食い上げ）はここで一度だけ決め、途中で変わらない */
+          honType = Math.random() < 0.62 ? "sink" : "up";
+          if(firstCast){ maePlanned = 1; }
+          else { var maeRoll = Math.random(); maePlanned = maeRoll < 0.5 ? 1 : (maeRoll < 0.8 ? 2 : 3); }
+          maeDone = 0;
           startMae();
         }
       }
@@ -5748,7 +6419,7 @@ function loopFrame(ts){
     }
   } else if(state==="mae"){
     phaseT += dt;
-    if(phaseT >= maeDur) startHon();
+    if(phaseT >= maeDur){ if(maeDone < maePlanned) startMae(); else startHon(); }
   } else if(state==="hon"){
     phaseT += dt;
     /* 竿を持っていないまま強いアタリが続くと、竿が沖へ飛ばされる。
@@ -5791,10 +6462,16 @@ function loopFrame(ts){
     if(fight && Math.random() < dt*2.2) spawnSplash(2);
   }
   // 波紋・しぶき・泡の更新
-  for(var ri=ripples.length-1; ri>=0; ri--){ var rp=ripples[ri]; rp.r += dt*22; rp.a -= dt*0.35; if(rp.a<=0) ripples.splice(ri,1); }
+  for(var ri=ripples.length-1; ri>=0; ri--){ var rp=ripples[ri];
+    if(rp.age===undefined){ rp.age=0; rp.life=3.0; rp.maxR=(rp.r||5)+36; rp.a0=Math.min(0.34, rp.a||0.5); rp.seed=Math.random(); rp.anchor=false; }
+    rp.age += dt;
+    if(rp.anchor){ rp.x = fxNow(); rp.y = floatY(); }
+    if(rp.age >= rp.life) ripples.splice(ri,1);
+  }
   for(var si=splashes.length-1; si>=0; si--){ var pp=splashes[si]; pp.x+=pp.vx*dt; pp.y+=pp.vy*dt; pp.vy+=300*dt; pp.life-=dt; if(pp.life<=0) splashes.splice(si,1); }
   for(var bi=bubbles.length-1; bi>=0; bi--){ var bb=bubbles[bi]; bb.y-=dt*7; bb.life-=dt; if(bb.life<=0) bubbles.splice(bi,1); }
-  if(Math.random() < dt*0.25 && state!=="idle" && state!=="await") spawnRipple(1);
+  rippleTrainT -= dt;
+  if(rippleTrainT<=0 && state!=="idle" && state!=="await" && !rigHidden){ spawnRipple(3); rippleTrainT = 2.0 + Math.random()*1.2; }
   // 秋のトンボ：待ちの間にウキへ止まり、しばらくすると飛び立つ（季節が変われば消える）
   if(sel.season!=="autumn"){
     if(dragonState!=="away"){ dragonState="away"; dragonFly=null; }
@@ -5971,7 +6648,6 @@ function loopFrame(ts){
   if(!skipDraw) draw();
 }
 
-
 /* ================= 表示言語の適用（設定の「表示言語 / Language」で切り替え） ================= */
 function setTxt(id, txt){ var e = document.getElementById(id); if(e) e.textContent = txt; }
 function buildLangChips(){
@@ -6005,15 +6681,213 @@ function buildRodChips(){
     el.appendChild(b);
   });
 }
+/* 環境音のON/OFF切替（設定）：buildRodChips と同じチップ方式 */
+function buildAmbChips(){
+  var el = document.getElementById("ambChips"); if(!el) return;
+  el.innerHTML = "";
+  [{id:true, name:"ON", nameEn:"On"}, {id:false, name:"OFF", nameEn:"Off"}].forEach(function(o){
+    var b = document.createElement("button");
+    b.className = "chip"; b.type = "button";
+    b.setAttribute("aria-pressed", ambientOn===o.id ? "true" : "false");
+    b.textContent = lang==="en" ? o.nameEn : o.name;
+    b.addEventListener("click", function(){
+      if(ambientOn === o.id) return;
+      ambientOn = o.id;
+      save();
+      buildAmbChips();
+      if(ambientOn){
+        audioInit();
+        if(AC && (AC.state==="suspended" || AC.state==="interrupted")){
+          /* audioInit は AC が既にあると何もしないので、ここでも ambient を言い直す */
+          setAmbientSession();
+          try{ AC.resume(); }catch(e){}
+        }
+        ambStarted = true;
+        updateAmbience();
+      } else {
+        stopAmbience();
+        ambStarted = false;
+        /* 効果音も ambientOn を見て鳴らないので、他に鳴っているものはない。
+           コンテキストを止めて、他のアプリの再生を邪魔しないようにする */
+        if(AC && AC.state==="running"){ try{ AC.suspend(); }catch(e){} }
+      }
+    });
+    el.appendChild(b);
+  });
+}
+/* ARモードのON/OFF切替（設定）：buildAmbChips と同じチップ方式。
+   トグルはセッション限りで、ページを開き直したら必ずオフから始まる */
+function buildArChips(){
+  var el = document.getElementById("arChips"); if(!el) return;
+  el.innerHTML = "";
+  [{id:true, name:"ON", nameEn:"On"}, {id:false, name:"OFF", nameEn:"Off"}].forEach(function(o){
+    var b = document.createElement("button");
+    b.className = "chip"; b.type = "button";
+    b.setAttribute("aria-pressed", arMode===o.id ? "true" : "false");
+    b.textContent = lang==="en" ? o.nameEn : o.name;
+    b.addEventListener("click", function(){
+      if(o.id) startAR(); else stopAR();
+    });
+    el.appendChild(b);
+  });
+  updateShutterBtn();
+}
+/* ARモード開始：背面カメラの映像を背景にする。iOS ではユーザーのタップ操作の
+   中でのみカメラの許可を求められるので、トグルのタップから直接呼ぶこと */
+function startAR(){
+  if(arMode){ buildArChips(); return; }
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    say(L("この端末・ブラウザではカメラが使えません。写真の背景のまま続けます。", "This device or browser cannot use the camera. Continuing with the photo background."));
+    buildArChips();
+    return;
+  }
+  navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}, audio:false}).then(function(stream){
+    arStream = stream;
+    if(!arVideo){
+      arVideo = document.createElement("video");
+      arVideo.muted = true;
+      arVideo.playsInline = true;
+      arVideo.setAttribute("playsinline", "");
+    }
+    arVideoReady = false;
+    arVideo.srcObject = stream;
+    arVideo.onloadedmetadata = function(){
+      var p = null;
+      try{ p = arVideo.play(); }catch(e){}
+      if(p && p.then) p.then(function(){ arVideoReady = true; }).catch(function(){ arVideoReady = true; });
+      else arVideoReady = true;
+    };
+    arMode = true;
+    buildArChips();
+    say(L("ARモード：カメラの映像が背景になりました。帯の中ならどこにでも投げられます。", "AR mode: the camera view is now the background. You can cast anywhere in the band."));
+  }).catch(function(){
+    arMode = false; arVideoReady = false;
+    say(L("カメラを使えませんでした。写真の背景のまま続けます。", "Could not use the camera. Continuing with the photo background."));
+    buildArChips();
+  });
+}
+/* ARモード終了：カメラのトラックを止めて写真の背景に戻す（撮影した写真があるときはそちらが背景になる） */
+function stopAR(silent){
+  if(!arMode){ buildArChips(); return; }
+  arMode = false; arVideoReady = false;
+  if(arStream){ try{ arStream.getTracks().forEach(function(tr){ try{ tr.stop(); }catch(e){} }); }catch(e){} arStream = null; }
+  if(arVideo){ try{ arVideo.srcObject = null; }catch(e){} }
+  buildArChips();
+  if(!silent) say(capturedPhoto ? L("ARモードをオフにしました。撮影した写真を背景にします。", "AR mode off. The captured photo is now the background.") : L("ARモードをオフにしました。写真の背景に戻ります。", "AR mode off. Back to the photo background."));
+}
+/* 撮影した写真を読み込む（起動時）：別キーの localStorage から data URL を読むだけ。壊れていたら捨てる */
+function loadCapturedPhoto(){
+  capturedPhoto = null; capturedPhotoImg = null;
+  try{
+    var u = localStorage.getItem(CAPTURED_PHOTO_KEY);
+    if(u && u.indexOf("data:image/") === 0){ capturedPhoto = u; loadCapturedPhotoImg(); }
+    else if(u){ try{ localStorage.removeItem(CAPTURED_PHOTO_KEY); }catch(e){} }
+  }catch(e){}
+  updateCapturedPhotoUI();
+}
+/* 撮影した写真をやめる：状態と保存を消して通常の季節の写真に戻す */
+function discardCapturedPhoto(silent){
+  capturedPhoto = null; capturedPhotoImg = null;
+  try{ localStorage.removeItem(CAPTURED_PHOTO_KEY); }catch(e){}
+  updateCapturedPhotoUI();
+  if(!silent) say(L("撮影した写真をやめました。通常の季節の写真に戻ります。", "Stopped using the captured photo. Back to the usual seasonal photos."));
+}
+/* 撮影した写真があるときだけ設定の「やめる」欄を出す */
+function updateCapturedPhotoUI(){
+  var ctl = document.getElementById("capPhotoCtl");
+  if(ctl) ctl.hidden = !capturedPhoto;
+}
+/* シャッターボタンの表示：ARモードがオンのときだけ出す */
+function updateShutterBtn(){
+  var b = document.getElementById("arShutter");
+  if(!b) return;
+  if(arMode) b.classList.add("on"); else b.classList.remove("on");
+}
+/* ARモードで写真を撮る：今のカメラ映像を JPEG（幅最大1280px）で1枚だけ保存する。
+   撮ったらカメラを止めてARモードをオフにし、その写真を背景にする。
+   保存は端末の中だけ（localStorage）で、どこにもアップロードしない */
+function captureArPhoto(){
+  if(!arMode || !arVideo || !arVideoReady || arVideo.readyState < 2 || !arVideo.videoWidth){
+    say(L("まだカメラの準備中です。映像が出てからもう一度押してください。", "The camera is not ready yet. Please tap again once the view appears."));
+    return;
+  }
+  var vw = arVideo.videoWidth, vh = arVideo.videoHeight;
+  var sc = Math.min(1, 1280 / vw);
+  var cw = Math.max(2, Math.round(vw * sc)), ch = Math.max(2, Math.round(vh * sc));
+  var cap = document.createElement("canvas");
+  cap.width = cw; cap.height = ch;
+  var cctx = cap.getContext("2d");
+  if(!cctx) return;
+  cctx.drawImage(arVideo, 0, 0, cw, ch);
+  var url = null;
+  try{ url = cap.toDataURL("image/jpeg", 0.82); }catch(e){ url = null; }
+  if(!url){ say(L("写真を撮れませんでした。もう一度試してください。", "Could not take the photo. Please try again.")); return; }
+  capturedPhoto = url;
+  var saved = true;
+  try{ localStorage.setItem(CAPTURED_PHOTO_KEY, url); }catch(e){ saved = false; }
+  loadCapturedPhotoImg();
+  stopAR(true);
+  updateCapturedPhotoUI();
+  if(saved) say(L("写真を撮りました。この景色を背景にします。ARモードはオフにしました。", "Photo taken. This view is now the background. AR mode is off."));
+  else say(L("写真を撮りました。この景色を背景にします。保存できなかったので、開き直すと通常の写真に戻ります。", "Photo taken. This view is now the background. It could not be saved, so reopening the page returns to the usual photos."));
+}
+var arShutterEl = document.getElementById("arShutter");
+if(arShutterEl){
+  arShutterEl.addEventListener("click", function(){ captureArPhoto(); });
+  arShutterEl.addEventListener("pointerdown", function(e){ e.stopPropagation(); });
+}
+var capPhotoClearEl = document.getElementById("capPhotoClearBtn");
+if(capPhotoClearEl){
+  capPhotoClearEl.addEventListener("click", function(){ discardCapturedPhoto(false); });
+}
+/* 地元ニュースの都道府県を手動で選ぶ（位置情報が使えないとき用） */
+var PREFECTURES = ["北海道","青森県","岩手県","宮城県","秋田県","山形県","福島県","茨城県","栃木県","群馬県","埼玉県","千葉県","東京都","神奈川県","新潟県","富山県","石川県","福井県","山梨県","長野県","岐阜県","静岡県","愛知県","三重県","滋賀県","京都府","大阪府","兵庫県","奈良県","和歌山県","鳥取県","島根県","岡山県","広島県","山口県","徳島県","香川県","愛媛県","高知県","福岡県","佐賀県","長崎県","熊本県","大分県","宮崎県","鹿児島県","沖縄県"];
+function buildNewsPrefSel(){
+  var selEl = document.getElementById("newsPrefSel");
+  if(!selEl) return;
+  selEl.innerHTML = "";
+  var optAuto = document.createElement("option");
+  optAuto.value = "";
+  optAuto.textContent = L("位置情報を使う（自動）", "Use location (auto)");
+  selEl.appendChild(optAuto);
+  PREFECTURES.forEach(function(p){
+    var o = document.createElement("option");
+    o.value = p; o.textContent = p;
+    selEl.appendChild(o);
+  });
+  selEl.value = (newsPlace && newsPlace.province) ? newsPlace.province : "";
+  /* onchange プロパティで付け替える（applyLanguage のたびに呼ばれるので、
+     addEventListener だと重複してしまう） */
+  selEl.onchange = function(){
+    if(!selEl.value){
+      newsPlace = null;
+      save();
+      geoTried = false;
+      requestLocalNews();
+    } else {
+      newsPlace = {province: selEl.value, city: ""};
+      save();
+      fetchNews();
+    }
+    updateNewsPrefNote();
+  };
+  updateNewsPrefNote();
+}
+function updateNewsPrefNote(){
+  var note = document.getElementById("newsPrefNote");
+  if(!note) return;
+  if(newsPlace && newsPlace.province){
+    note.textContent = L("いまの地元：" + newsPlace.province + (newsPlace.city || "") + " のニュースを流しています。", "Showing news for " + newsPlace.province + (newsPlace.city || "") + ".");
+  } else {
+    note.textContent = L("位置情報を許可すると、あなたの地元のニュースが流れます。許可しない場合はここで都道府県を選んでください。", "Allow location to see news from your area, or pick a prefecture here.");
+  }
+}
 function applyLanguage(){
   document.title = L("延べ竿日和", "Nobezao Biyori — A Fine Day for Pole Fishing");
   if(document.documentElement) document.documentElement.lang = lang;
   setTxt("appTitle", L("延べ竿日和", "Nobezao Biyori"));
   setTxt("condTempLab", L("水温", "Water"));
   setTxt("condActLab", L("鯉の活性", "Carp activity"));
-  setTxt("condDistLab", L("距離", "Distance"));
-  setTxt("condOjamaLab", L("お邪魔モード", "Interruptions"));
-  setTxt("condOjamaVal", L("常時ON", "Always ON"));
   setTxt("openSettings", L("設定", "Settings"));
   setTxt("openRecords", L("図鑑・記録", "Collection"));
   var ct = document.getElementById("condToggle"), ti = document.getElementById("topInfo");
@@ -6026,6 +6900,18 @@ function applyLanguage(){
   setTxt("labVolSE", L("効果音の音量", "Sound Effects Volume"));
   setTxt("labVolVoice", L("お邪魔ボイスの音量", "Ojama Voice Volume"));
   setTxt("labVolAmb", L("環境音の音量", "Ambience Volume"));
+  setTxt("labAmbOn", L("環境音", "Ambience"));
+  setTxt("labAR", L("ARモード", "AR Mode"));
+  setTxt("arNote", L("オンにするとカメラの映像が背景になり、季節や時間に関係なく、帯の中ならどこにでも浮きを投げられます。カメラの許可が必要です。ARモードの間は画面右下のボタンで写真が撮れ、撮った写真をそのまま背景にできます。", "When on, the camera view becomes the background. Season and time no longer matter, and you can cast anywhere in the band. Camera permission is required. While AR mode is on, the button at the lower right takes a photo, and the photo becomes the background."));
+  setTxt("labCapPhoto", L("撮影した写真", "Captured Photo"));
+  setTxt("capPhotoClearBtn", L("撮影した写真をやめる", "Stop Using the Captured Photo"));
+  setTxt("capPhotoNote", L("撮影した写真を背景にしています。季節や時間帯を変えると通常の写真に戻ります。", "The captured photo is the background. Changing the season or time of day returns to the usual photos."));
+  var sh = document.getElementById("arShutter"); if(sh) sh.setAttribute("aria-label", L("写真を撮る", "Take a Photo"));
+  setTxt("labNewsPref", L("地元ニュースの都道府県", "Local News Prefecture"));
+  setTxt("ambNote", L("OFFにすると環境音が止まり、YouTubeなどの他のアプリの音と一緒に楽しめます。", "Turning it off stops the ambience, so you can enjoy other apps' sound (such as YouTube) alongside the game."));
+  setTxt("relConfirmTitle", L("本当に登録せずにリリースしますか？", "Release without registering in the rankings?"));
+  setTxt("relConfirmYes", L("登録せずにリリースする", "Release without registering"));
+  setTxt("relConfirmNo", L("やっぱり登録する", "Register instead"));
   setTxt("recTitle", L("図鑑と釣果記録", "Collection & Catch Records"));
   setTxt("recNote", L("釣った魚はここに残ります", "Your catches are kept here"));
   setTxt("exportBtn", L("記録を書き出す", "Export Records"));
@@ -6040,8 +6926,6 @@ function applyLanguage(){
   setTxt("saveNote", L("記録はこの端末のブラウザに保存されます。ブラウザのデータを消すと記録も消えるので、大事な記録は「記録を書き出す」でファイルに残せます。", "Records are saved in this device's browser. Clearing browser data deletes them too, so use Export Records to keep important records as a file."));
   setTxt("rankTitle", L("魚種別ランキング（オンライン）", "Rankings by Species (Online)"));
   setTxt("recRankRetry", L("再読み込み", "Reload"));
-  setTxt("rankRulesSummary", L("オンラインランキングの設定（Firestoreルール）", "Online ranking setup (Firestore rules)"));
-  setTxt("copyNobezaoRules", L("ルールをコピー", "Copy rules"));
   setTxt("resRankTabSize", L("大きさ", "Size"));
   setTxt("recRankTabSize", L("大きさ", "Size"));
   setTxt("resRankTabWeight", L("重さ", "Weight"));
@@ -6076,6 +6960,10 @@ function applyLanguage(){
   buildChips("timeChips", TIMES.map(function(t2){ return {id:t2.id, name:t2.name, nameEn:t2.nameEn}; }), "time");
   buildLangChips();
   buildRodChips();
+  buildAmbChips();
+  buildArChips();
+  buildNewsPrefSel();
+  updateCapturedPhotoUI();
   updateCond();
   renderRecords();
   if(ojamaActive) updateOjamaCount();
@@ -6099,7 +6987,9 @@ if(splashEl){
 weather = pickWeather();
 updateCond();
 renderRecords();
+loadCapturedPhoto();
 applyLanguage();
+updateShutterBtn();
 loadOnlineRankings();
 fitCanvas();
 requestAnimationFrame(function(ts){ lastTs = ts; requestAnimationFrame(loop); });
