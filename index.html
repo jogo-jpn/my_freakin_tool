@@ -278,50 +278,74 @@
 
         // ファミコン風決定音（ピロリン♪）を発音する関数
         function playFamicomSelectSound() {
-            if (!audioCtx) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            try {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+
+                const now = audioCtx.currentTime;
+
+                // オシレーター（発振器）作成
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+
+                // ファミコン特有の「矩形波（square）」を設定
+                osc.type = 'square';
+
+                // 音圧の減衰設定（フェードアウト）
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+
+                // 1音目: B5 (約987Hz) ➔ 2音目: E6 (約1318Hz) への素早い周波数変化
+                osc.frequency.setValueAtTime(987.77, now);
+                osc.frequency.setValueAtTime(1318.51, now + 0.05);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.15);
+            } catch (err) {
+                // 音が出なくても遷移は妨げない
             }
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
-
-            const now = audioCtx.currentTime;
-
-            // オシレーター（発振器）作成
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-
-            // ファミコン特有の「矩形波（square）」を設定
-            osc.type = 'square';
-
-            // 音圧の減衰設定（フェードアウト）
-            gain.gain.setValueAtTime(0.15, now);
-            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
-
-            // 1音目: B5 (約987Hz) ➔ 2音目: E6 (約1318Hz) への素早い周波数変化
-            osc.frequency.setValueAtTime(987.77, now);
-            osc.frequency.setValueAtTime(1318.51, now + 0.05);
-
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-
-            osc.start(now);
-            osc.stop(now + 0.15);
         }
+
+        // ページを離れ始めたかどうか（遷移の保険用）
+        let pageLeaving = false;
+        window.addEventListener('pagehide', function() { pageLeaving = true; });
 
         // アクティブなパッド（ボタン）にクリックイベントを設定
         document.querySelectorAll('.pad.active-tool').forEach(button => {
             button.addEventListener('click', function(e) {
                 e.preventDefault(); // 一旦デフォルトの遷移を止める
-                
-                playFamicomSelectSound();
 
                 const targetUrl = this.getAttribute('href');
-                
-                // 音が鳴り終わるタイミング（約120ms後）でページ移動
+
+                // 遷移を先に予約する（音が鳴らなくても・音でエラーが出ても必ず飛ぶ）
                 setTimeout(() => {
                     window.location.href = targetUrl;
                 }, 120);
+
+                // 遷移が阻まれた場合の保険：800ms後にまだこのページにいたら
+                // リンクを直接クリックして（ネイティブの遷移で）飛ぶ
+                setTimeout(() => {
+                    if (!pageLeaving && document.visibilityState === 'visible') {
+                        const a = document.createElement('a');
+                        a.href = targetUrl;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                    }
+                }, 800);
+
+                try {
+                    playFamicomSelectSound();
+                } catch (err) {
+                    // 音が出なくても遷移はする
+                }
             });
         });
     </script>
