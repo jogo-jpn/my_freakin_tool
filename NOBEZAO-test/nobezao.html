@@ -240,9 +240,6 @@
       .rank-status{ font-size:.8rem; color:var(--ink-soft); margin:6px 0 0; }
       .rank-status.err{ color:var(--danger); font-weight:700; }
       .rank-reg-btn:disabled{ opacity:.55; cursor:default; }
-      .rank-rules{ margin-top:10px; font-size:.82rem; color:var(--ink-soft); }
-      .rank-rules summary{ cursor:pointer; font-weight:700; min-height:32px; }
-      .rank-rules pre{ white-space:pre-wrap; word-break:break-all; background:var(--card2); border:1px solid var(--line); border-radius:10px; padding:10px; font-size:.72rem; line-height:1.5; max-height:260px; overflow:auto; touch-action:pan-y; }
       .ctl{ margin-bottom:12px; }
       .ctl:last-child{ margin-bottom:0; }
       .ctl .lab{ font-size:.82rem; font-weight:900; color:var(--ink-soft); margin-bottom:6px; letter-spacing:.06em; }
@@ -377,7 +374,7 @@
       <header class="top" id="topInfo" hidden>
         <div class="top-line">
           <h1 id="appTitle">延べ竿日和</h1>
-          <span class="cond-text" id="condText" aria-label="今日の水辺"><span id="condTempLab">水温</span> <b id="condTemp">--℃</b> ・ <span id="condActLab">鯉の活性</span> <b id="condAct">--</b> ・ <span id="condWx">晴れ</span> ・ <span id="condDistLab">距離</span> <b>5.0m</b> ・ <span id="condOjamaLab">お邪魔モード</span> <b id="condOjamaVal">常時ON</b></span>
+          <span class="cond-text" id="condText" aria-label="今日の水辺"><span id="condTempLab">水温</span> <b id="condTemp">--℃</b> ・ <span id="condActLab">鯉の活性</span> <b id="condAct">--</b> ・ <span id="condWx">晴れ</span></span>
         </div>
         <p class="top-note" id="condNote"></p>
       </header>
@@ -545,59 +542,6 @@
         <p class="rank-note" id="recRankEmpty" hidden></p>
         <p class="rank-status" id="recRankStatus" hidden></p>
         <button type="button" class="rank-tab" id="recRankRetry" hidden>再読み込み</button>
-        <details class="rank-rules">
-          <summary id="rankRulesSummary">オンラインランキングの設定（Firestoreルール）</summary>
-          <p>ランキングが読み込めない・登録できないときは、Firebaseコンソール（プロジェクト jogo-base1）の「Firestore Database → ルール」に以下を丸ごと貼って公開してください。既存の rhythm_scores と page_views も含む統合版です。</p>
-          <pre id="nobezaoRulesText">rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-
-    // ランキング（Rhythm Drums）
-    match /rhythm_scores/{scoreId} {
-      allow read: if true;
-      allow create: if
-        request.resource.data.name is string
-        &amp;&amp; request.resource.data.name.size() &gt;= 1
-        &amp;&amp; request.resource.data.name.size() &lt;= 10
-        &amp;&amp; request.resource.data.score is number
-        &amp;&amp; request.resource.data.score &gt;= 0;
-      allow update, delete: if false;
-    }
-
-    // 魚種別ランキング（延べ竿日和）
-    match /nobezao_scores/{scoreId} {
-      allow read: if true;
-      allow create: if
-        request.resource.data.name is string
-        &amp;&amp; request.resource.data.name.size() &gt;= 1
-        &amp;&amp; request.resource.data.name.size() &lt;= 10
-        &amp;&amp; request.resource.data.speciesId is string
-        &amp;&amp; request.resource.data.speciesId.size() &gt;= 1
-        &amp;&amp; request.resource.data.size is number
-        &amp;&amp; request.resource.data.size &gt; 0
-        &amp;&amp; request.resource.data.size &lt;= 1000
-        &amp;&amp; request.resource.data.weight is number
-        &amp;&amp; request.resource.data.weight &gt; 0
-        &amp;&amp; request.resource.data.weight &lt;= 10000;
-      allow update, delete: if false;
-    }
-
-    // 閲覧カウンター（ORBITなど）
-    match /page_views/{pageId} {
-      allow read: if true;
-      allow create: if request.resource.data.count == 1;
-      allow update: if request.resource.data.count == resource.data.count + 1;
-      allow delete: if false;
-    }
-
-    // それ以外のコレクションは全て禁止
-    match /{document=**} {
-      allow read, write: if false;
-    }
-  }
-}</pre>
-          <button type="button" class="btn small" id="copyNobezaoRules">ルールをコピー</button>
-        </details>
         <div class="zukan" id="zukan"></div>
         <h3 style="font-size:1rem; margin:0 0 6px;" id="itemsTitle">拾い物</h3>
         <div class="items-line" id="itemsLine"><span class="empty">まだ何も拾っていない。</span></div>
@@ -642,7 +586,7 @@ service cloud.firestore {
             <li><b>You learn what it is only in the net.</b> Species and size stay hidden while you fight; underwater you see only a shadow.</li>
             <li><b>Release gently.</b> Handle carp with wet hands, keep them out of the air only briefly, and let them go right where you caught them. Take any litter home. If a fish would make the rankings, releasing it without registering asks for confirmation first (the confirmation buttons sit away from the release button, and cannot be tapped for 600ms after they appear, so rapid taps cannot confirm by accident).</li>
           </ol>
-          <p>The scenery fills the screen, with the buttons and status words laid over it. The water temperature and other details at the top start hidden — use the “Info” button at the top to show or hide them. The rod and line also start hidden, so only the float stands on the water; you can show them any time under “Rod & Line” in Settings. The background is a real photograph, chosen at random on each open from 29 photos that fit the current season and time of day, layered with one of 24 colour moods — even the framing and the left-right orientation change, so it feels like fishing at a different place (you will never see autumn leaves in summer, or cherry blossoms in winter). Nothing is drawn in: no torii, no bridges, no branches — just the photograph. <b>When you open the page, the default stage follows your device's calendar and clock</b>: the season comes from the date (spring Mar–May, summer Jun–Aug, autumn Sep–Nov, winter Dec–Feb) and the time of day from the current hour (early morning 5–10, daytime 11–15, evening 16–4), and you start with scenery for that season and time. Changing them in Settings switches at once, and reopening the page returns to the calendar-and-clock stage. Changing the season in Settings switches to scenery that fits that season, and each season animates differently (cherry blossoms in spring, sunlight in summer, fallen leaves in autumn, occasional snow in winter). While you wait you will hear muttered thoughts, comments on tiny trembles of the float, and — fetched live from the web — local news headlines with summaries, source and date, plus the angler’s own unsolicited opinion (when the news cannot be fetched, the talk is openly fictional). Fish sometimes leap at the surface. Seasonal mischief too: in summer a mosquito may find you and bite (it itches, but the fishing goes on); in autumn a red dragonfly perches on the float tip and sinks it a little; in winter snow settles on the float and makes it sit deeper.</p>
+          <p>The scenery photo is shown as a band above, never hidden under the buttons below. The status words appear in the text box above in 3 lines, scrolling inside the box when long, and the photo sits right under that box — the pond is never hidden. The water temperature and other details at the top start hidden — use the “Info” button at the top to show or hide them. The rod and line also start hidden, so only the float stands on the water; you can show them any time under “Rod & Line” in Settings. The background is a real photograph, chosen at random on each open from 29 photos that fit the current season and time of day, layered with one of 24 colour moods — even the framing and the left-right orientation change, so it feels like fishing at a different place (you will never see autumn leaves in summer, or cherry blossoms in winter). Nothing is drawn in: no torii, no bridges, no branches — just the photograph. <b>When you open the page, the default stage follows your device's calendar and clock</b>: the season comes from the date (spring Mar–May, summer Jun–Aug, autumn Sep–Nov, winter Dec–Feb) and the time of day from the current hour (early morning 5–10, daytime 11–15, evening 16–4), and you start with scenery for that season and time. Changing them in Settings switches at once, and reopening the page returns to the calendar-and-clock stage. Changing the season in Settings switches to scenery that fits that season, and each season animates differently (cherry blossoms in spring, sunlight in summer, fallen leaves in autumn, occasional snow in winter). While you wait you will hear muttered thoughts, comments on tiny trembles of the float, and — fetched live from the web — local news headlines with summaries, source and date, plus the angler’s own unsolicited opinion (when the news cannot be fetched, the talk is openly fictional). Fish sometimes leap at the surface. Seasonal mischief too: in summer a mosquito may find you and bite (it itches, but the fishing goes on); in autumn a red dragonfly perches on the float tip and sinks it a little; in winter snow settles on the float and makes it sit deeper.</p>
           <p>Sizes: most carp run 40–60cm. Over 50cm is the first thrill; over 80cm is record class. Carp feed best at 15°C and above, ideally 20–25°C. Early morning and evening are prime times, and autumn — when carp feed hard before winter — is the easiest season of all.</p>
           <p class="foot">Nobezao Biyori — A Fine Day for Pole Fishing. One float, one sheet of water.</p>
         </div>
@@ -3464,23 +3408,6 @@ function validateRankName(raw){
   if(sel) sel.addEventListener("change", function(){ rankSelSpecies = sel.value; renderRankings(); });
   var retry = document.getElementById("recRankRetry");
   if(retry) retry.addEventListener("click", function(){ loadOnlineRankings(); });
-  var copyBtn = document.getElementById("copyNobezaoRules");
-  if(copyBtn) copyBtn.addEventListener("click", function(){
-    var pre = document.getElementById("nobezaoRulesText");
-    if(!pre) return;
-    var text = pre.textContent;
-    var btn = this;
-    function done(){ btn.textContent = L("コピーしました", "Copied"); setTimeout(function(){ btn.textContent = L("ルールをコピー", "Copy rules"); }, 1600); }
-    if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(text).then(done).catch(function(){ fallback(); }); }
-    else fallback();
-    function fallback(){
-      var ta = document.createElement("textarea");
-      ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
-      document.body.appendChild(ta); ta.select();
-      try{ document.execCommand("copy"); done(); }catch(e){}
-      ta.remove();
-    }
-  });
   var reg = document.getElementById("resRankReg");
   if(reg) reg.addEventListener("click", function(){
     if(!pendingRank || pendingRank.entry || rankSubmitting) return;
@@ -6669,9 +6596,6 @@ function applyLanguage(){
   setTxt("appTitle", L("延べ竿日和", "Nobezao Biyori"));
   setTxt("condTempLab", L("水温", "Water"));
   setTxt("condActLab", L("鯉の活性", "Carp activity"));
-  setTxt("condDistLab", L("距離", "Distance"));
-  setTxt("condOjamaLab", L("お邪魔モード", "Interruptions"));
-  setTxt("condOjamaVal", L("常時ON", "Always ON"));
   setTxt("openSettings", L("設定", "Settings"));
   setTxt("openRecords", L("図鑑・記録", "Collection"));
   var ct = document.getElementById("condToggle"), ti = document.getElementById("topInfo");
@@ -6704,8 +6628,6 @@ function applyLanguage(){
   setTxt("saveNote", L("記録はこの端末のブラウザに保存されます。ブラウザのデータを消すと記録も消えるので、大事な記録は「記録を書き出す」でファイルに残せます。", "Records are saved in this device's browser. Clearing browser data deletes them too, so use Export Records to keep important records as a file."));
   setTxt("rankTitle", L("魚種別ランキング（オンライン）", "Rankings by Species (Online)"));
   setTxt("recRankRetry", L("再読み込み", "Reload"));
-  setTxt("rankRulesSummary", L("オンラインランキングの設定（Firestoreルール）", "Online ranking setup (Firestore rules)"));
-  setTxt("copyNobezaoRules", L("ルールをコピー", "Copy rules"));
   setTxt("resRankTabSize", L("大きさ", "Size"));
   setTxt("recRankTabSize", L("大きさ", "Size"));
   setTxt("resRankTabWeight", L("重さ", "Weight"));
