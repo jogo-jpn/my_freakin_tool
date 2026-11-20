@@ -302,7 +302,10 @@
       .tackle-photos .tp-float img{ object-position:50% 20%; }
       .tackle-photos figcaption{ font-size:.78rem; color:var(--ink-soft); margin-top:4px; text-align:center; font-weight:700; }
       /* お邪魔の吹き出しは状況ゾーンに埋もれさせず、風景の上部に大きなパネルで重ねる（タップは下のボールへ通す） */
-      .ojama-bar{ position:absolute; left:10px; right:10px; top:calc(198px + env(safe-area-inset-top)); z-index:9; display:flex; flex-wrap:wrap; gap:8px; align-items:flex-start; pointer-events:none; }
+      /* お邪魔カードはメッセージ欄（.status-zone）の上に重ねる。以前は写真の上にあり、
+         カード＋残り数の下端がボールの落下帯にかかってボールを押せなくなった。
+         上に置けばカードは帯にかからず、写真も隠さない */
+      .ojama-bar{ position:absolute; left:10px; right:10px; top:calc(50px + env(safe-area-inset-top)); z-index:9; display:flex; flex-wrap:wrap; gap:8px; align-items:flex-start; pointer-events:none; }
       .ojama-speech{ flex:1 1 280px; min-width:0; display:flex; gap:11px; align-items:flex-start; background:var(--card); border:1.5px solid var(--ink); border-radius:14px; padding:10px 12px; box-shadow:0 8px 24px rgba(10,17,12,.38); font-size:.95rem; line-height:1.55; color:var(--ink); }
       .ojama-speech[hidden]{ display:none; }
       .ojama-art{ flex:0 0 78px; width:78px; height:78px; border-radius:50%; overflow:hidden; border:1.5px solid var(--line); background:var(--card2); }
@@ -639,7 +642,7 @@ service cloud.firestore {
             <li><b>You learn what it is only in the net.</b> Species and size stay hidden while you fight; underwater you see only a shadow.</li>
             <li><b>Release gently.</b> Handle carp with wet hands, keep them out of the air only briefly, and let them go right where you caught them. Take any litter home. If a fish would make the rankings, releasing it without registering asks for confirmation first (the confirmation buttons sit away from the release button, and cannot be tapped for 600ms after they appear, so rapid taps cannot confirm by accident).</li>
           </ol>
-          <p>The scenery fills the screen, with the buttons and status words laid over it. The water temperature and other details at the top start hidden — use the “Info” button at the top to show or hide them. The rod and line also start hidden, so only the float stands on the water; you can show them any time under “Rod & Line” in Settings. The background is a real photograph, chosen at random on each open from 19 photos that fit the current season and time of day, layered with one of 24 colour moods — even the framing and the left-right orientation change, so it feels like fishing at a different place (you will never see autumn leaves in summer, or cherry blossoms in winter). Nothing is drawn in: no torii, no bridges, no branches — just the photograph. <b>When you open the page, the default stage follows your device's calendar and clock</b>: the season comes from the date (spring Mar–May, summer Jun–Aug, autumn Sep–Nov, winter Dec–Feb) and the time of day from the current hour (early morning 5–10, daytime 11–15, evening 16–4), and you start with scenery for that season and time. Changing them in Settings switches at once, and reopening the page returns to the calendar-and-clock stage. Changing the season in Settings switches to scenery that fits that season, and each season animates differently (cherry blossoms in spring, sunlight in summer, fallen leaves in autumn, occasional snow in winter). While you wait you will hear muttered thoughts, comments on tiny trembles of the float, and — fetched live from the web — local news headlines with summaries, source and date, plus the angler’s own unsolicited opinion (when the news cannot be fetched, the talk is openly fictional). Fish sometimes leap at the surface. Seasonal mischief too: in summer a mosquito may find you and bite (it itches, but the fishing goes on); in autumn a red dragonfly perches on the float tip and sinks it a little; in winter snow settles on the float and makes it sit deeper.</p>
+          <p>The scenery fills the screen, with the buttons and status words laid over it. The water temperature and other details at the top start hidden — use the “Info” button at the top to show or hide them. The rod and line also start hidden, so only the float stands on the water; you can show them any time under “Rod & Line” in Settings. The background is a real photograph, chosen at random on each open from 29 photos that fit the current season and time of day, layered with one of 24 colour moods — even the framing and the left-right orientation change, so it feels like fishing at a different place (you will never see autumn leaves in summer, or cherry blossoms in winter). Nothing is drawn in: no torii, no bridges, no branches — just the photograph. <b>When you open the page, the default stage follows your device's calendar and clock</b>: the season comes from the date (spring Mar–May, summer Jun–Aug, autumn Sep–Nov, winter Dec–Feb) and the time of day from the current hour (early morning 5–10, daytime 11–15, evening 16–4), and you start with scenery for that season and time. Changing them in Settings switches at once, and reopening the page returns to the calendar-and-clock stage. Changing the season in Settings switches to scenery that fits that season, and each season animates differently (cherry blossoms in spring, sunlight in summer, fallen leaves in autumn, occasional snow in winter). While you wait you will hear muttered thoughts, comments on tiny trembles of the float, and — fetched live from the web — local news headlines with summaries, source and date, plus the angler’s own unsolicited opinion (when the news cannot be fetched, the talk is openly fictional). Fish sometimes leap at the surface. Seasonal mischief too: in summer a mosquito may find you and bite (it itches, but the fishing goes on); in autumn a red dragonfly perches on the float tip and sinks it a little; in winter snow settles on the float and makes it sit deeper.</p>
           <p>Sizes: most carp run 40–60cm. Over 50cm is the first thrill; over 80cm is record class. Carp feed best at 15°C and above, ideally 20–25°C. Early morning and evening are prime times, and autumn — when carp feed hard before winter — is the easiest season of all.</p>
           <p class="foot">Nobezao Biyori — A Fine Day for Pole Fishing. One float, one sheet of water.</p>
         </div>
@@ -3927,10 +3930,13 @@ function spawnMoyaBalls(total){
       b.style.left = (3 + Math.random()*88) + "%";
       b.style.top = "-80px";
       /* 落下先は、上のお邪魔パネルの実測下端より下、かつ下のボタン（下から約210px）より上の
-         帯の中だけにする。パネルやボタンの後ろに隠れて押せなくなるのを防ぐ */
+         帯の中だけにする。パネルやボタンの後ろに隠れて押せなくなるのを防ぐ。
+         上端は必ずパネルの下端＋10pxにする（以前の box.height*0.45 の上限は、パネルが
+         それより背が高いときに帯の上端をパネルの下端より上に置いてしまい、ボールが
+         カードの下に隠れて押せなくなった） */
       var barEl = document.getElementById("ojamaBar");
       var barBottom = barEl ? (barEl.getBoundingClientRect().bottom - box.top) : 260;
-      var topMin = Math.round(Math.max(120, Math.min(box.height * 0.45, barBottom + 10)));
+      var topMin = Math.round(Math.max(120, barBottom + 10));
       /* 下限は固定値ではなく、操作ボタンの実測位置から決める。状況ゾーンは上部へ移ったので
          下限には使わない。ボールの下端がボタンに少しも被らない位置で止めるので、端末の画面サイズや
          セーフエリアが変わっても、ボールは必ずタップできる帯の中にだけ落ちる */
@@ -3940,14 +3946,18 @@ function spawnMoyaBalls(total){
       var topMax = Math.round(limitBottom - size);
       if(topMax < topMin) topMax = topMin;
       var targetTopPx = Math.round(topMin + Math.random() * (topMax - topMin));
-      b.addEventListener("click", function(){
+      var popBall = function(){
         if(!ojamaActive || b.classList.contains("popped")) return;
         b.classList.add("popped");
         ojamaRemaining--; updateOjamaCount();
         plop(760 + Math.random()*300, 0.14, 0.12);
         setTimeout(function(){ if(b.parentNode) b.parentNode.removeChild(b); }, 170);
         if(ojamaRemaining<=0) setTimeout(endOjama, 380);
-      });
+      };
+      /* タップしたらすぐ消す。click だけだと iOS でタップが抑止されることがあるため
+         pointerdown でも消す（2回目以降は popped ガードで何もしない）。 */
+      b.addEventListener("pointerdown", function(e){ e.preventDefault(); e.stopPropagation(); popBall(); });
+      b.addEventListener("click", popBall);
       layer.appendChild(b);
       setTimeout(function(){ b.style.top = targetTopPx + "px"; }, 60 + idx*110);
     })(i);
@@ -5647,8 +5657,8 @@ function draw(){
     var jAng = -0.85 + 1.7 * jp; // 飛び出しは頭を上へ、落下では頭を下へ
     var JL = jumpFish.size, JD = JL * 0.30;
     ctx.save(); ctx.translate(jx2, jy2); ctx.rotate(jAng); ctx.scale(jumpFish.dir, 1);
-    // 尾ビレ
-    ctx.fillStyle = "rgba(42,56,48,0.62)";
+    // 尾ビレ（跳ねる魚も単色のシルエット）
+    ctx.fillStyle = "rgba(42,56,48,0.66)";
     ctx.beginPath();
     ctx.moveTo(-JL*0.36, 0);
     ctx.lineTo(-JL*0.62, -JD*0.66); ctx.lineTo(-JL*0.52, 0); ctx.lineTo(-JL*0.62, JD*0.66);
@@ -5659,8 +5669,8 @@ function draw(){
     ctx.quadraticCurveTo(JL*0.08, -JD*0.85, JL*0.24, -JD*0.40);
     ctx.quadraticCurveTo(JL*0.08, -JD*0.33, -JL*0.05, -JD*0.42);
     ctx.fill();
-    // 体（水から出た瞬間は銀色の腹が光る）
-    ctx.fillStyle = "rgba(52,66,58,0.60)";
+    // 体（跳ねる魚もイラストではなく単色のシルエット。銀色の腹・目は描かない）
+    ctx.fillStyle = "rgba(42,56,48,0.66)";
     ctx.beginPath();
     ctx.moveTo(JL*0.5, 0);
     ctx.quadraticCurveTo(JL*0.26, -JD*0.68, -JL*0.16, -JD*0.52);
@@ -5668,14 +5678,6 @@ function draw(){
     ctx.quadraticCurveTo(-JL*0.36, JD*0.44, -JL*0.16, JD*0.52);
     ctx.quadraticCurveTo(JL*0.26, JD*0.68, JL*0.5, 0);
     ctx.fill();
-    ctx.fillStyle = "rgba(226,234,222,0.55)";
-    ctx.beginPath();
-    ctx.moveTo(JL*0.42, JD*0.14);
-    ctx.quadraticCurveTo(JL*0.1, JD*0.58, -JL*0.2, JD*0.42);
-    ctx.quadraticCurveTo(JL*0.1, JD*0.30, JL*0.42, JD*0.14);
-    ctx.fill();
-    ctx.fillStyle = "rgba(15,15,12,0.8)";
-    ctx.beginPath(); ctx.arc(JL*0.36, -JD*0.14, Math.max(1.4, JL*0.04), 0, Math.PI*2); ctx.fill();
     ctx.restore();
     // 体から落ちる水滴
     ctx.fillStyle = "rgba(255,255,255,0.75)";
@@ -5714,25 +5716,34 @@ function draw(){
   drawRodAndFloat(pal, t);
 }
 function drawWaterFish(f, t){
+  /* 水中の魚はイラストではなく、暗い単色のシルエットで描く（目・腹・模様なし）。
+     動き・位置・大きさ・透明度は computeFishDraw のまま。 */
   var sp = f.sp;
   var L = 36 + f.size*0.62, D = L*0.30;
+  var col = hexA(sp.body, f.a);
   ctx.save(); ctx.translate(f.x, f.y);
   ctx.rotate(Math.sin(t*f.wag)*0.10);
   ctx.scale(f.flip, 1);
-  // 尾ビレ
-  ctx.fillStyle = hexA(sp.fin, f.a);
+  // 柔らかい輪郭：本体より少し大きく薄く描いて、水中の滲みにする
+  ctx.fillStyle = hexA(sp.body, f.a*0.35);
+  ctx.beginPath();
+  ctx.moveTo(L*0.52, 0);
+  ctx.quadraticCurveTo(L*0.26, -D*0.70, -L*0.16, -D*0.56);
+  ctx.quadraticCurveTo(-L*0.38, -D*0.48, -L*0.42, 0);
+  ctx.quadraticCurveTo(-L*0.38, D*0.48, -L*0.16, D*0.56);
+  ctx.quadraticCurveTo(L*0.26, D*0.70, L*0.52, 0);
+  ctx.fill();
+  // 尾ビレ・背ビレ・体はすべて同じ単色（鯉らしいシルエット）
+  ctx.fillStyle = col;
   ctx.beginPath();
   ctx.moveTo(-L*0.36, 0);
   ctx.lineTo(-L*0.60, -D*0.62); ctx.lineTo(-L*0.52, 0); ctx.lineTo(-L*0.60, D*0.62);
   ctx.closePath(); ctx.fill();
-  // 背ビレ
   ctx.beginPath();
   ctx.moveTo(-L*0.05, -D*0.42);
   ctx.quadraticCurveTo(L*0.08, -D*0.80, L*0.24, -D*0.40);
   ctx.quadraticCurveTo(L*0.08, -D*0.33, -L*0.05, -D*0.42);
   ctx.fill();
-  // 体
-  ctx.fillStyle = hexA(sp.body, f.a);
   ctx.beginPath();
   ctx.moveTo(L*0.5, 0);
   ctx.quadraticCurveTo(L*0.26, -D*0.66, -L*0.16, -D*0.52);
@@ -5740,21 +5751,6 @@ function drawWaterFish(f, t){
   ctx.quadraticCurveTo(-L*0.36, D*0.44, -L*0.16, D*0.52);
   ctx.quadraticCurveTo(L*0.26, D*0.66, L*0.5, 0);
   ctx.fill();
-  // 模様と腹
-  if(sp.patch){
-    ctx.fillStyle = hexA(sp.patch, f.a*0.9);
-    ctx.beginPath(); ctx.ellipse(-L*0.02, -D*0.12, L*0.17, D*0.30, 0, 0, Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(L*0.22, D*0.05, L*0.10, D*0.20, 0, 0, Math.PI*2); ctx.fill();
-  }
-  ctx.fillStyle = hexA(sp.belly, f.a*0.8);
-  ctx.beginPath();
-  ctx.moveTo(L*0.42, D*0.16);
-  ctx.quadraticCurveTo(L*0.1, D*0.55, -L*0.2, D*0.42);
-  ctx.quadraticCurveTo(L*0.1, D*0.30, L*0.42, D*0.16);
-  ctx.fill();
-  // 目
-  ctx.fillStyle = "rgba(15,15,12," + Math.min(1, f.a + 0.25) + ")";
-  ctx.beginPath(); ctx.arc(L*0.36, -D*0.14, Math.max(1.6, L*0.035), 0, Math.PI*2); ctx.fill();
   ctx.restore();
 }
 function drawReeds(baseX, horizon, col, t, dir){
