@@ -818,8 +818,37 @@ try{
   var raw = localStorage.getItem(LS_KEY);
   if(raw){ var parsed = JSON.parse(raw); if(parsed && parsed.records) records = parsed.records; if(parsed && parsed.rankings && typeof parsed.rankings==="object") rankings = parsed.rankings; if(parsed && typeof parsed.rankName==="string") rankName = parsed.rankName; if(parsed && parsed.newsPlace && typeof parsed.newsPlace==="object") newsPlace = parsed.newsPlace; if(parsed && typeof parsed.ambientOn==="boolean") ambientOn = parsed.ambientOn; if(parsed && typeof parsed.floatSize==="number") floatSizeMul = Math.min(2, Math.max(0.5, parsed.floatSize)); if(parsed && parsed.floatSizeVer !== 3){ /* 浮きの大きさの既定を1.15倍に変えたので、古い保存値は一度だけ1.15倍に寄せる */ floatSizeMul = 1.15; } if(parsed && (parsed.lang==="en" || parsed.lang==="ja")) lang = parsed.lang; if(parsed && parsed.vol){ if(typeof parsed.vol.se==="number") volSE = Math.min(1, Math.max(0, parsed.vol.se)); if(typeof parsed.vol.voice==="number") volVoice = Math.min(1, Math.max(0, parsed.vol.voice)); if(typeof parsed.vol.amb==="number") volAmb = Math.min(1, Math.max(0, parsed.vol.amb)); if(parsed.volVer !== 2){ /* 旧スケールで保存された値を新スケール（ベスト＝50%）へ一度だけ換算し、聞こえる大きさを変えない */ volSE = Math.min(1, Math.max(0, volSE * 0.5 / 0.57)); volVoice = Math.min(1, Math.max(0, volVoice * 0.5 / 0.18)); volAmb = Math.min(1, Math.max(0, volAmb * 0.5)); } } }
 }catch(e){ records = []; }
+/* 重さのスケール修正：2026-11-20より前の保存データは、重さが1000倍小さく保存されていた（式に余計な /1000 があったため）。records と rankings の重さを一度だけ1000倍してkgらしい重さに直す。変更があったときだけ保存し、weightVer:2 を書き込むので二重に移行しない。オンライン（Firestore）のデータは触らない */
+(function(){
+  try{
+    var wraw = localStorage.getItem(LS_KEY);
+    if(!wraw) return;
+    var wp = JSON.parse(wraw);
+    if(!wp || wp.weightVer === 2) return;
+    var i, j, k, arr, changed = false;
+    for(i=0;i<records.length;i++){
+      if(records[i] && records[i].kind === "fish" && typeof records[i].weight === "number" && records[i].weight > 0){
+        records[i].weight = Math.round(records[i].weight * 1000 * 100000) / 100000;
+        changed = true;
+      }
+    }
+    if(rankings && typeof rankings === "object"){
+      for(k in rankings){
+        arr = rankings[k];
+        if(!arr || !arr.length) continue;
+        for(j=0;j<arr.length;j++){
+          if(arr[j] && typeof arr[j].weight === "number" && arr[j].weight > 0){
+            arr[j].weight = Math.round(arr[j].weight * 1000 * 100000) / 100000;
+            changed = true;
+          }
+        }
+      }
+    }
+    if(changed) save();
+  }catch(e){}
+})();
 function save(){
-  try{ localStorage.setItem(LS_KEY, JSON.stringify({records:records, rankings:rankings, rankName:rankName, lang:lang, vol:{se:volSE, voice:volVoice, amb:volAmb}, volVer:2, newsPlace:newsPlace, ambientOn:ambientOn, floatSize:floatSizeMul, floatSizeVer:3})); }catch(e){}
+  try{ localStorage.setItem(LS_KEY, JSON.stringify({records:records, rankings:rankings, rankName:rankName, lang:lang, vol:{se:volSE, voice:volVoice, amb:volAmb}, volVer:2, newsPlace:newsPlace, ambientOn:ambientOn, floatSize:floatSizeMul, floatSizeVer:3, weightVer:2})); }catch(e){}
 }
 
 /* ================= 条件 ================= */
@@ -914,7 +943,7 @@ function rollEncounter(){
      痩せた魚や太った魚がいるよう、魚ごとの体つき（肥満度）に 0.75〜1.25 倍の
      ばらつきを持たせる。係数は釣果レコードに保存する */
   var cond = Math.round((0.75 + Math.random() * 0.5) * 100) / 100; // 0.75〜1.25（一様分布）
-  var weight = size*size*size*sp2.wf/1000 * cond; // kg
+  var weight = size*size*size*sp2.wf * cond; // kg
   weight = Math.round(weight*100000)/100000;
   return {kind:"fish", sp:sp2, size:size, weight:weight, cond:cond};
 }
