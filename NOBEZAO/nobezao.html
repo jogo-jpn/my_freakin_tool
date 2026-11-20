@@ -16,10 +16,10 @@
       * { box-sizing: border-box; }
       :root{
         /* アプリ内ブラウザ（Instagram等）の上部バー分だけ、画面上部の要素を下げるための余白。
-           通常のブラウザでは 0px。アプリ内ブラウザでは JS が 64px にする */
+           通常のブラウザでは 0px。アプリ内ブラウザでは JS が 40px にする */
         --top-extra:0px;
         /* アプリ内ブラウザの下部バー分だけ、画面下部の要素を上げるための余白。
-           通常のブラウザでは 0px。アプリ内ブラウザでは JS が 56px にする */
+           通常のブラウザでは 0px。アプリ内ブラウザでは JS が 8px にする */
         --bottom-extra:0px;
         --bg:#eef3ec;
         --bg2:#e3ecdf;
@@ -4886,10 +4886,17 @@ var CW = 800, CH = 640, perfNow = 0, canvasScale = 1;
 var UA_STR = navigator.userAgent || "";
 var IN_APP_BROWSER = /Instagram|FBAN|FBAV|FB_IAB|\bLine\/|Twitter|TikTok|BytedanceWebview/i.test(UA_STR);
 /* アプリ内ブラウザではホスト側のナビゲーションバーが画面上部を覆うため、
-   ツールバー・メッセージ欄・お邪魔カード・情報バーを 64px 下げる。
+   ツールバー・メッセージ欄・お邪魔カード・情報バーを 40px 下げる。
    下部ツールバーが画面下部を覆うため、下のボタン群とシャッターボタンも
-   56px 上げる。写真バンドは各要素の実測位置から決まるので連動する */
-if(IN_APP_BROWSER){ document.documentElement.style.setProperty("--top-extra", "64px"); document.documentElement.style.setProperty("--bottom-extra", "56px"); }
+   8px 上げる。写真バンドは各要素の実測位置から決まるので連動する。
+   値の根拠（2026-11-20、実機スクリーンショット実測、CSS px）：
+   上部バーの下端は 116px。ボタン上端は WebView上端 + safe-area +
+   top-extra + 6px で、WebView上端 + safe-area はセッションにより
+   83px〜116px と 33px ぶれた。最も厳しい 83px でも隠れないよう
+   40px とした（余裕 約8〜13px）。下部は両セッションとも安定して
+   おり 8px で十分。64px/56px では上下に大きなデッドスペースが
+   できたため縮小した */
+if(IN_APP_BROWSER){ document.documentElement.style.setProperty("--top-extra", "40px"); document.documentElement.style.setProperty("--bottom-extra", "8px"); }
 var perfLevel = IN_APP_BROWSER ? 1 : 0; // 0=通常, 1=軽量, 2=最軽量
 var perfSlowStreak = 0, perfGoodStreak = 0, perfLastLevelChange = 0;
 var drawFrameCount = 0, uiCovered = false, uiCoverCheckTs = 0;
@@ -5087,7 +5094,7 @@ function photoBandRect(){
   var ac = document.getElementById("actMain");
   var actH = ac ? ac.offsetHeight : 136;
   /* 帯の上端はメッセージ欄の実際の底辺、下端は下のボタン群の実際の上端。
-     高さだけの計算だと --top-extra (64px) や --bottom-extra (56px) の
+     高さだけの計算だと --top-extra (40px) や --bottom-extra (8px) の
      分だけずれ、写真がメッセージ欄やボタンの裏に隠れてしまう。
      要素が非表示 (offsetHeight 0) のときは従来の計算にフォールバック */
   var top = (sz && sz.offsetHeight > 0) ? sz.offsetTop + zoneH : topH + zoneH;
