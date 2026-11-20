@@ -15,6 +15,12 @@
       button, [role="button"], select, summary, input:not([type="checkbox"], [type="radio"]) { min-height: 2.25rem; }
       * { box-sizing: border-box; }
       :root{
+        /* アプリ内ブラウザ（Instagram等）の上部バー分だけ、画面上部の要素を下げるための余白。
+           通常のブラウザでは 0px。アプリ内ブラウザでは JS が 64px にする */
+        --top-extra:0px;
+        /* アプリ内ブラウザの下部バー分だけ、画面下部の要素を上げるための余白。
+           通常のブラウザでは 0px。アプリ内ブラウザでは JS が 56px にする */
+        --bottom-extra:0px;
         --bg:#eef3ec;
         --bg2:#e3ecdf;
         --card:#fbfcf7;
@@ -75,7 +81,7 @@
       }
       .wrap{ max-width:none; width:100%; margin:0; height:100dvh; display:flex; flex-direction:column; gap:0; padding:0; position:relative; }
       h1,h2,h3{ font-family:"Shippori Mincho B1","Hiragino Mincho ProN",serif; }
-      header.top{ position:absolute; top:calc(50px + env(safe-area-inset-top) + 98px); left:0; right:0; z-index:8; pointer-events:none; padding:6px 12px 22px; font-size:.84rem; line-height:1.45; color:#f4f7ee; background:linear-gradient(180deg, rgba(10,17,12,.58), rgba(10,17,12,.28) 55%, rgba(10,17,12,0)); text-shadow:0 1px 4px rgba(0,0,0,.55); }
+      header.top{ position:absolute; top:calc(50px + env(safe-area-inset-top) + 98px + var(--top-extra)); left:0; right:0; z-index:8; pointer-events:none; padding:6px 12px 22px; font-size:.84rem; line-height:1.45; color:#f4f7ee; background:linear-gradient(180deg, rgba(10,17,12,.58), rgba(10,17,12,.28) 55%, rgba(10,17,12,0)); text-shadow:0 1px 4px rgba(0,0,0,.55); }
       /* 上部の情報（水温など）はデフォルトで非表示：風景への没頭を優先し、「情報」ボタンで出し入れする */
       header.top[hidden]{ display:none; }
       header.top .top-line{ display:flex; align-items:baseline; gap:4px 12px; flex-wrap:wrap; }
@@ -94,7 +100,7 @@
       .stage-card{ padding:0; flex:1; min-height:0; position:relative; display:block; background:transparent; border:none; box-shadow:none; border-radius:0; }
       .stage-box{ position:absolute; inset:0; border-radius:0; overflow:hidden; border:none; }
       canvas#pond{ display:block; width:100%; height:100%; touch-action:none; }
-      .toolbar{ display:flex; gap:8px; position:absolute; left:0; right:0; top:0; z-index:9; height:calc(50px + env(safe-area-inset-top)); padding:calc(6px + env(safe-area-inset-top)) 8px 6px; background:linear-gradient(180deg, rgba(10,17,12,.78), rgba(10,17,12,.60)); }
+      .toolbar{ display:flex; gap:8px; position:absolute; left:0; right:0; top:var(--top-extra); z-index:9; height:calc(50px + env(safe-area-inset-top)); padding:calc(6px + env(safe-area-inset-top)) 8px 6px; background:linear-gradient(180deg, rgba(10,17,12,.78), rgba(10,17,12,.60)); }
       .btn.tool{ flex:1; min-height:38px; font-size:.9rem; padding:5px 4px; background:rgba(255,255,255,.14); color:#fff; border-color:rgba(255,255,255,.35); }
       dialog{
         border:1px solid var(--line); background:var(--card); color:var(--ink);
@@ -123,7 +129,7 @@
       }
       #msgText{ flex:1; min-width:0; overflow-y:auto; overflow-x:hidden; max-height:calc(3 * 1.45em); scrollbar-width:thin; overscroll-behavior:contain; }
       /* 状況テキスト専用の固定高さゾーン：テキスト量・ゲージ・お邪魔表示が変わっても、風景（ステージ）の大きさと位置は一切動かない */
-      .status-zone{ position:absolute; left:0; right:0; top:calc(50px + env(safe-area-inset-top)); z-index:7; height:auto; overflow:visible; padding:8px 12px; color:#f2f6ec; background:linear-gradient(180deg, rgba(10,17,12,.72), rgba(10,17,12,.45) 62%, rgba(10,17,12,0)); text-shadow:0 1px 3px rgba(0,0,0,.5); }
+      .status-zone{ position:absolute; left:0; right:0; top:calc(50px + env(safe-area-inset-top) + var(--top-extra)); z-index:7; height:auto; overflow:visible; padding:8px 12px; color:#f2f6ec; background:linear-gradient(180deg, rgba(10,17,12,.72), rgba(10,17,12,.45) 62%, rgba(10,17,12,0)); text-shadow:0 1px 3px rgba(0,0,0,.5); }
       .status-zone .gauge-row label{ color:rgba(255,255,255,.85); }
       .status-zone .gauge-row .val{ color:#fff; }
       .status-zone .ojama-speech{ text-shadow:none; }
@@ -147,7 +153,7 @@
       .stamina{ flex:1; height:10px; border-radius:5px; background:var(--card2); border:1px solid var(--line); overflow:hidden; }
       .stamina i{ display:block; height:100%; background:var(--good); width:100%; }
       .gauge-row .val{ flex:0 0 3.6em; text-align:right; font-size:.82rem; font-variant-numeric:tabular-nums; }
-      .actions{ display:flex; gap:10px; position:absolute; left:0; right:0; bottom:0; z-index:8; height:calc(136px + env(safe-area-inset-bottom)); padding:6px 8px calc(6px + env(safe-area-inset-bottom)); }
+      .actions{ display:flex; gap:10px; position:absolute; left:0; right:0; bottom:var(--bottom-extra); z-index:8; height:calc(136px + env(safe-area-inset-bottom)); padding:6px 8px calc(6px + env(safe-area-inset-bottom)); }
       .actions .btn{ min-height:116px; }
       .btn{
         font-family:inherit; font-weight:900; font-size:1.02rem; cursor:pointer;
@@ -193,7 +199,7 @@
          パネル下端に貼り付いているので、確認のボタンは画面の上側（パネルの上部）に置き、
          連打している指がそのまま届かない位置にする。「登録する」を大きく下に、
          「登録せずにリリースする」を小さく上に置く */
-      .rel-confirm{ position:absolute; inset:0; display:none; align-items:flex-start; justify-content:center; background:rgba(20,30,22,.55); padding:18px 14px calc(14px + env(safe-area-inset-bottom)); z-index:40; }
+      .rel-confirm{ position:absolute; inset:0; display:none; align-items:flex-start; justify-content:center; background:rgba(20,30,22,.55); padding:calc(18px + var(--top-extra)) 14px calc(14px + env(safe-area-inset-bottom)); z-index:40; }
       .rel-confirm.on{ display:flex; }
       .rel-confirm-inner{ background:var(--card); border-radius:16px; border:1px solid var(--line); max-width:420px; width:100%; padding:18px; text-align:center; margin-top:6vh; }
       .rel-confirm-inner h3{ margin:2px 0 8px; font-size:1.15rem; }
@@ -303,7 +309,7 @@
       /* お邪魔カードはメッセージ欄（.status-zone）の上に重ねる。以前は写真の上にあり、
          カード＋残り数の下端がボールの落下帯にかかってボールを押せなくなった。
          上に置けばカードは帯にかからず、写真も隠さない */
-      .ojama-bar{ position:absolute; left:10px; right:10px; top:calc(50px + env(safe-area-inset-top)); z-index:9; display:flex; flex-wrap:wrap; gap:8px; align-items:flex-start; pointer-events:none; }
+      .ojama-bar{ position:absolute; left:10px; right:10px; top:calc(50px + env(safe-area-inset-top) + var(--top-extra)); z-index:9; display:flex; flex-wrap:wrap; gap:8px; align-items:flex-start; pointer-events:none; }
       .ojama-speech{ flex:1 1 280px; min-width:0; display:flex; gap:11px; align-items:flex-start; background:var(--card); border:1.5px solid var(--ink); border-radius:14px; padding:10px 12px; box-shadow:0 8px 24px rgba(10,17,12,.38); font-size:.95rem; line-height:1.55; color:var(--ink); }
       .ojama-speech[hidden]{ display:none; }
       .ojama-art{ flex:0 0 78px; width:78px; height:78px; border-radius:50%; overflow:hidden; border:1.5px solid var(--line); background:var(--card2); }
@@ -322,7 +328,7 @@
       .stage-box.ojama-active canvas#pond{ filter:saturate(.82); }
       /* ARモードのシャッターボタン：ARモードの間だけ画面右下（操作ボタンの上）に出す。
          キャンバスとは別の実ボタンなので、タップしても浮きは投げられない */
-      .ar-shutter{ position:absolute; right:10px; bottom:calc(136px + env(safe-area-inset-bottom) + 10px); z-index:4; width:52px; height:52px; border-radius:50%; border:2px solid rgba(255,255,255,.75); background:rgba(10,17,12,.55); color:#fff; display:none; align-items:center; justify-content:center; cursor:pointer; padding:0; }
+      .ar-shutter{ position:absolute; right:10px; bottom:calc(136px + env(safe-area-inset-bottom) + 10px + var(--bottom-extra)); z-index:4; width:52px; height:52px; border-radius:50%; border:2px solid rgba(255,255,255,.75); background:rgba(10,17,12,.55); color:#fff; display:none; align-items:center; justify-content:center; cursor:pointer; padding:0; }
       .ar-shutter.on{ display:flex; }
       .ar-shutter svg{ width:26px; height:26px; display:block; }
       .ar-shutter:active{ background:rgba(10,17,12,.8); }
@@ -4878,7 +4884,12 @@ var CW = 800, CH = 640, perfNow = 0, canvasScale = 1;
    さらに段階的に軽くする（描画解像度・水面の密度・竿の分割数を落とす）。
    速い端末では従来どおりの画質のまま */
 var UA_STR = navigator.userAgent || "";
-var IN_APP_BROWSER = /Instagram|FBAN|FBAV|FB_IAB|\bLine\//i.test(UA_STR);
+var IN_APP_BROWSER = /Instagram|FBAN|FBAV|FB_IAB|\bLine\/|Twitter|TikTok|BytedanceWebview/i.test(UA_STR);
+/* アプリ内ブラウザではホスト側のナビゲーションバーが画面上部を覆うため、
+   ツールバー・メッセージ欄・お邪魔カード・情報バーを 64px 下げる。
+   下部ツールバーが画面下部を覆うため、下のボタン群とシャッターボタンも
+   56px 上げる。写真バンドは各要素の実測位置から決まるので連動する */
+if(IN_APP_BROWSER){ document.documentElement.style.setProperty("--top-extra", "64px"); document.documentElement.style.setProperty("--bottom-extra", "56px"); }
 var perfLevel = IN_APP_BROWSER ? 1 : 0; // 0=通常, 1=軽量, 2=最軽量
 var perfSlowStreak = 0, perfGoodStreak = 0, perfLastLevelChange = 0;
 var drawFrameCount = 0, uiCovered = false, uiCoverCheckTs = 0;
@@ -5072,11 +5083,15 @@ function photoBandRect(){
   var tb = document.querySelector(".toolbar");
   var topH = tb ? tb.offsetHeight : 50;
   var sz = document.getElementById("statusZone");
-  var zoneH = sz ? sz.offsetHeight : 140;
+  var zoneH = (sz && sz.offsetHeight > 0) ? sz.offsetHeight : 140;
   var ac = document.getElementById("actMain");
   var actH = ac ? ac.offsetHeight : 136;
-  var top = topH + zoneH;
-  var bottom = CH - actH;
+  /* 帯の上端はメッセージ欄の実際の底辺、下端は下のボタン群の実際の上端。
+     高さだけの計算だと --top-extra (64px) や --bottom-extra (56px) の
+     分だけずれ、写真がメッセージ欄やボタンの裏に隠れてしまう。
+     要素が非表示 (offsetHeight 0) のときは従来の計算にフォールバック */
+  var top = (sz && sz.offsetHeight > 0) ? sz.offsetTop + zoneH : topH + zoneH;
+  var bottom = (ac && ac.offsetHeight > 0) ? ac.offsetTop : (CH - actH);
   if(bottom - top < 160){ top = Math.max(0, bottom - 160); }
   return {top:top, bottom:bottom, h:Math.max(160, bottom - top)};
 }
