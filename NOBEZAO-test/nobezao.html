@@ -5210,20 +5210,22 @@ function drawWaterSurface(t){
     ctx.restore();
   }
   // さざ波：沖では短く細かく、手前では長く大きく。風で流れる速さと量が変わる
-  // 1本ずつ両端の尖った薄いレンズ形で描く（水面のきらめき）。直線の棒を並べた
-  // スタンプ感をなくし、行・列の格子もセルごとに崩す。色は白一辺倒ではなく
-  // 時間帯に合う柔らかい色にして、透明度は低めに保つ
+  // 1本ずつ両端の尖ったレンズ形で描く（水面のきらめき）。手前は太さを
+  // 2.5〜3pxまでふくらませ、傾きとうねりもはっきりさせて直線に見せない。
+  // 行のy位置も大きく崩して列が揃って見えないようにする。色は白一辺倒では
+  // なく時間帯に合う柔らかい色にして、透明度は低めに保つ
   ctx.lineCap = "round";
   var rows = perfLevel >= 1 ? 11 : 17;
   var rowH = (maxY - minY) / rows;
   var hiCol = sel.time === "evening" ? "255,214,175" : (sel.time === "morning" ? "255,234,198" : "205,227,238");
   for(var r=0;r<rows;r++){
     var fr = r/(rows-1); // 0=沖, 1=手前
-    var ry = minY + 5 + Math.pow(fr, 1.35)*(maxY - minY - 9) + (hash01(r*91 + 7) - 0.5)*rowH*0.8;
+    var ry = minY + 5 + Math.pow(fr, 1.35)*(maxY - minY - 9) + (hash01(r*91 + 7) - 0.5)*rowH*1.5;
+    if(ry < minY + 2) ry = minY + 2; if(ry > maxY - 2) ry = maxY - 2;
     var segLen = (4 + fr*fr*30) * (0.8 + hash01(r*29 + 11)*0.4);
     var gap = (15 + fr*26) * (0.8 + hash01(r*43 + 3)*0.45);
     var drift = reduced ? 0 : wavePhase*(0.45 + fr*0.8);
-    var alphaBase = 0.03 + fr*0.05 + windGust*0.025;
+    var alphaBase = 0.04 + fr*0.06 + windGust*0.025;
     var cell = segLen + gap;
     var startCi = Math.floor((-drift - cell)/cell);
     for(var ci=startCi; ci*cell - drift < W + cell; ci++){
@@ -5232,11 +5234,13 @@ function drawWaterSurface(t){
       var hh = hash01(r*57 + ci*29);
       if(hh < 0.28) continue; // 歯抜けにして自然に
       var len = segLen*(0.4 + hh*1.2);
-      var wyy = ry + Math.sin(t*1.25 + ci*1.7 + r*2.3)*(0.4 + fr*0.9);
+      var wyy = ry + Math.sin(t*1.25 + ci*1.7 + r*2.3)*(0.6 + fr*1.4);
       var al = alphaBase*(0.45 + hh*0.9);
-      var dy = (hash01(r*67 + ci*23) - 0.5)*(1.0 + fr*2.4);
-      var sag = (hash01(r*37 + ci*11) - 0.5)*(1.0 + fr*2.0);
-      var th = 0.55 + fr*1.15;
+      var dy = (hash01(r*67 + ci*23) - 0.5)*(1.5 + fr*5.0);
+      var sag = (hash01(r*37 + ci*11) - 0.5)*(1.5 + fr*4.5);
+      // レンズの半厚：描かれる太さは約0.85*th。沖は細いまま、手前は
+      // th=3.5前後で太さ約3pxになり、両端のテーパーが目に見える
+      var th = (0.55 + Math.pow(fr, 1.6)*2.95) * (0.75 + hh*0.5);
       var mx = hx + len/2, my = wyy + dy/2;
       if(hh > 0.62){ ctx.fillStyle = "rgba(12,30,26," + al.toFixed(3) + ")"; }
       else { ctx.fillStyle = "rgba(" + hiCol + "," + al.toFixed(3) + ")"; }
