@@ -1128,7 +1128,7 @@ body.edit-off #edit{
         <div class="row" id="gSrcBtns" style="gap:6px;flex-wrap:nowrap;">
           <button id="gDemo" type="button" aria-haspopup="true" aria-expanded="false">DEMO</button>
           <button id="gMic" type="button">MIC</button>
-          <button id="gMonitor" type="button" class="active">MONITOR</button>
+          <button id="gMonitor" type="button">MONITOR</button>
           <button id="gFile" type="button">AUDIO</button>
           <input id="gFileInput" type="file" accept="audio/*,.wav,.mp3,.m4a,.aac,.ogg,.flac" hidden>
         </div>
@@ -1956,8 +1956,7 @@ async function ensureAudio() {
     /*
       AudioContext の生成直後、await より前に解除することが重要。
     */
-    /* iOS: マイクを掴んでいないときは音のセッションを「再生」にしておく（受話口に回るのを防ぐ念押し）。getUserMedia使用時は通話モードになるが、普段のシンセ演奏ではマイクを掴まないので再生モードのままになる */
-    try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch (e) {}
+    
     audio = new AC({ latencyHint: "interactive" });
 
     unlockIOSAudioImmediately();
