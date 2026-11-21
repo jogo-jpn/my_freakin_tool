@@ -322,6 +322,17 @@
       @media (prefers-reduced-motion: reduce){ #ovOpening .logo{ animation:none; } }
       .opstory{ color:var(--ink); font-size:10px; line-height:2.1; max-width:520px; margin:14px 0 2px; }
       .opstory b{ color:var(--gold); }
+      /* access counter on the opening (top) screen: classic hit-counter
+         box — black odometer digits on a dark plate, under PRESS START */
+      .visit-counter{ margin-top:12px; align-self:center; display:inline-flex; align-items:center; gap:10px;
+        background:#0d0d14; border:1px solid var(--line); padding:8px 10px 8px 12px; }
+      .visit-counter .vc-label{ font-size:7px; letter-spacing:.14em; color:var(--dim); line-height:1.6; white-space:nowrap; }
+      .visit-counter .vc-dot{ width:7px; height:7px; border-radius:50%; flex:none;
+        background:var(--hp); box-shadow:0 0 6px rgba(88,194,74,.85); }
+      .visit-counter .vc-num{ font-size:12px; letter-spacing:.22em; color:var(--gold);
+        background:#000; border:1px solid #3a3a4a; padding:7px 8px 7px 10px;
+        font-variant-numeric:tabular-nums; line-height:1; min-width:108px; text-align:center;
+        text-shadow:0 0 8px rgba(245,185,33,.45); }
 
       /* ---------- Info modal ---------- */
       .infomodal{ position:fixed; inset:0; z-index:60; display:flex; align-items:center; justify-content:center;
@@ -421,6 +432,11 @@
           <b>J</b>, <b>R</b> AND <b>D</b> HIT THE STREETS TO TAKE THEM BACK — FIGHT THROUGH <b>5 STAGES</b>, FIND <b>3 MICS</b> IN EACH ONE, AND FACE THE BOSSES WAITING AT THE END.<br>
           YOUR <b>CLEAR TIME</b> RUNS FROM GAME START TO THE FINAL BOSS — BEAT HIM, AND YOUR SCORE AND TIME GO INTO THE <b>ONLINE RANKING</b> FOR EVERYONE TO SEE!</p>
           <button class="bigbtn" id="btnOpening">▶ PRESS START</button>
+          <div class="visit-counter" id="visitCounter" role="status" aria-label="Access counter">
+            <span class="vc-dot" aria-hidden="true"></span>
+            <span class="vc-label">VISITS</span>
+            <span class="vc-num" id="visitCount">------</span>
+          </div>
         </div>
 
         <!-- Title overlay -->
@@ -2826,6 +2842,13 @@ const RANK_RULES_TEXT = [
   "        && request.resource.data.createdAt == request.time;",
   "      allow update, delete: if false;",
   "    }",
+  "    // 閲覧カウンター（King of Rock トップ画面）",
+  "    match /page_views/{pageId} {",
+  "      allow read: if true;",
+  "      allow create: if request.resource.data.count == 1;",
+  "      allow update: if request.resource.data.count == resource.data.count + 1;",
+  "      allow delete: if false;",
+  "    }",
   "  }",
   "}"
 ].join("\n");
@@ -2845,6 +2868,43 @@ try{
 }catch(e){
   fbInitError = (e && e.message) ? e.message : 'Firebase init failed';
   fbRankState = 'offline';
+}
+/* ---- access counter (top / opening screen) ----
+   Shared Firebase project, collection page_views, doc "king-of-rock"
+   — the same counter pattern as ORBIT. Rules (already shared with the
+   owner): public read, create only at count==1, update only +1.
+   One bump per page load; if Firestore is unreachable or the rules
+   are not set yet, it falls back to a read-only display / dashes and
+   never blocks the game. */
+const VIEW_COLLECTION = 'page_views';
+const VIEW_DOC = 'king-of-rock';
+let visitBumped = false;
+function renderVisitCount(n){
+  const el = $('visitCount'); if(!el) return;
+  if(typeof n === 'number' && isFinite(n)) el.textContent = String(Math.max(0, Math.floor(n))).padStart(6, '0');
+}
+function bumpVisitCounter(){
+  if(visitBumped) return;
+  visitBumped = true;
+  const el = $('visitCount'); if(!el) return;
+  if(!fbDb){ el.textContent = '------'; return; }
+  const ref = fbDb.collection(VIEW_COLLECTION).doc(VIEW_DOC);
+  fbDb.runTransaction(tx=>{
+    return tx.get(ref).then(doc=>{
+      if(!doc.exists){ tx.set(ref, { count: 1 }); return 1; }
+      const cur = (doc.data() && typeof doc.data().count === 'number') ? doc.data().count : 0;
+      const nxt = cur + 1;
+      tx.update(ref, { count: nxt });
+      return nxt;
+    });
+  }).then(n=>{ renderVisitCount(n); })
+  .catch(()=>{
+    /* increment denied / offline: try to at least show the current total */
+    ref.get().then(doc=>{
+      if(doc.exists && doc.data() && typeof doc.data().count === 'number') renderVisitCount(doc.data().count);
+      else el.textContent = '------';
+    }).catch(()=>{ el.textContent = '------'; });
+  });
 }
 function escHtml(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function rankEntries(){ return fbRankState === 'ready' ? fbRankings : LOCAL_RANKINGS; }
@@ -3150,6 +3210,7 @@ function loop(now){
   requestAnimationFrame(loop);
 }
 loadStage(0,0); state='opening'; G.player.x = 200;
+bumpVisitCounter();
 requestAnimationFrame(loop);
 </script>
 </body>
