@@ -1071,6 +1071,9 @@ function newPlayer(heroIdx){
     atk:null, atkId:0, gauge:100, gaugeMsgT:0, gaugeLock:false, invuln:0, reviveT:0, hurtT:0, walkT:0, moving:false,
     rushQueue:0, rushSeq:null, rushTimer:0, slowGauge:false };
 }
+/* the goal opens only when every clear condition is met: all 3 mics, and
+   on a boss stage the boss beaten as well */
+function goalOpen(){ return !!G && G.mics>=3 && (!G.bossStage || G.bossDefeated); }
 function loadStage(idx, keepScore){
   const st = STAGES[idx];
   curTrack = idx % TRACKS.length; // BGM groove rotates per stage
@@ -1084,7 +1087,11 @@ function loadStage(idx, keepScore){
        otherwise wall the stage off completely. */
     obstacles:st.obstacles.map(o=>{ const s = (OBS_SCALE[o.type]||1) * (o.scale||1); const fw = Math.round(OBSTACLE_DIM[o.type].w*s), fh = Math.round(OBSTACLE_DIM[o.type].h*s); return {x:o.x, type:o.type, w:fw, h:Math.min(fh,222), dh:fh}; }),
     items:[], parts:[], texts:[], projs:[], eprojs:[], allies:[], spawnT:2000, spawnLeft: st.reinforce||0, waves:st.waves.map(w=>({at:w.at, spawns:w.spawns, done:false})),
-    pending:[], mics:0, score: keepScore||0, cam:0, shake:0, time:0, boss:null, bossGate:null, exitHintT:0 };
+    pending:[], mics:0, score: keepScore||0, cam:0, shake:0, time:0, boss:null, bossGate:null, exitHintT:0,
+    /* a stage whose waves field a boss (stages 4 & 5) can only be cleared
+       once that boss is beaten — collecting the 3 mics alone never opens
+       its goal */
+    bossStage: st.waves.some(w=>w.spawns.some(s=>ETYPES[s[0]] && ETYPES[s[0]].boss)), bossDefeated:false };
   $('hudStage').textContent = st.name;
   $('bossbar').style.display = 'none';
   updateHUD();
@@ -1293,7 +1300,7 @@ function damageEnemy(e, dmg, dir, power, rush, punchKb){
     if(e.carrier && G.mics<3){ dropItem(e.x, 'mic'); floatText(e.x, GROUND - e.z, 160, 'DROPPED A MIC!', '#f5b921'); }
     else if(e.def.boss && G.mics<3){ dropItem(e.x, 'mic'); floatText(e.x, GROUND - e.z, 160, 'BOSS DROPPED A MIC!', '#f5b921'); }
     else if(Math.random()<0.16) dropItem(e.x, 'burger');
-    if(e.def.boss && G.boss===e){ G.boss=null; }
+    if(e.def.boss && G.boss===e){ G.boss=null; G.bossDefeated=true; showMsg('BOSS DOWN! THE GOAL IS OPEN — RUN TO THE EXIT ON THE RIGHT!', 3200); }
     sfx('hit2');
   } else sfx('hit');
   updateHUD();
@@ -2054,7 +2061,8 @@ function update(dt){
             G.pending.push({type:G.bossGate, x:p.x + (p.x < st.world-560 ? 430 : -430), delay:1100});
             G.bossGate = null;
             showMsg('ALL 3 MICS! THE BOSS IS COMING!', 3200);
-          } else showMsg('ALL 3 MICS! RUN TO THE EXIT ON THE RIGHT!', 3200);
+          } else if(G.bossStage && !G.bossDefeated) showMsg('ALL 3 MICS! NOW BEAT THE BOSS TO OPEN THE GOAL!', 3200);
+          else showMsg('ALL 3 MICS! RUN TO THE EXIT ON THE RIGHT!', 3200);
         } }
       else { p.hp = Math.min(p.maxhp, p.hp+30); G.score+=50; sfx('eat'); floatText(p.x, GROUND - p.z, 140, '+30', '#9fe870'); }
       G.items.splice(i,1); updateHUD();
@@ -2069,10 +2077,16 @@ function update(dt){
   const target = Math.max(0, Math.min(st.world - W, p.x - W*0.42));
   G.cam += (target - G.cam)*0.12;
   if(G.shake>0) G.shake *= 0.86;
-  /* exit */
-  if(G.mics>=3 && p.x > st.world-70){ stageClear(); return; }
-  if(p.x > st.world-70 && G.mics<3){
-    if(G.exitHintT<=0){ showMsg((3-G.mics)+' MIC(S) LEFT! SEARCH ENEMIES AND OBJECTS', 2200); G.exitHintT = 3000; }
+  /* exit: reaching the gate clears the stage ONLY while the goal is open
+     (3 mics + boss beaten on boss stages); otherwise the gate just reports
+     what is still missing and the player stays in the stage */
+  if(p.x > st.world-70){
+    if(goalOpen()){ stageClear(); return; }
+    if(G.exitHintT<=0){
+      if(G.mics<3) showMsg((3-G.mics)+' MIC(S) LEFT! SEARCH ENEMIES AND OBJECTS', 2200);
+      else showMsg('THE GOAL IS SEALED! BEAT THE BOSS FIRST!', 2200);
+      G.exitHintT = 3000;
+    }
   }
   if(G.exitHintT>0) G.exitHintT -= dt;
   updateHUD();
@@ -2370,7 +2384,7 @@ function draw(){
   ctx.fillStyle='rgba(255,255,255,.06)'; ctx.fillRect(0,GROUND+8,W,2);
   /* goal gate: always visible; border edges cycle colors once the gate is open */
   {
-    const open = G.mics>=3;
+    const open = goalOpen();
     const gw = 108, gh = 330;
     const gx = st.world - 8 - gw - camX, gy = GROUND - gh;
     if(gx > -gw-70 && gx < W+70){
@@ -2427,7 +2441,7 @@ function draw(){
       } else {
         ctx.font = '10px "Press Start 2P", monospace';
         ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(0,0,0,.85)'; ctx.fillStyle = '#d7dee9';
-        const label = (3-G.mics)+' TO GO';
+        const label = G.mics>=3 ? 'BEAT BOSS' : (3-G.mics)+' TO GO';
         ctx.strokeText(label, cxg, gy+90); ctx.fillText(label, cxg, gy+90);
       }
     }
@@ -2646,6 +2660,7 @@ function startGame(){
   showMsg('FIND 3 MICS! BEAT THE CREW TO LEVEL UP!', 2600);
 }
 function stageClear(){
+  if(G && G.bossStage && !G.bossDefeated) return; // belt and braces: a boss stage never clears while its boss stands
   state='clear'; sfx('clear');
   const bonus = Math.round(G.player.hp) * 10;
   G.score += 500 + bonus;
