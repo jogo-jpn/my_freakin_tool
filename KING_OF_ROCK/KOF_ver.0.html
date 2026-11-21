@@ -333,6 +333,15 @@
         background:#000; border:1px solid #3a3a4a; padding:7px 8px 7px 10px;
         font-variant-numeric:tabular-nums; line-height:1; min-width:108px; text-align:center;
         text-shadow:0 0 8px rgba(245,185,33,.45); }
+      /* online ranking on the opening (top) screen: the same public
+         kor_scores top 8 as the all-clear screen, shown under the counter */
+      .toprank{ margin-top:14px; width:min(430px,94%); align-self:center;
+        background:#0d0d14; border:1px solid var(--line); padding:10px 12px 8px; }
+      .toprank .tr-head{ font-size:9px; letter-spacing:.14em; color:var(--gold); line-height:1.6; }
+      .toprank .tr-head small{ display:block; color:var(--dim); font-size:6.5px; letter-spacing:.1em; margin-top:3px; }
+      .toprank .ranklist{ margin:8px auto 2px; }
+      .toprank .tr-status{ color:var(--dim); font-size:7.5px; margin-top:8px; line-height:1.7; }
+      .toprank .tr-status.err{ color:#ff8d84; }
 
       /* ---------- Info modal ---------- */
       .infomodal{ position:fixed; inset:0; z-index:60; display:flex; align-items:center; justify-content:center;
@@ -436,6 +445,11 @@
             <span class="vc-dot" aria-hidden="true"></span>
             <span class="vc-label">VISITS</span>
             <span class="vc-num" id="visitCount">------</span>
+          </div>
+          <div class="toprank pix4" role="region" aria-label="Online ranking">
+            <div class="tr-head">🏆 ONLINE RANKING<small>TOP 8 — SCORE · CLEAR TIME</small></div>
+            <ol class="ranklist" id="topRankList"></ol>
+            <div class="tr-status" id="topRankStatus"></div>
           </div>
         </div>
 
@@ -2908,14 +2922,32 @@ function bumpVisitCounter(){
 }
 function escHtml(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function rankEntries(){ return fbRankState === 'ready' ? fbRankings : LOCAL_RANKINGS; }
-function renderRanking(){
-  const ol = $('rankList'); if(!ol) return;
+function rankListHtml(){
   const list = rankEntries();
   if(!list.length){
-    ol.innerHTML = '<li class="none">'+((fbRankState==='loading'||fbRankState==='idle') ? 'LOADING THE ONLINE RANKING…' : 'NO SCORES YET — BE THE FIRST!')+'</li>';
-    return;
+    return '<li class="none">'+((fbRankState==='loading'||fbRankState==='idle') ? 'LOADING THE ONLINE RANKING…' : 'NO SCORES YET — BE THE FIRST!')+'</li>';
   }
-  ol.innerHTML = list.slice(0,8).map((r,i)=>'<li'+(r.fresh?' class="fresh"':'')+'><span>'+(i+1)+'. '+escHtml(r.name)+'</span><span>'+r.score+' · '+fmtTime(r.time||0)+'</span></li>').join('');
+  return list.slice(0,8).map((r,i)=>'<li'+(r.fresh?' class="fresh"':'')+'><span>'+(i+1)+'. '+escHtml(r.name)+'</span><span>'+r.score+' · '+fmtTime(r.time||0)+'</span></li>').join('');
+}
+function renderRanking(){
+  const ol = $('rankList'); if(ol) ol.innerHTML = rankListHtml();
+  renderTopRanking();
+}
+/* the same top 8 on the opening (top) screen, under the access counter */
+function renderTopRanking(){
+  const ol = $('topRankList'); if(ol) ol.innerHTML = rankListHtml();
+  const el = $('topRankStatus'); if(!el) return;
+  let msg = '', isErr = false;
+  if(fbRankState === 'loading' || fbRankState === 'idle'){
+    msg = 'LOADING THE ONLINE RANKING…';
+  } else if(fbRankState === 'ready'){
+    msg = 'PUBLIC RANKING — BEAT THE FINAL BOSS TO JOIN IT!';
+  } else {
+    isErr = true;
+    msg = 'THE ONLINE RANKING COULD NOT BE LOADED. CHECK YOUR CONNECTION AND RELOAD THE PAGE.';
+  }
+  el.textContent = msg;
+  el.className = 'tr-status' + (isErr ? ' err' : '');
 }
 function updateRankStatusUI(){
   const el = $('rankStatus'), rb = $('btnRankRetry'), box = $('rankRulesBox');
@@ -3211,6 +3243,8 @@ function loop(now){
 }
 loadStage(0,0); state='opening'; G.player.x = 200;
 bumpVisitCounter();
+renderTopRanking();
+loadOnlineRankings(); // fill the top screen's ranking right away
 requestAnimationFrame(loop);
 </script>
 </body>
