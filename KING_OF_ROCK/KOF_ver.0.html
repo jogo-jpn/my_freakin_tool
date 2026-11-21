@@ -8,6 +8,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
     <title>King of Rock — Belt Action Game</title>
     <style>
       :root{
@@ -99,6 +101,16 @@
       .ranklist li{ display:flex; justify-content:space-between; gap:12px; padding:4px 8px; border-bottom:1px dashed #2c2c3c; color:var(--ink); }
       .ranklist li.fresh{ color:var(--gold); }
       .ranklist li.none{ justify-content:center; color:var(--dim); border-bottom:none; }
+      .rankstatus{ color:var(--dim); font-size:8px; margin-top:10px; line-height:1.7; }
+      .rankstatus.err{ color:#ff8d84; }
+      .rankretry{ margin-top:8px; background:var(--panel2); color:var(--ink); border:1px solid var(--line);
+        border-radius:8px; font-family:inherit; font-size:8px; padding:8px 14px; cursor:pointer; }
+      .rankrules{ margin-top:12px; text-align:left; }
+      .rankrules summary{ color:var(--dim); font-size:8px; cursor:pointer; line-height:1.7; }
+      .rankrules pre{ background:#0d0d14; border:1px solid var(--line); border-radius:8px; color:var(--ink);
+        font-family:"Courier New",monospace; font-size:10px; line-height:1.5; padding:10px; margin:8px 0;
+        white-space:pre-wrap; word-break:break-all; user-select:text; -webkit-user-select:text; }
+      .rankrules .rankretry{ margin-top:0; }
       .bigbtn:disabled{ opacity:.45; cursor:default; }
 
       /* ---------- Stage / canvas ---------- */
@@ -335,7 +347,7 @@
           <h1 class="logo">King of <span class="mic">Rock</span></h1>
           <p class="opstory">ONE NIGHT, THE CREW'S THREE GOLDEN MICS WERE STOLEN BY THE STREET GANGS.<br>
           <b>J</b>, <b>R</b> AND <b>D</b> HIT THE STREETS TO TAKE THEM BACK — FIGHT THROUGH <b>5 STAGES</b>, FIND <b>3 MICS</b> IN EACH ONE, AND FACE THE BOSSES WAITING AT THE END.<br>
-          YOUR <b>CLEAR TIME</b> RUNS FROM GAME START TO THE FINAL BOSS — BEAT HIM, AND YOUR SCORE AND TIME GO INTO THE RANKING!</p>
+          YOUR <b>CLEAR TIME</b> RUNS FROM GAME START TO THE FINAL BOSS — BEAT HIM, AND YOUR SCORE AND TIME GO INTO THE <b>ONLINE RANKING</b> FOR EVERYONE TO SEE!</p>
           <button class="bigbtn" id="btnOpening">▶ PRESS START</button>
         </div>
 
@@ -375,6 +387,13 @@
             </div>
             <div class="rankmsg" id="rankMsg"></div>
             <ol class="ranklist" id="rankList"></ol>
+            <div class="rankstatus" id="rankStatus"></div>
+            <button class="rankretry" id="btnRankRetry" hidden>↻ RELOAD RANKING</button>
+            <details class="rankrules" id="rankRulesBox" hidden>
+              <summary>FIRESTORE RULES FOR THIS RANKING (FOR THE OWNER — PASTE INTO THE FIREBASE CONSOLE)</summary>
+              <pre id="rankRulesText"></pre>
+              <button class="rankretry" id="btnCopyRules">COPY RULES</button>
+            </details>
           </div>
           <button class="bigbtn gold" id="btnToTitle2">TITLE</button>
         </div>
@@ -453,7 +472,7 @@
         <section>
           <h3>HOW TO PLAY</h3>
           <p>FIGHT YOUR WAY LEFT AND RIGHT, COLLECT <b>3 MICS</b>, THEN HEAD TO THE EXIT ON THE FAR RIGHT. MICS COME FROM <b>ENEMY DROPS</b> AND <b>BREAKABLE OBJECTS</b> — NO ENEMY SHOWS WHETHER IT CARRIES ONE, SO EVERY DROP IS A SURPRISE. GRAB A BURGER TO HEAL.<br>
-          CRATES, HYDRANTS, BENCHES AND CONTAINERS ARE <b>OBSTACLES: JUMP OVER THEM OR LAND ON TOP</b>. ENEMIES HIT HARD, SO JUMPING TO DODGE WORKS TOO. MOHAWK PUNKS KEEP THEIR DISTANCE AND FLING THEIR HAIR AT YOU — IT FLIES SLOW, SO JUMP OVER IT OR CROUCH UNDER IT, BECAUSE A DIRECT HIT KNOCKS YOU BACK SIX TIMES HARDER THAN A NORMAL HIT! AND WHENEVER YOU LAND THE FINISHING BLOW ON ANY ENEMY, THE BODY IS KNOCKED BACK WITH FIVE TIMES THE USUAL FORCE AND FADES AWAY AS IT SLIDES. ONLY ONE MOHAWK SHOWS UP AT A TIME, AND AFTER A HAIR THROW IT CANNOT THROW AGAIN FOR 8 SECONDS. A STAGE'S BOSS ONLY SHOWS HIMSELF ONCE YOU HAVE FOUND ALL 3 MICS — COLLECT THEM AND HE COMES TO YOU. THE MOMENT A BOSS APPEARS, EVERY GRUNT ON THE FIELD VANISHES AND NO NEW ONES SHOW UP — FROM THEN ON IT IS JUST YOU AND THE BOSS. BOSSES TURN INVINCIBLE FOR 1 SEC AFTER EVERY HIT AND LEAP AT YOU — STRIKE RIGHT AFTER THEY LAND! WHEN A BOSS APPEARS, THE MUSIC SWITCHES TO THAT BOSS'S OWN FASTER HIP HOP TRACK — BOSS MUSCLE AND BOSS COAT EACH HAVE A DIFFERENT ONE — UNTIL HE FALLS. RAPID RUSH PUNCHES THROUGH BOSS GUARD — WHILE THE RUSH IS FIRING, BOSS INVINCIBILITY DOES NOT WORK. THE FINAL BOSS, BOSS COAT, TAKES ONLY HALF DAMAGE, FLINGS HIS HAT FROM FAR AWAY (5 PER FIGHT — IT FLIES LOW, SO JUMP IT, CROUCHING WILL NOT SAVE YOU) AND SPINS HIS COAT UP CLOSE (3 PER FIGHT): GET CAUGHT AND YOU FLY ALL THE WAY TO THE EDGE OF THE STAGE! ANY ENEMY — BOSS INCLUDED — THAT CAMPS IN ONE SPOT FOR A WHILE WITHOUT HURTING YOU LEAPS AWAY TO A NEW POSITION. BEAT THE FINAL BOSS AND YOU CAN REGISTER YOUR SCORE AND CLEAR TIME IN THE RANKING — THE VICTORY SCREEN PLAYS ITS OWN CELEBRATION HIP HOP GROOVE WHILE YOU DO! YOUR PLAY TIME RUNS AT THE TOP OF THE SCREEN (TIME) FROM THE MOMENT YOU PRESS GAME START UNTIL THE FINAL CLEAR.</p>
+          CRATES, HYDRANTS, BENCHES AND CONTAINERS ARE <b>OBSTACLES: JUMP OVER THEM OR LAND ON TOP</b>. ENEMIES HIT HARD, SO JUMPING TO DODGE WORKS TOO. MOHAWK PUNKS KEEP THEIR DISTANCE AND FLING THEIR HAIR AT YOU — IT FLIES SLOW, SO JUMP OVER IT OR CROUCH UNDER IT, BECAUSE A DIRECT HIT KNOCKS YOU BACK SIX TIMES HARDER THAN A NORMAL HIT! AND WHENEVER YOU LAND THE FINISHING BLOW ON ANY ENEMY, THE BODY IS KNOCKED BACK WITH FIVE TIMES THE USUAL FORCE AND FADES AWAY AS IT SLIDES. ONLY ONE MOHAWK SHOWS UP AT A TIME, AND AFTER A HAIR THROW IT CANNOT THROW AGAIN FOR 8 SECONDS. A STAGE'S BOSS ONLY SHOWS HIMSELF ONCE YOU HAVE FOUND ALL 3 MICS — COLLECT THEM AND HE COMES TO YOU. THE MOMENT A BOSS APPEARS, EVERY GRUNT ON THE FIELD VANISHES AND NO NEW ONES SHOW UP — FROM THEN ON IT IS JUST YOU AND THE BOSS. BOSSES TURN INVINCIBLE FOR 1 SEC AFTER EVERY HIT AND LEAP AT YOU — STRIKE RIGHT AFTER THEY LAND! WHEN A BOSS APPEARS, THE MUSIC SWITCHES TO THAT BOSS'S OWN FASTER HIP HOP TRACK — BOSS MUSCLE AND BOSS COAT EACH HAVE A DIFFERENT ONE — UNTIL HE FALLS. RAPID RUSH PUNCHES THROUGH BOSS GUARD — WHILE THE RUSH IS FIRING, BOSS INVINCIBILITY DOES NOT WORK. THE FINAL BOSS, BOSS COAT, TAKES ONLY HALF DAMAGE, FLINGS HIS HAT FROM FAR AWAY (5 PER FIGHT — IT FLIES LOW, SO JUMP IT, CROUCHING WILL NOT SAVE YOU) AND SPINS HIS COAT UP CLOSE (3 PER FIGHT): GET CAUGHT AND YOU FLY ALL THE WAY TO THE EDGE OF THE STAGE! ANY ENEMY — BOSS INCLUDED — THAT CAMPS IN ONE SPOT FOR A WHILE WITHOUT HURTING YOU LEAPS AWAY TO A NEW POSITION. BEAT THE FINAL BOSS AND YOU CAN REGISTER YOUR SCORE AND CLEAR TIME IN THE ONLINE RANKING — IT IS PUBLIC, SO EVERY PLAYER CAN SEE THE TOP 8, AND THE VICTORY SCREEN PLAYS ITS OWN CELEBRATION HIP HOP GROOVE WHILE YOU DO! YOUR PLAY TIME RUNS AT THE TOP OF THE SCREEN (TIME) FROM THE MOMENT YOU PRESS GAME START UNTIL THE FINAL CLEAR.</p>
         </section>
         <section>
           <h3>LEVEL UP &amp; SPECIAL MOVES</h3>
@@ -2641,27 +2660,182 @@ function gameOver(){
   $('overSub').innerHTML = 'YOU WENT DOWN ON '+G.stage.name+' WITH NO LIVES LEFT...<br>FINAL SCORE: <b>'+G.score+'</b><br>TIME: <b>'+fmtTime(runTime)+'</b><br><span style="font-size:8px">GAME OVER — START OVER FROM STAGE 1, BACK AT LV 1</span>';
   $('ovOver').classList.remove('hidden');
 }
-/* score ranking: beating the final boss lets the player register their
-   score AND their start-to-clear time under their name (kept for this
-   session). The screen plays the celebratory victory hip hop groove. */
-const RANKINGS = [];
+/* score ranking (ONLINE / Firestore): beating the final boss lets the
+   player register their score AND their start-to-clear time under their
+   name in a PUBLIC ranking every player can see — the same setup as
+   NOBEZAO: the shared Firebase project, collection kor_scores, public
+   read, validated create-only writes. While the online list is loading
+   (or if it cannot be reached), this session's entries are shown as a
+   fallback so the screen never sits empty, and registration stays
+   blocked with a clear message instead of faking a local entry.
+   The screen plays the celebratory victory hip hop groove. */
+var FB_CONFIG = {
+  apiKey: "AIzaSyAyY5dx0abrg8ebszeSW09FjsTcHhBmErM",
+  authDomain: "jogo-base1.firebaseapp.com",
+  projectId: "jogo-base1",
+  storageBucket: "jogo-base1.firebasestorage.app",
+  messagingSenderId: "900398186329",
+  appId: "1:900398186329:web:fdd8dd385df75be1605648"
+};
+const RANK_COLLECTION = 'kor_scores';
+const RANK_NG_WORDS = [
+  "fuck", "shit", "bitch", "nigger", "nigga", "faggot", "whore",
+  "dick", "pussy", "porn", "sex", "rape", "kill", "nazi", "hitler",
+  "ばか", "バカ", "あほ", "アホ", "死ね", "しね", "殺す", "ころす",
+  "うんこ", "ちんこ", "まんこ", "セックス", "えっち", "エッチ"
+];
+const RANK_RULES_TEXT = [
+  "rules_version = '2';",
+  "service cloud.firestore {",
+  "  match /databases/{database}/documents {",
+  "    // 延べ竿日和の魚種別ランキング",
+  "    match /nobezao_scores/{doc} {",
+  "      allow read: if true;",
+  "      allow create: if request.resource.data.keys().hasOnly(['name', 'playerName', 'speciesId', 'size', 'weight', 'createdAt'])",
+  "        && request.resource.data.name is string",
+  "        && request.resource.data.name.size() >= 1",
+  "        && request.resource.data.name.size() <= 10",
+  "        && request.resource.data.playerName == request.resource.data.name",
+  "        && request.resource.data.speciesId is string",
+  "        && request.resource.data.size is number",
+  "        && request.resource.data.size > 0",
+  "        && request.resource.data.weight is number",
+  "        && request.resource.data.weight >= 0",
+  "        && request.resource.data.createdAt == request.time;",
+  "      allow update, delete: if false;",
+  "    }",
+  "    // King of Rock の公開ランキング（スコア＋クリアタイム）",
+  "    match /kor_scores/{doc} {",
+  "      allow read: if true;",
+  "      allow create: if request.resource.data.keys().hasOnly(['name', 'playerName', 'score', 'time', 'hero', 'createdAt'])",
+  "        && request.resource.data.name is string",
+  "        && request.resource.data.name.size() >= 1",
+  "        && request.resource.data.name.size() <= 10",
+  "        && request.resource.data.playerName == request.resource.data.name",
+  "        && request.resource.data.score is int",
+  "        && request.resource.data.score >= 0",
+  "        && request.resource.data.score <= 10000000",
+  "        && request.resource.data.time is int",
+  "        && request.resource.data.time >= 0",
+  "        && request.resource.data.time <= 86400000",
+  "        && request.resource.data.hero is string",
+  "        && request.resource.data.hero.size() <= 20",
+  "        && request.resource.data.createdAt == request.time;",
+  "      allow update, delete: if false;",
+  "    }",
+  "  }",
+  "}"
+].join("\n");
+let fbDb = null, fbInitError = '';
+let fbRankings = [];        /* online entries: [{id, name, score, time, hero, date, fresh}] */
+let fbRankState = 'idle';   /* idle | loading | ready | error | offline */
+let fbLoadError = '';
+let fbHighlightId = null;
+let rankSubmitting = false;
+let lastRankName = '';      /* this session only — pre-fills the name box */
+const LOCAL_RANKINGS = [];  /* this session only — fallback display */
 let rankDone = false;
+try{
+  if(typeof firebase === 'undefined') throw new Error('Firebase SDK could not be loaded');
+  firebase.initializeApp(FB_CONFIG);
+  fbDb = firebase.firestore();
+}catch(e){
+  fbInitError = (e && e.message) ? e.message : 'Firebase init failed';
+  fbRankState = 'offline';
+}
+function escHtml(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function rankEntries(){ return fbRankState === 'ready' ? fbRankings : LOCAL_RANKINGS; }
 function renderRanking(){
   const ol = $('rankList'); if(!ol) return;
-  if(!RANKINGS.length){ ol.innerHTML = '<li class="none">NO SCORES YET — BE THE FIRST!</li>'; return; }
-  ol.innerHTML = RANKINGS.slice(0,8).map((r,i)=>'<li'+(r.fresh?' class="fresh"':'')+'><span>'+(i+1)+'. '+r.name+'</span><span>'+r.score+' · '+fmtTime(r.time||0)+'</span></li>').join('');
+  const list = rankEntries();
+  if(!list.length){
+    ol.innerHTML = '<li class="none">'+((fbRankState==='loading'||fbRankState==='idle') ? 'LOADING THE ONLINE RANKING…' : 'NO SCORES YET — BE THE FIRST!')+'</li>';
+    return;
+  }
+  ol.innerHTML = list.slice(0,8).map((r,i)=>'<li'+(r.fresh?' class="fresh"':'')+'><span>'+(i+1)+'. '+escHtml(r.name)+'</span><span>'+r.score+' · '+fmtTime(r.time||0)+'</span></li>').join('');
 }
+function updateRankStatusUI(){
+  const el = $('rankStatus'), rb = $('btnRankRetry'), box = $('rankRulesBox');
+  if(!el) return;
+  let msg = '', isErr = false, showRetry = false, showRules = false;
+  if(fbRankState === 'loading' || fbRankState === 'idle'){
+    msg = 'LOADING THE ONLINE RANKING…';
+  } else if(fbRankState === 'ready'){
+    msg = 'ONLINE RANKING — PUBLIC, EVERYONE CAN SEE IT';
+  } else if(fbRankState === 'offline'){
+    isErr = true; showRetry = true;
+    msg = 'COULD NOT CONNECT TO THE ONLINE RANKING. CHECK YOUR CONNECTION AND RELOAD. (SHOWING THIS SESSION\u2019S SCORES FOR NOW)';
+  } else if(fbRankState === 'error'){
+    isErr = true; showRetry = true;
+    if(fbLoadError === 'permission-denied'){
+      showRules = true;
+      msg = 'THE ONLINE RANKING COULD NOT BE LOADED — THE FIRESTORE RULES NEED THE kor_scores SECTION (FULL RULES BELOW). (SHOWING THIS SESSION\u2019S SCORES FOR NOW)';
+    } else {
+      msg = 'THE ONLINE RANKING COULD NOT BE LOADED. CHECK YOUR CONNECTION AND RELOAD. (SHOWING THIS SESSION\u2019S SCORES FOR NOW)';
+    }
+  }
+  el.textContent = msg;
+  el.className = 'rankstatus' + (isErr ? ' err' : '');
+  if(rb) rb.hidden = !showRetry;
+  if(box) box.hidden = !showRules;
+}
+/* load everyone's scores from Firestore (public read) */
+function loadOnlineRankings(){
+  if(!fbDb){
+    if(fbRankState !== 'offline') fbRankState = 'offline';
+    updateRankStatusUI(); renderRanking();
+    return Promise.resolve();
+  }
+  fbRankState = 'loading'; fbLoadError = '';
+  updateRankStatusUI(); renderRanking();
+  return fbDb.collection(RANK_COLLECTION).limit(300).get()
+    .then(snap=>{
+      const arr = [];
+      snap.forEach(doc=>{
+        const d = doc.data() || {};
+        const nm = (typeof d.name === 'string' && d.name) ? d.name : (typeof d.playerName === 'string' ? d.playerName : '');
+        const sc = typeof d.score === 'number' ? d.score : NaN;
+        const tm = typeof d.time === 'number' ? d.time : 0;
+        if(!nm || !(sc >= 0)) return;
+        let dt = '';
+        if(d.createdAt && typeof d.createdAt.toDate === 'function'){ try{ dt = d.createdAt.toDate().toISOString(); }catch(e){} }
+        arr.push({ id:doc.id, name:nm, score:sc, time:tm, hero:(typeof d.hero === 'string' ? d.hero : ''), date:dt, fresh:(doc.id === fbHighlightId) });
+      });
+      arr.sort((a,b)=> (b.score - a.score) || (a.time - b.time));
+      fbRankings = arr;
+      fbRankState = 'ready';
+      renderRanking(); updateRankStatusUI();
+    })
+    .catch(err=>{
+      fbRankState = 'error';
+      fbLoadError = (err && err.code) ? err.code : 'unknown';
+      renderRanking(); updateRankStatusUI();
+    });
+}
+function validateRankName(raw){
+  const name = String(raw || '').trim().replace(/\s+/g,' ');
+  const len = Array.from(name).length;
+  if(len < 1 || len > 10) return { ok:false, message:'PLEASE ENTER A NAME OF 1–10 CHARACTERS.' };
+  const lowered = name.toLowerCase();
+  for(let i=0;i<RANK_NG_WORDS.length;i++){
+    if(lowered.indexOf(RANK_NG_WORDS[i]) !== -1) return { ok:false, message:'THAT NAME CANNOT BE USED. PLEASE REGISTER WITH A DIFFERENT NAME.' };
+  }
+  return { ok:true, name:name.toUpperCase() };
+}
+{ const rt = $('rankRulesText'); if(rt) rt.textContent = RANK_RULES_TEXT; }
 function showRanking(testJump){
   state='allclear';
   rankDone = false;
   bgmMode = 'clear'; musicStart(); // celebration hip hop while you register
   $('allSub').innerHTML = (testJump ? 'TEST JUMP — RANKING SCREEN' : 'YOU GOT EVERY MIC BACK!')+'<br>FINAL SCORE: <b>'+G.score+'</b><br>CLEAR TIME: <b>'+fmtTime(runTime)+'</b><br>🎤🎤🎤 THANKS FOR PLAYING!';
-  $('rankName').value = ''; $('rankName').disabled = false;
+  $('rankName').value = lastRankName; $('rankName').disabled = false;
   $('btnRank').disabled = false;
   $('rankMsg').textContent = testJump
     ? 'TEST JUMP TO THE RANKING SCREEN — ENTER YOUR NAME AND REGISTER YOUR SCORE & CLEAR TIME:'
     : 'YOU BEAT THE FINAL BOSS! ENTER YOUR NAME AND REGISTER YOUR SCORE & CLEAR TIME:';
   renderRanking();
+  updateRankStatusUI();
+  loadOnlineRankings(); // refresh the public ranking every time this screen opens
   $('ovAll').classList.remove('hidden');
 }
 function allClear(){ showRanking(false); }
@@ -2755,18 +2929,77 @@ $('btnSound').addEventListener('click', function(){
   this.textContent = AU.on ? '♪' : '✕';
   this.style.opacity = AU.on ? '1' : '.5';
 });
-/* ranking registration (all-clear screen) */
+/* ranking registration (all-clear screen): writes the score + clear
+   time to the PUBLIC online ranking (Firestore), like NOBEZAO. While
+   the online ranking is loading or unreachable, registration is blocked
+   with a clear message — nothing is faked into a local-only entry. */
 $('btnRank').addEventListener('click', ()=>{
-  if(rankDone || state!=='allclear' || !G) return;
-  const name = ($('rankName').value || '').trim().toUpperCase().replace(/[<>&"]/g,'') || 'PLAYER';
-  RANKINGS.forEach(r=>r.fresh=false);
-  RANKINGS.push({ name, score:G.score, time:Math.round(runTime), fresh:true });
-  RANKINGS.sort((a,b)=>b.score-a.score);
-  rankDone = true;
-  $('btnRank').disabled = true; $('rankName').disabled = true;
-  $('rankMsg').textContent = 'REGISTERED! YOU ARE RANK #'+(RANKINGS.findIndex(r=>r.fresh)+1)+' OF '+RANKINGS.length;
-  sfx('clear');
-  renderRanking();
+  if(rankDone || rankSubmitting || state!=='allclear' || !G) return;
+  const msg = $('rankMsg');
+  if(!fbDb || fbRankState==='offline'){
+    msg.textContent = 'CANNOT REGISTER — THE ONLINE RANKING IS UNREACHABLE. CHECK YOUR CONNECTION AND RELOAD THE RANKING.';
+    return;
+  }
+  if(fbRankState==='loading' || fbRankState==='idle'){
+    msg.textContent = 'THE ONLINE RANKING IS STILL LOADING — ONE MOMENT, THEN TRY AGAIN.';
+    if(fbRankState==='idle') loadOnlineRankings();
+    return;
+  }
+  if(fbRankState==='error'){
+    msg.textContent = 'CANNOT REGISTER — THE ONLINE RANKING COULD NOT BE LOADED. RELOAD THE RANKING AND TRY AGAIN.';
+    return;
+  }
+  const v = validateRankName($('rankName').value);
+  if(!v.ok){ msg.textContent = v.message; return; }
+  rankSubmitting = true;
+  const btn = $('btnRank'), inp = $('rankName'), btnOrig = btn.textContent;
+  btn.disabled = true; inp.disabled = true; btn.textContent = 'SENDING…';
+  msg.textContent = '';
+  const heroName = (G.player && G.player.hero && G.player.hero.name) ? G.player.hero.name : '';
+  const data = {
+    name: v.name,
+    playerName: v.name,
+    score: Math.round(G.score),
+    time: Math.round(runTime),
+    hero: heroName,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  };
+  fbDb.collection(RANK_COLLECTION).add(data)
+    .then(ref=>{
+      lastRankName = v.name;
+      fbHighlightId = ref.id;
+      rankDone = true;
+      sfx('clear');
+      return loadOnlineRankings();
+    })
+    .then(()=>{
+      if(rankDone){
+        const idx = fbRankings.findIndex(r=>r.id===fbHighlightId);
+        msg.textContent = idx >= 0
+          ? 'REGISTERED IN THE ONLINE RANKING! YOU ARE RANK #'+(idx+1)+(idx>=8 ? ' (TOP 8 SHOWN)' : '')+' OF '+fbRankings.length
+          : 'REGISTERED IN THE ONLINE RANKING!';
+      }
+    })
+    .catch(err=>{
+      rankDone = false;
+      if(err && err.code === 'permission-denied'){
+        msg.textContent = 'REGISTRATION WAS REJECTED BY THE FIRESTORE RULES — THE OWNER NEEDS TO PASTE THE RULES BELOW INTO THE FIREBASE CONSOLE.';
+        const box = $('rankRulesBox'); if(box) box.hidden = false;
+      } else {
+        msg.textContent = 'REGISTRATION FAILED. CHECK YOUR CONNECTION AND TRY AGAIN.' + (err && err.code ? ' ('+err.code+')' : '');
+      }
+    })
+    .then(()=>{
+      rankSubmitting = false;
+      btn.disabled = rankDone; inp.disabled = rankDone;
+      btn.textContent = btnOrig;
+    });
+});
+$('btnRankRetry').addEventListener('click', ()=>{ loadOnlineRankings(); });
+$('btnCopyRules').addEventListener('click', ()=>{
+  const t = $('rankRulesText').textContent;
+  const done = ()=>{ $('btnCopyRules').textContent = 'COPIED!'; setTimeout(()=>{ $('btnCopyRules').textContent = 'COPY RULES'; }, 1600); };
+  if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done, ()=>{});
 });
 /* keep name typing out of the game's keyboard controls */
 $('rankName').addEventListener('keydown', e=>{
