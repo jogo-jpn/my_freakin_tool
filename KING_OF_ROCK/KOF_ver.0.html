@@ -1,0 +1,2813 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+    <meta name="color-scheme" content="dark" />
+    <link rel="icon" href="data:," />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+    <title>King of Rock — Belt Action Game</title>
+    <style>
+      :root{
+        color-scheme: dark;
+        --bg:#0b0b10; --panel:#15151d; --panel2:#1d1d28; --line:#2e2e3d;
+        --ink:#f2ead8; --dim:#a79f8d; --gold:#f5b921; --red:#e83a30; --cyan:#39c2d7;
+        --hp:#58c24a; --hp-low:#e83a30;
+      }
+      *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+      html,body{ margin:0; padding:0; background:var(--bg); color:var(--ink);
+        font-family:"Press Start 2P","Courier New",monospace;
+        /* no long-press text selection / copy callout anywhere in the game */
+        user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; }
+      canvas, img{ -webkit-user-drag:none; user-select:none; -webkit-user-select:none; }
+      button{ min-height:2.25rem; font-family:inherit; }
+      /* column layout filling the viewport: HUD, the (taller) game screen,
+         then the controller deck raised up right underneath the screen */
+      .wrap{ max-width:1020px; margin:0 auto; padding:10px 10px 26px;
+        display:flex; flex-direction:column; min-height:100vh; min-height:100dvh; }
+      .wrap > *{ flex:none; }
+
+      /* ---------- HUD ----------
+         One single row: the name line (name, face, lives, LV), the HP bar,
+         then SCORE, TIME and the settings gear all share that same row.
+         The gear is a bare glyph — no button frame around it. */
+      .hud{ display:flex; align-items:center; gap:8px; flex-wrap:nowrap; position:relative; z-index:55;
+        background:var(--panel); border:2px solid var(--line); border-radius:0;
+        padding:7px 10px; margin-bottom:8px; }
+      .hud .who{ font-weight:400; font-size:10px; letter-spacing:.02em; white-space:nowrap; line-height:1.5; }
+      /* name plate: hero name, face icon, spare-life count, LV side by side */
+      .hud .nameline{ display:flex; align-items:center; gap:6px; }
+      #hudFace{ width:28px; height:28px; background:#0d0d14; image-rendering:pixelated; flex:none; }
+      .hud .rightbox{ display:flex; gap:12px; align-items:center; }
+      .hpbar{ flex:1 1 80px; min-width:52px; }
+      .hpbar .track{ height:14px; background:#000; border:2px solid #3a3a4a; border-radius:0; overflow:hidden; }
+      .hpbar .fill{ height:100%; width:100%; background:var(--hp); transition:width .15s; }
+      .hpbar .fill.low{ background:var(--hp-low); }
+      .posebar{ margin-top:4px; height:6px; background:#000; border:1px solid #3a3a4a; border-radius:0; overflow:hidden; }
+      .posebar .fill{ height:100%; width:100%; background:var(--gold); }
+      .posebar .fill.cool{ background:#5a5342; }
+      .posebar .fill.slow{ background:#c46a1e; }
+      .posebar .fill.lock{ background:#b0483e; }
+      /* 8-bit pixel-stepped corners: retro angular frames for meters & cards.
+         Two 2px/4px steps per corner read as chunky pixel corners. */
+      .pix2{ clip-path:polygon(2px 0, calc(100% - 2px) 0, 100% 2px, 100% calc(100% - 2px), calc(100% - 2px) 100%, 2px 100%, 0 calc(100% - 2px), 0 2px); }
+      .pix4{ clip-path:polygon(4px 0, calc(100% - 4px) 0, calc(100% - 4px) 2px, calc(100% - 2px) 2px, calc(100% - 2px) 4px, 100% 4px, 100% calc(100% - 4px), calc(100% - 2px) calc(100% - 4px), calc(100% - 2px) calc(100% - 2px), calc(100% - 4px) calc(100% - 2px), calc(100% - 4px) 100%, 4px 100%, 4px calc(100% - 2px), 2px calc(100% - 2px), 2px calc(100% - 4px), 0 calc(100% - 4px), 0 4px, 2px 4px, 2px 2px, 4px 2px); }
+      .pix8{ clip-path:polygon(8px 0, calc(100% - 8px) 0, calc(100% - 8px) 4px, calc(100% - 4px) 4px, calc(100% - 4px) 8px, 100% 8px, 100% calc(100% - 8px), calc(100% - 4px) calc(100% - 8px), calc(100% - 4px) calc(100% - 4px), calc(100% - 8px) calc(100% - 4px), calc(100% - 8px) 100%, 8px 100%, 8px calc(100% - 4px), 4px calc(100% - 4px), 4px calc(100% - 8px), 0 calc(100% - 8px), 0 8px, 4px 8px, 4px 4px, 8px 4px); }
+      .hud .who .lv{ color:var(--cyan); font-size:8px; letter-spacing:.08em; }
+      .hud .who .lives{ color:var(--gold); font-size:9px; letter-spacing:.04em; }
+      /* stage name & mic count now live as overlays on the play screen */
+      /* stage name sits at the play screen's top-LEFT, clear of the mic
+         count at the top-right */
+      .stage-tag{ position:absolute; top:8px; left:10px; z-index:6; pointer-events:none;
+        font-size:10px; letter-spacing:.05em; white-space:nowrap; color:var(--gold); line-height:1.5;
+        background:rgba(5,5,10,.55); padding:6px 12px; text-shadow:0 1px 0 #000; }
+      .mic-tag{ position:absolute; top:8px; right:10px; z-index:6; pointer-events:none;
+        font-size:10px; white-space:nowrap; color:var(--ink); line-height:1.5; font-variant-numeric:tabular-nums;
+        background:rgba(5,5,10,.55); padding:6px 10px; text-shadow:0 1px 0 #000; }
+      .mic-tag small{ color:var(--dim); font-size:7px; letter-spacing:.1em; margin-right:6px; }
+      .score{ font-variant-numeric:tabular-nums; font-weight:400; font-size:10px; white-space:nowrap; line-height:1.5; }
+      .score small{ color:var(--dim); font-size:7px; letter-spacing:.1em; display:block; font-weight:400; margin-bottom:2px; }
+      .iconbtn{ background:var(--panel2); color:var(--ink); border:1px solid var(--line);
+        border-radius:8px; width:40px; height:40px; font-size:17px; cursor:pointer; padding:0; line-height:1; }
+      .iconbtn:active{ transform:translateY(1px); }
+      /* settings gear at the right end of the HUD row + its small window: the
+         old always-visible system / test button row is gone — those buttons
+         live in the settings window the gear opens. The gear itself has NO
+         frame: no border, no background box, just the glyph. */
+      #btnSettings{ background:none; border:none; border-radius:0; box-shadow:none;
+        width:auto; height:auto; min-height:0; padding:4px 2px; font-size:19px;
+        color:var(--ink); cursor:pointer; line-height:1; flex:none; }
+      #btnSettings:active{ transform:translateY(1px); }
+      .setpanel{ background:var(--panel); border:1px solid var(--line); border-radius:12px;
+        width:100%; max-width:340px; padding:16px; }
+      .setrow{ display:flex; gap:10px; justify-content:center; margin-top:14px; }
+      .setrow .iconbtn{ flex:none; }
+      .setcap{ font-size:7px; color:var(--dim); letter-spacing:.08em; text-align:center; margin-top:6px; }
+      .setlbl{ font-size:8px; color:var(--dim); letter-spacing:.1em; text-align:center; margin-top:16px; }
+      .setpanel .testbtn{ width:auto; padding:0 12px; font-family:inherit; font-size:9px; letter-spacing:.05em;
+        color:var(--gold); border-color:#6b5518; white-space:nowrap; }
+      /* score ranking on the all-clear screen */
+      .rankbox{ margin-top:8px; width:min(430px,94%); }
+      .rankrow{ display:flex; gap:8px; justify-content:center; }
+      .rankrow input{ flex:1; min-width:0; background:#0d0d14; border:1px solid var(--line); border-radius:8px; color:var(--ink);
+        font-family:inherit; font-size:11px; padding:10px 12px; text-transform:uppercase; }
+      .rankrow input:disabled{ opacity:.45; }
+      .rankmsg{ color:var(--gold); font-size:8.5px; margin-top:9px; min-height:13px; line-height:1.7; }
+      .ranklist{ list-style:none; margin:10px auto 2px; padding:0; width:min(430px,100%); font-size:9.5px; }
+      .ranklist li{ display:flex; justify-content:space-between; gap:12px; padding:4px 8px; border-bottom:1px dashed #2c2c3c; color:var(--ink); }
+      .ranklist li.fresh{ color:var(--gold); }
+      .ranklist li.none{ justify-content:center; color:var(--dim); border-bottom:none; }
+      .bigbtn:disabled{ opacity:.45; cursor:default; }
+
+      /* ---------- Stage / canvas ---------- */
+      .stagebox{ position:relative; background:#000; border:1px solid var(--line); border-radius:10px; overflow:hidden; margin-bottom:8px; }
+      canvas#game{ display:block; width:100%; height:auto; image-rendering:pixelated; image-rendering:crisp-edges; touch-action:none; }
+      .bossbar{ position:absolute; left:50%; transform:translateX(-50%); bottom:8px; width:min(560px,86%);
+        display:none; text-align:center; pointer-events:none; }
+      .bossbar .nm{ font-size:8px; font-weight:400; letter-spacing:.18em; color:#ffb3ae; text-shadow:0 1px 2px #000; margin-bottom:4px; }
+      .bossbar .track{ height:10px; background:rgba(0,0,0,.7); border:2px solid #6e1f1a; border-radius:0; overflow:hidden; }
+      .bossbar .fill{ height:100%; background:var(--red); width:100%; transition:width .12s; }
+
+      /* ---------- Overlays ---------- */
+      .overlay{ position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
+        background:rgba(5,5,10,.94); text-align:center; padding:18px 12px calc(20px + env(safe-area-inset-bottom));
+        z-index:50; overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; }
+      .overlay::before, .overlay::after{ content:""; margin:auto; }
+      .overlay.hidden{ display:none; }
+      .logo{ font-size:clamp(20px,5.2vw,38px); font-weight:400; letter-spacing:.04em; line-height:1.25; margin:0;
+        color:var(--ink); text-shadow:3px 3px 0 var(--red), -2px -2px 0 #123a44; }
+      .logo .mic{ color:var(--gold); text-shadow:3px 3px 0 #7a4d00; }
+      .tagline{ color:var(--dim); font-size:9.5px; margin:12px 0 4px; line-height:2; }
+      .tagline b{ color:var(--ink); }
+      .charsel{ display:flex; gap:10px; margin:14px 0 6px; flex-wrap:wrap; justify-content:center; }
+      .char{ width:118px; background:var(--panel); border:2px solid var(--line); border-radius:0;
+        padding:10px 6px 8px; cursor:pointer; color:var(--ink); }
+      /* the selection ring is an inset shadow: clip-path would cut an outer one off */
+      .char.sel{ border-color:var(--gold); background:#262214; box-shadow:inset 0 0 0 2px rgba(245,185,33,.55), inset 0 0 18px rgba(245,185,33,.14); }
+      .char .thumb{ width:99px; height:99px; margin:0 auto 6px; background-repeat:no-repeat; image-rendering:pixelated;
+        background-color:#000; border-radius:0; background-size:400% 300%; background-position:0 0; }
+      .char .nm{ font-weight:400; font-size:11px; }
+      .char .st{ font-size:8px; color:var(--dim); line-height:1.8; margin-top:5px; }
+      /* HP / SPD / POW: one stat per row, labels in one column, values in another */
+      .char .st .srow{ display:flex; justify-content:space-between; align-items:baseline; padding:0 14px; }
+      .char .st .srow b{ font-weight:400; color:var(--ink); }
+      .bigbtn{ background:var(--red); color:#fff; border:none; border-radius:10px; font-weight:400;
+        font-size:13px; letter-spacing:.08em; padding:15px 34px; cursor:pointer; margin-top:14px;
+        box-shadow:0 4px 0 #7c1712; }
+      .bigbtn:active{ transform:translateY(3px); box-shadow:0 1px 0 #7c1712; }
+      .bigbtn.gold{ background:var(--gold); color:#231a00; box-shadow:0 4px 0 #7a5b00; }
+      .bigbtn.gold:active{ box-shadow:0 1px 0 #7a5b00; }
+      .overlay h2{ font-size:clamp(17px,4.4vw,29px); margin:0 0 10px; font-weight:400; letter-spacing:.05em; line-height:1.4; }
+      #clearTitle, #ovAll h2{ color:#ffd94d;
+        text-shadow:0 0 22px rgba(245,185,33,.65), 0 0 6px rgba(255,246,200,.8), 0 2px 0 #7a4d00, 0 5px 14px rgba(0,0,0,.65); }
+      .overlay .sub{ color:var(--dim); font-size:10px; line-height:2.1; }
+      .overlay .sub b{ color:var(--gold); }
+
+      /* ---------- Bottom controls ---------- */
+      /* worn control deck: brushed dark steel with scuffs, not a clean panel */
+      .controls{ order:4; display:none; justify-content:space-between; align-items:center; gap:10px;
+        background:
+          repeating-linear-gradient(90deg, rgba(255,255,255,.016) 0 2px, transparent 2px 5px),
+          repeating-linear-gradient(0deg, rgba(0,0,0,.05) 0 1px, transparent 1px 7px),
+          linear-gradient(180deg,#1b1b22,#111116);
+        border:1px solid #33333f; border-radius:10px;
+        box-shadow:inset 0 1px 0 rgba(255,255,255,.06), inset 0 -8px 14px rgba(0,0,0,.35);
+        padding:10px 12px; margin-top:auto; margin-bottom:auto; }
+      /* while playing, the deck is centred in the free space between the
+         game screen and the bottom of the display: the auto top/bottom
+         margins split the leftover column height evenly above and below
+         it. On a short screen with no leftover height they collapse to 0
+         and the deck simply sits under the game screen as before. */
+      .wrap.playing .controls{ display:flex; }
+      .controls .acts{ display:flex; flex-direction:column; gap:10px; align-items:flex-end; max-width:60vw; }
+      .controls .actrow{ display:flex; gap:10px; flex-wrap:nowrap; justify-content:flex-end; }
+      /* ---- worn arcade fighting buttons: faded plastic, scratches, chipped bezel.
+         No clean gloss dome: matte, scuffed, sun-faded like a 90's cab. ---- */
+      .tbtn{ pointer-events:auto; width:68px; height:68px; border-radius:50%;
+        border:4px solid #17141a;
+        background:radial-gradient(circle at 38% 30%, #6d727c, #3a3d45 55%, #23252b);
+        color:#efe9da; font-size:22px; font-weight:400; cursor:pointer; padding:0;
+        position:relative; overflow:hidden; filter:saturate(.85);
+        text-shadow:0 1px 1px rgba(0,0,0,.8), 0 0 3px rgba(0,0,0,.35);
+        box-shadow:0 5px 0 #08080a, 0 9px 13px rgba(0,0,0,.6),
+          inset 0 -7px 11px rgba(0,0,0,.55), inset 0 3px 5px rgba(255,255,255,.16),
+          inset 2px -3px 6px rgba(0,0,0,.3);
+        display:flex; align-items:center; justify-content:center; user-select:none; -webkit-user-select:none; touch-action:none; }
+      /* scratches, smudges and sun-fade worn over the label too */
+      .tbtn::before{ content:""; position:absolute; inset:0; border-radius:50%; pointer-events:none;
+        background:
+          radial-gradient(circle at 50% 44%, rgba(255,255,255,.09), rgba(255,255,255,0) 54%),
+          radial-gradient(circle at 79% 18%, rgba(0,0,0,.22), rgba(0,0,0,0) 32%),
+          radial-gradient(circle at 16% 82%, rgba(0,0,0,.16), rgba(0,0,0,0) 30%),
+          repeating-linear-gradient(24deg, transparent 0 7px, rgba(255,255,255,.05) 7px 8px, transparent 8px 13px, rgba(0,0,0,.055) 13px 14px, transparent 14px 21px),
+          repeating-linear-gradient(-52deg, transparent 0 11px, rgba(0,0,0,.045) 11px 12px, transparent 12px 19px, rgba(255,255,255,.03) 19px 20px, transparent 20px 27px); }
+      /* worn inner ring, a paint chip and a scuffed highlight */
+      .tbtn::after{ content:""; position:absolute; inset:6px; border-radius:50%; pointer-events:none;
+        border:1px solid rgba(0,0,0,.20);
+        box-shadow:inset 0 0 0 2px rgba(255,255,255,.045), inset -6px -8px 12px rgba(0,0,0,.28), inset 4px 5px 8px rgba(255,255,255,.05);
+        background:
+          radial-gradient(circle at 23% 85%, rgba(12,10,8,.30) 0 4px, rgba(0,0,0,0) 6px),
+          radial-gradient(circle at 85% 60%, rgba(255,255,255,.10) 0 3px, rgba(0,0,0,0) 5px),
+          radial-gradient(circle at 64% 12%, rgba(0,0,0,.14) 0 5px, rgba(0,0,0,0) 7px); }
+      .tbtn:active, .tbtn.on{ transform:translateY(4px); filter:saturate(.85) brightness(.93);
+        box-shadow:0 1px 0 #08080a, 0 4px 7px rgba(0,0,0,.55),
+          inset 0 -4px 8px rgba(0,0,0,.55), inset 0 3px 5px rgba(255,255,255,.12); }
+      .tbtn.act{ width:76px; height:76px; font-size:9.5px; letter-spacing:.02em; }
+      .tbtn.jump{ background:radial-gradient(circle at 38% 30%, #79b984, #3d8b4f 52%, #256034 78%, #1a4525); }
+      .tbtn.kick{ background:radial-gradient(circle at 38% 30%, #7d9fc2, #406da0 52%, #2b4f78 78%, #1e3a5c); }
+      .tbtn.punch{ background:radial-gradient(circle at 38% 30%, #cf8570, #ac4634 52%, #7e3122 78%, #5c2317); }
+      .tbtn.pose{ background:radial-gradient(circle at 38% 30%, #dbc987, #b8933a 52%, #8f6c2a 78%, #68501f); color:#2a1e06; text-shadow:0 1px 1px rgba(255,244,200,.35), 0 0 3px rgba(0,0,0,.2); flex-direction:column; gap:2px; }
+      /* special-move buttons: a worn black vinyl disc and a burnt-orange rush button */
+      .tbtn.vinyl{ background:radial-gradient(circle at 50% 50%, #c8a028 0 11%, #17171c 12% 30%, #26262e 31% 34%, #131317 35% 57%, #1e1e24 58% 61%, #0a0a0d 80%); font-size:8.5px; flex-direction:column; gap:2px; }
+      .tbtn.rush{ background:radial-gradient(circle at 38% 30%, #d99a5b, #b35a24 52%, #7e3c14 78%, #5c2a0e); font-size:8.5px; flex-direction:column; gap:2px; }
+      .tbtn.rec{ background:radial-gradient(circle at 50% 50%, #e8574a 0 11%, #17171c 12% 30%, #26262e 31% 34%, #131317 35% 57%, #1e1e24 58% 61%, #0a0a0d 80%); font-size:8.5px; flex-direction:column; gap:2px; }
+      .tbtn.trio{ background:radial-gradient(circle at 38% 30%, #7fd4c9, #2e8f86 52%, #1d635d 78%, #144743); font-size:8.5px; flex-direction:column; gap:2px; }
+      .tbtn small{ display:block; font-size:6.5px; letter-spacing:.04em; opacity:.9; }
+      .tbtn.locked{ opacity:.45; filter:saturate(.3) brightness(.75); }
+      /* ---- slide stick (replaces the two left/right buttons) ---- */
+      .stick{ position:relative; width:158px; height:108px; flex:none; touch-action:none;
+        user-select:none; -webkit-user-select:none; cursor:grab; }
+      .stick:active{ cursor:grabbing; }
+      .stick-plate{ position:absolute; left:50%; top:50%; width:104px; height:104px; transform:translate(-50%,-50%);
+        border-radius:50%; border:3px solid #0a0a0c;
+        background:
+          repeating-linear-gradient(31deg, transparent 0 13px, rgba(255,255,255,.025) 13px 14px, transparent 14px 23px),
+          radial-gradient(circle at 42% 34%, #3a3d44, #222329 60%, #131418);
+        box-shadow:inset 0 3px 8px rgba(255,255,255,.13), inset 0 -10px 16px rgba(0,0,0,.62), 0 6px 12px rgba(0,0,0,.55); }
+      /* plate screws (one slot chewed up, like a real old cab) */
+      .stick-plate::before{ content:""; position:absolute; left:11px; top:13px; width:9px; height:9px; border-radius:50%;
+        background:radial-gradient(circle at 35% 30%, #a8adb4, #4c5057 72%);
+        box-shadow:71px -1px 0 -1px #5a5e64, -1px 69px 0 -1px #43464c, 70px 68px 0 -1px #51555b; }
+      .stick-plate::after{ content:""; position:absolute; left:50%; top:13px; width:14px; height:2px; margin-left:-7px;
+        background:rgba(0,0,0,.4); transform:rotate(38deg); border-radius:2px; }
+      /* horizontal gate slot the ball slides in */
+      .stick-slot{ position:absolute; left:50%; top:50%; width:98px; height:22px; transform:translate(-50%,-50%);
+        background:linear-gradient(180deg,#050506,#0d0d10); border-radius:11px;
+        box-shadow:inset 0 3px 6px #000, inset 0 -1px 2px rgba(255,255,255,.07), 0 1px 0 rgba(255,255,255,.06); }
+      .stick-lever{ position:absolute; left:50%; top:50%; width:0; height:0; will-change:transform; }
+      .stick-lever.snap{ transition:transform .16s ease-out; }
+      /* worn red ball only (no shaft): faded, scratched, one dull patch, sits centred in the slot */
+      .stick-ball{ position:absolute; left:-27px; top:-27px; width:54px; height:54px; border-radius:50%;
+        background:radial-gradient(circle at 34% 27%, #d98a7c, #a83a2b 48%, #75231a 80%, #571a12);
+        box-shadow:inset 0 -8px 12px rgba(0,0,0,.5), inset 0 4px 6px rgba(255,255,255,.20),
+          inset 3px -4px 7px rgba(0,0,0,.3), 0 7px 10px rgba(0,0,0,.55);
+        filter:saturate(.88); }
+      .stick-ball::before{ content:""; position:absolute; inset:0; border-radius:50%;
+        background:
+          radial-gradient(circle at 72% 68%, rgba(30,8,4,.28) 0 6px, rgba(0,0,0,0) 9px),
+          radial-gradient(circle at 24% 60%, rgba(255,255,255,.10) 0 4px, rgba(0,0,0,0) 6px),
+          repeating-linear-gradient(48deg, transparent 0 8px, rgba(255,255,255,.05) 8px 9px, transparent 9px 15px, rgba(0,0,0,.06) 15px 16px, transparent 16px 22px); }
+      .stick-ball::after{ content:""; position:absolute; left:9px; top:6px; width:17px; height:9px; border-radius:50%;
+        background:rgba(255,235,225,.20); transform:rotate(-24deg); }
+      .stick-hint{ position:absolute; top:50%; transform:translateY(-50%); font-size:11px; color:#8f8a7c;
+        text-shadow:0 1px 0 #000; pointer-events:none; }
+      .stick-hint.l{ left:0; } .stick-hint.r{ right:0; }
+      .stick-hint.u{ left:50%; top:0; transform:translateX(-50%); font-size:10px; }
+      .stick-hint.d{ left:50%; top:auto; bottom:0; transform:translateX(-50%); font-size:10px; }
+      .stick.tilt-l .stick-hint.l, .stick.tilt-r .stick-hint.r, .stick.tilt-u .stick-hint.u, .stick.tilt-d .stick-hint.d{ color:var(--gold); }
+      @media (max-width:560px){
+        .tbtn{ width:60px; height:60px; border-width:3px; } .tbtn.act{ width:66px; height:66px; font-size:8.5px; }
+        .tbtn.sp{ width:48px; height:48px; font-size:7.5px; } .controls .actrow.sp{ gap:6px; }
+        .stick{ width:136px; height:96px; } .stick-plate{ width:92px; height:92px; }
+        .stick-plate::before{ box-shadow:59px -1px 0 -1px #5a5e64, -1px 57px 0 -1px #43464c, 58px 56px 0 -1px #51555b; }
+        .stick-slot{ width:86px; } .stick-ball{ width:47px; height:47px; left:-23.5px; top:-23.5px; }
+        .controls{ padding:8px; } .controls .acts{ max-width:56vw; gap:8px; } .controls .actrow{ gap:8px; }
+        .char{ width:31%; min-width:96px; padding:7px 3px 6px; }
+        .char .thumb{ width:70px; height:70px; }
+        .char .nm{ font-size:10px; } .char .st{ font-size:7.5px; }
+        .tagline{ font-size:8.5px; margin:8px 0 2px; }
+        .charsel{ gap:6px; margin:8px 0 2px; }
+        .bigbtn{ font-size:11.5px; padding:12px 24px; margin-top:10px; }
+        .overlay{ padding:10px 8px; }
+      }
+
+      /* ---------- Help ---------- */
+      .help{ display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:10px; margin-top:12px; }
+      .help section{ background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:12px 14px; }
+      .help h3{ margin:0 0 10px; font-size:10px; letter-spacing:.1em; color:var(--gold); font-weight:400; }
+      .help p, .help li{ font-size:9px; line-height:2; color:var(--ink); margin:0; }
+      .help ul{ margin:0; padding-left:18px; }
+      .help .dim{ color:var(--dim); }
+      kbd{ background:#000; border:1px solid #44445a; border-bottom-width:3px; border-radius:5px;
+        padding:2px 5px; font-family:inherit; font-size:8.5px; font-weight:400; }
+      /* notice messages overlay the top of the game screen (never in the
+         layout flow), so the buttons below can never be pushed around */
+      .msg{ position:absolute; left:10px; right:10px; top:44px; z-index:6; pointer-events:none;
+        text-align:center; font-weight:400; font-size:10.5px; color:var(--gold);
+        letter-spacing:.04em; text-shadow:0 1px 0 #000; line-height:1.7;
+        background:rgba(5,5,10,.55); border-radius:8px; padding:7px 10px; }
+      .msg:empty{ display:none; }
+
+      /* ---------- Opening screen ---------- */
+      #ovOpening .logo{ animation:opPulse 1.7s ease-in-out infinite; }
+      @keyframes opPulse{
+        0%,100%{ text-shadow:3px 3px 0 var(--red), -2px -2px 0 #123a44, 0 0 0 rgba(245,185,33,0); }
+        50%{ text-shadow:3px 3px 0 var(--red), -2px -2px 0 #123a44, 0 0 26px rgba(245,185,33,.55); }
+      }
+      @media (prefers-reduced-motion: reduce){ #ovOpening .logo{ animation:none; } }
+      .opstory{ color:var(--ink); font-size:10px; line-height:2.1; max-width:520px; margin:14px 0 2px; }
+      .opstory b{ color:var(--gold); }
+
+      /* ---------- Info modal ---------- */
+      .infomodal{ position:fixed; inset:0; z-index:60; display:flex; align-items:center; justify-content:center;
+        background:rgba(3,3,6,.8); padding:14px; }
+      .infomodal.hidden{ display:none; }
+      .infopanel{ background:var(--panel); border:1px solid var(--line); border-radius:12px;
+        width:100%; max-width:880px; max-height:88vh; overflow-y:auto; padding:16px 16px 18px; }
+      .infohead{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+      .infohead h2{ margin:0; font-size:12.5px; font-weight:400; letter-spacing:.05em; line-height:1.5; }
+      .infopanel .iconbtn{ background:var(--panel2); color:var(--ink); border:1px solid var(--line);
+        border-radius:8px; width:40px; height:40px; font-size:16px; cursor:pointer; padding:0; line-height:1; flex:none; }
+      .infopanel .iconbtn:active{ transform:translateY(1px); }
+      .infopanel .help section{ background:var(--panel2); }
+    </style>
+  </head>
+  <body>
+    <div class="wrap" id="wrap">
+      <!-- HUD -->
+      <div class="hud pix8" role="region" aria-label="Game info">
+        <div class="who">
+          <div class="nameline"><span id="hudName">J</span><canvas id="hudFace" class="pix4" width="40" height="40" aria-hidden="true"></canvas><span class="lives" id="hudLives">×0</span><span class="lv" id="hudLv">LV 1</span></div>
+        </div>
+        <div class="hpbar">
+          <div class="track pix4"><div class="fill" id="hpFill"></div></div>
+          <div class="posebar pix2"><div class="fill" id="poseFill"></div></div>
+        </div>
+        <div class="rightbox">
+          <div class="score"><small>SCORE</small><span id="hudScore">0</span></div>
+          <div class="score"><small>TIME</small><span id="hudTime">0:00.0</span></div>
+          <button id="btnSettings" aria-label="Settings">⚙</button>
+        </div>
+      </div>
+
+      <!-- Game -->
+      <div class="stagebox" id="stagebox">
+        <canvas id="game" width="960" height="810"></canvas>
+        <div class="bossbar" id="bossbar"><div class="nm" id="bossName">BOSS</div><div class="track pix4"><div class="fill" id="bossFill"></div></div></div>
+        <div class="stage-tag pix4" id="hudStage">STAGE 1</div>
+        <div class="mic-tag pix4"><small>MIC</small><span id="hudMics">0 / 3</span></div>
+        <div class="msg" id="msg"></div>
+
+        <!-- Opening overlay: the first screen, before character select -->
+        <div class="overlay" id="ovOpening">
+          <h1 class="logo">King of <span class="mic">Rock</span></h1>
+          <p class="opstory">ONE NIGHT, THE CREW'S THREE GOLDEN MICS WERE STOLEN BY THE STREET GANGS.<br>
+          <b>J</b>, <b>R</b> AND <b>D</b> HIT THE STREETS TO TAKE THEM BACK — FIGHT THROUGH <b>5 STAGES</b>, FIND <b>3 MICS</b> IN EACH ONE, AND FACE THE BOSSES WAITING AT THE END.<br>
+          YOUR <b>CLEAR TIME</b> RUNS FROM GAME START TO THE FINAL BOSS — BEAT HIM, AND YOUR SCORE AND TIME GO INTO THE RANKING!</p>
+          <button class="bigbtn" id="btnOpening">▶ PRESS START</button>
+        </div>
+
+        <!-- Title overlay -->
+        <div class="overlay hidden" id="ovTitle">
+          <h1 class="logo">King of <span class="mic">Rock</span></h1>
+          <p class="tagline">TAKE BACK THE STOLEN MICS! FIND <b>3 MICS</b> HIDDEN IN EACH STAGE TO MOVE ON.<br>
+          ENEMIES DROP THEM, AND THEY HIDE INSIDE CRATES AND DRUMS. <b>JUMP</b> OVER OBSTACLES!</p>
+          <div class="charsel" id="charsel"></div>
+          <button class="bigbtn" id="btnStart">▶ GAME START</button>
+          <p class="tagline" style="font-size:8px">5 STAGES / BOSSES WAIT ON STAGE 4 &amp; 5<br>EACH STAGE HAS A LIMITED CREW — BEAT THEM TO LEVEL UP AND UNLOCK RAPID RUSH, RECORD THROW, VINYL BURST &amp; TRIO ATTACK</p>
+        </div>
+
+        <!-- Stage clear -->
+        <div class="overlay hidden" id="ovClear">
+          <h2 id="clearTitle">STAGE CLEAR!</h2>
+          <p class="sub" id="clearSub"></p>
+          <button class="bigbtn gold" id="btnNext">NEXT STAGE ▶</button>
+        </div>
+
+        <!-- Game over -->
+        <div class="overlay hidden" id="ovOver">
+          <h2 style="color:var(--red)">GAME OVER</h2>
+          <p class="sub" id="overSub"></p>
+          <button class="bigbtn" id="btnRetry">↻ START OVER</button>
+          <button class="bigbtn gold" id="btnToTitle1" style="font-size:10px;padding:12px 22px">TITLE</button>
+        </div>
+
+        <!-- All clear -->
+        <div class="overlay hidden" id="ovAll">
+          <h2 style="color:var(--gold)">ALL STAGES CLEAR!</h2>
+          <p class="sub" id="allSub"></p>
+          <div class="rankbox">
+            <div class="rankrow">
+              <input id="rankName" type="text" maxlength="10" placeholder="YOUR NAME" autocomplete="off" aria-label="Name for the score ranking">
+              <button class="bigbtn gold" id="btnRank" style="font-size:10px;padding:10px 14px">REGISTER</button>
+            </div>
+            <div class="rankmsg" id="rankMsg"></div>
+            <ol class="ranklist" id="rankList"></ol>
+          </div>
+          <button class="bigbtn gold" id="btnToTitle2">TITLE</button>
+        </div>
+
+        <!-- Pause -->
+        <div class="overlay hidden" id="ovPause">
+          <h2>PAUSE</h2>
+          <p class="sub">PAUSED</p>
+          <button class="bigbtn gold" id="btnResume">▶ RESUME</button>
+          <button class="bigbtn" id="btnToTitle3" style="font-size:10px;padding:12px 22px">TITLE</button>
+        </div>
+      </div>
+
+      <!-- Bottom controls -->
+      <div class="controls" id="controls" aria-label="Game controls">
+        <div class="stick" id="stick" role="button" aria-label="Move stick: slide left or right to move, slide up to jump, slide down to crouch">
+          <div class="stick-plate"></div>
+          <div class="stick-slot"></div>
+          <span class="stick-hint u">▲</span>
+          <span class="stick-hint d">▼</span>
+          <span class="stick-hint l">◀</span><span class="stick-hint r">▶</span>
+          <div class="stick-lever snap" id="stickLever">
+            <div class="stick-ball"></div>
+          </div>
+        </div>
+        <div class="acts">
+          <div class="actrow sp">
+            <button class="tbtn act sp trio locked" data-k="trio">TRIO<small>LV 5</small></button>
+            <button class="tbtn act sp vinyl locked" data-k="vinyl">VINYL<small>LV 4</small></button>
+            <button class="tbtn act sp rec locked" data-k="rec">REC<small>LV 3</small></button>
+            <button class="tbtn act sp rush locked" data-k="rush">RUSH<small>LV 2</small></button>
+          </div>
+          <div class="actrow">
+            <button class="tbtn act pose" data-k="pose">POSE!<small>25</small></button>
+            <button class="tbtn act kick" data-k="kick">KICK</button>
+            <button class="tbtn act punch" data-k="punch">PUNCH</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Settings window: opened by the gear button at the top-right of the
+         HUD. The system buttons and the test buttons live here now — there
+         is no always-visible button row any more. Opening it does not pause
+         the game, so the test buttons work exactly as they did on the row. -->
+    <div class="infomodal hidden" id="setModal" role="dialog" aria-modal="true" aria-labelledby="setTitle">
+      <div class="setpanel">
+        <div class="infohead">
+          <h2 id="setTitle">SETTINGS</h2>
+          <button class="iconbtn" id="btnSetClose" aria-label="Close">✕</button>
+        </div>
+        <div class="setrow">
+          <button class="iconbtn" id="btnInfo" aria-label="How to play" style="font-style:italic;font-weight:900">i</button>
+          <button class="iconbtn" id="btnSound" aria-label="Sound on/off">♪</button>
+          <button class="iconbtn" id="btnPause" aria-label="Pause">Ⅱ</button>
+        </div>
+        <div class="setcap">HOW TO PLAY · SOUND · PAUSE</div>
+        <div class="setlbl">— TEST —</div>
+        <div class="setrow">
+          <button class="iconbtn testbtn" id="btnTestLv" aria-label="Test: level up">LV UP</button>
+          <button class="iconbtn testbtn" id="btnTestSkip" aria-label="Test: skip stage">SKIP ▶</button>
+          <button class="iconbtn testbtn" id="btnTestRank" aria-label="Test: jump to the ranking screen">RANK</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Info modal -->
+    <div class="infomodal hidden" id="infoModal" role="dialog" aria-modal="true" aria-labelledby="infoTitle">
+      <div class="infopanel">
+        <div class="infohead">
+          <h2 id="infoTitle">HOW TO PLAY</h2>
+          <button class="iconbtn" id="btnInfoClose" aria-label="Close">✕</button>
+        </div>
+        <div class="help">
+        <section>
+          <h3>HOW TO PLAY</h3>
+          <p>FIGHT YOUR WAY LEFT AND RIGHT, COLLECT <b>3 MICS</b>, THEN HEAD TO THE EXIT ON THE FAR RIGHT. MICS COME FROM <b>ENEMY DROPS</b> AND <b>BREAKABLE OBJECTS</b> — NO ENEMY SHOWS WHETHER IT CARRIES ONE, SO EVERY DROP IS A SURPRISE. GRAB A BURGER TO HEAL.<br>
+          CRATES, HYDRANTS, BENCHES AND CONTAINERS ARE <b>OBSTACLES: JUMP OVER THEM OR LAND ON TOP</b>. ENEMIES HIT HARD, SO JUMPING TO DODGE WORKS TOO. MOHAWK PUNKS KEEP THEIR DISTANCE AND FLING THEIR HAIR AT YOU — IT FLIES SLOW, SO JUMP OVER IT OR CROUCH UNDER IT, BECAUSE A DIRECT HIT KNOCKS YOU BACK SIX TIMES HARDER THAN A NORMAL HIT! AND WHENEVER YOU LAND THE FINISHING BLOW ON ANY ENEMY, THE BODY IS KNOCKED BACK WITH FIVE TIMES THE USUAL FORCE AND FADES AWAY AS IT SLIDES. ONLY ONE MOHAWK SHOWS UP AT A TIME, AND AFTER A HAIR THROW IT CANNOT THROW AGAIN FOR 8 SECONDS. A STAGE'S BOSS ONLY SHOWS HIMSELF ONCE YOU HAVE FOUND ALL 3 MICS — COLLECT THEM AND HE COMES TO YOU. THE MOMENT A BOSS APPEARS, EVERY GRUNT ON THE FIELD VANISHES AND NO NEW ONES SHOW UP — FROM THEN ON IT IS JUST YOU AND THE BOSS. BOSSES TURN INVINCIBLE FOR 1 SEC AFTER EVERY HIT AND LEAP AT YOU — STRIKE RIGHT AFTER THEY LAND! WHEN A BOSS APPEARS, THE MUSIC SWITCHES TO THAT BOSS'S OWN FASTER HIP HOP TRACK — BOSS MUSCLE AND BOSS COAT EACH HAVE A DIFFERENT ONE — UNTIL HE FALLS. RAPID RUSH PUNCHES THROUGH BOSS GUARD — WHILE THE RUSH IS FIRING, BOSS INVINCIBILITY DOES NOT WORK. THE FINAL BOSS, BOSS COAT, TAKES ONLY HALF DAMAGE, FLINGS HIS HAT FROM FAR AWAY (5 PER FIGHT — IT FLIES LOW, SO JUMP IT, CROUCHING WILL NOT SAVE YOU) AND SPINS HIS COAT UP CLOSE (3 PER FIGHT): GET CAUGHT AND YOU FLY ALL THE WAY TO THE EDGE OF THE STAGE! ANY ENEMY — BOSS INCLUDED — THAT CAMPS IN ONE SPOT FOR A WHILE WITHOUT HURTING YOU LEAPS AWAY TO A NEW POSITION. BEAT THE FINAL BOSS AND YOU CAN REGISTER YOUR SCORE AND CLEAR TIME IN THE RANKING — THE VICTORY SCREEN PLAYS ITS OWN CELEBRATION HIP HOP GROOVE WHILE YOU DO! YOUR PLAY TIME RUNS AT THE TOP OF THE SCREEN (TIME) FROM THE MOMENT YOU PRESS GAME START UNTIL THE FINAL CLEAR.</p>
+        </section>
+        <section>
+          <h3>LEVEL UP &amp; SPECIAL MOVES</h3>
+          <p>EACH STAGE SENDS A <b>LIMITED CREW</b> AT YOU — NO ENDLESS BACKUP. WAVES PLUS REINFORCEMENTS ADD UP TO ROUGHLY A LEVEL AND A HALF OF <b>XP</b> PER STAGE, AND <b>LEVELING UP</b> RAISES MAX HP, POWER AND SPEED, AND UNLOCKS NEW MOVES.<br>
+          <b>EXTRA LIVES:</b> EVERY 2 LEVELS YOU GAIN (LV 3, 5, 7...) EARNS ONE SPARE LIFE, SHOWN AS <b>×N</b> NEXT TO YOUR FACE IN THE HUD. GET KNOCKED OUT WITH A LIFE IN STOCK AND YOU BURN IT TO <b>REVIVE ON THE SPOT AT FULL HP</b>, BLINKING AND UNTOUCHABLE FOR 2 SECONDS WHILE THE FIGHT GOES ON. GET KNOCKED OUT WITH <b>NO LIVES LEFT</b> AND IT IS GAME OVER — YOU START AGAIN FROM STAGE 1, BACK AT LV 1.<br>
+          <b>EVERY SPECIAL BURNS THE GOLD GAUGE</b> UNDER YOUR HP BAR — POSE INCLUDED. IT REFILLS ON ITS OWN OVER A FEW SECONDS, AND THE HIGHER A MOVE'S LEVEL, THE MORE GAUGE IT COSTS: <b>POSE 25 / RUSH 35 / REC 45 / VINYL 60 / TRIO 100 (FULL GAUGE)</b>. <b>ONCE ANY SPECIAL FIRES, ALL SPECIALS LOCK — THE BAR TURNS RED — UNTIL THE GAUGE REFILLS ALL THE WAY TO FULL.</b><br>
+          <b>LV 2 — RAPID RUSH:</b> ONE PRESS AND SIX ATTACKS FIRE ON THEIR OWN AT FULL SPEED — CROUCH ATTACK, PUNCH, KICK, THEN THE SAME THREE AGAIN. NO MASHING NEEDED — AND YOU CAN KEEP MOVING LEFT AND RIGHT WHILE IT FIRES.<br>
+          <b>LV 3 — RECORD THROW:</b> PRESS THE REC BUTTON TO FLING 3 RECORDS STRAIGHT AHEAD. EACH RECORD SHATTERS ON THE FIRST ENEMY IT HITS, AND SMASHES OBJECTS TOO. NO CHARGING ANYMORE — ONE PRESS AND THEY FLY.<br>
+          <b>LV 4 — VINYL BURST:</b> RECORDS BURST OUT AROUND YOU AND SHATTER CLOSE BY — ONLY ENEMIES NEAR YOU GET HIT. THINK OF IT AS A STRONGER, WIDER POSE.<br>
+          <b>LV 5 — TRIO ATTACK:</b> ALL THREE HEROES FIGHT TOGETHER — THE OTHER TWO APPEAR AT YOUR LEFT AND RIGHT AS <b>LV15</b> FIGHTERS, WHATEVER YOUR OWN LEVEL IS: THEIR SPEED, PUNCH, KICK AND POSE ALL USE THE <b>LV15</b> STAT CURVE FOR THEIR OWN HERO. THEY ARRIVE WITH ONLY <b>15% OF THAT LV15 HP</b>, THEN ROAM THE WHOLE STAGE ON THEIR OWN HUNTING DOWN ENEMIES, AND STAY UNTIL ENEMIES BEAT THEM DOWN — THERE IS NO TIME LIMIT. IT COSTS THE <b>WHOLE GAUGE</b>, AND AFTERWARDS THE GAUGE REFILLS SLOWLY UNTIL IT IS FULL AGAIN — THEN IT GOES BACK TO NORMAL SPEED.</p>
+        </section>
+        <section>
+          <h3>KEYBOARD</h3>
+          <ul>
+            <li>MOVE: <kbd>←</kbd><kbd>→</kbd> / <kbd>A</kbd><kbd>D</kbd> (LEFT &amp; RIGHT ONLY)</li>
+            <li>JUMP: <kbd>Space</kbd> / <kbd>↑</kbd> / <kbd>W</kbd></li>
+            <li>CROUCH: <kbd>↓</kbd> / <kbd>S</kbd> (STRAIGHT DOWN ONLY — DIAGONAL-DOWN MOVES INSTEAD. STAY LOW — FLYING MOHAWKS PASS OVERHEAD. WHILE CROUCHED, PUNCH AND KICK BECOME LOW CROUCH ATTACKS; POSE AND SPECIALS STAY LOCKED)</li>
+            <li>PUNCH: <kbd>J</kbd>　KICK: <kbd>K</kbd> (WORKS MID-AIR TOO)</li>
+            <li>POSE ATTACK: <kbd>L</kbd> (BLASTS EVERYONE AROUND YOU — COSTS 25 GAUGE)</li>
+            <li>RAPID RUSH: <kbd>I</kbd> (LV 2+, 35 GAUGE — ONE PRESS = 6 AUTO HITS: LOW / PUNCH / KICK x2)　RECORD THROW: <kbd>H</kbd> (LV 3+, 45 GAUGE)</li>
+            <li>VINYL BURST: <kbd>U</kbd> (LV 4+, 60 GAUGE — RECORDS BURST AROUND YOU, NEARBY FOES ONLY)　TRIO ATTACK: <kbd>O</kbd> (LV 5+, FULL 100 GAUGE — ALLIES ROAM FREE AS LV15 FIGHTERS WITH 15% OF LV15 HP, SLOW REFILL AFTER)</li>
+            <li>PAUSE: <kbd>P</kbd></li>
+          </ul>
+        </section>
+        <section>
+          <h3>TOUCH CONTROLS</h3>
+          <p>SLIDE THE STICK LEFT / RIGHT TO MOVE, SLIDE IT UP TO JUMP AND SLIDE IT STRAIGHT DOWN TO CROUCH (DIAGONAL-DOWN JUST MOVES), AND HIT THE BIG WORN ARCADE BUTTONS TO FIGHT. <span class="dim">THE SPECIAL BUTTONS SIT IN THE TOP ROW AND POSE / KICK / PUNCH BELOW. EVERY SPECIAL — POSE INCLUDED — BURNS THE GOLD GAUGE UNDER YOUR HP BAR, AND THE NUMBER ON EACH BUTTON IS ITS COST. THE RUSH, REC, VINYL AND TRIO BUTTONS LIGHT UP AS YOU UNLOCK THEM. WHILE CROUCHED, PUNCH AND KICK THROW LOW CROUCH ATTACKS.</span></p>
+        </section>
+        </div>
+      </div>
+    </div>
+<script src="KOF_data1.js"></script>
+<script src="KOF_data2.js"></script>
+<script>
+'use strict';
+/* ================= Assets ================= */
+const IMG = {};
+function loadImg(key, src){ const i = new Image(); i.src = src; IMG[key] = i; return i; }
+loadImg('blue',__KD['hero-blue']); loadImg('grey',__KD['hero-grey']); loadImg('red',__KD['hero-red']);
+loadImg('bandana',__KD['enemy-bandana']); loadImg('mohawk',__KD['enemy-mohawk']);
+loadImg('boss1',__KD['boss-muscle']); loadImg('boss2',__KD['boss-coat']);
+loadImg('stage1',__KD['stage1']); loadImg('stage2',__KD['stage2']); loadImg('stage3',__KD['stage3']);
+loadImg('stage4',__KD['stage4']); loadImg('stage5',__KD['stage5']);
+/* illustrated prop / obstacle art, painted in the same style as the stage
+   backgrounds (the hand-drawn pixel sprites further down stay as a fallback
+   until each PNG has loaded) */
+['crate','trash','drum','vending','speaker','crates','hydrant','bench','fence','planter','drums','dumpster','container']
+  .forEach(t=>loadImg('obj-'+t, __KD['obj-'+t]));
+const WHITE = {}; // white-silhouette copies for hit flash
+function makeWhite(key){
+  const img = IMG[key]; if(!img.complete || !img.naturalWidth){ img.addEventListener('load', ()=>makeWhite(key)); return; }
+  const c = document.createElement('canvas'); c.width = img.naturalWidth; c.height = img.naturalHeight;
+  const g = c.getContext('2d'); g.drawImage(img,0,0); g.globalCompositeOperation='source-in'; g.fillStyle='#fff'; g.fillRect(0,0,c.width,c.height);
+  WHITE[key] = c;
+}
+['blue','grey','red','bandana','mohawk','boss1','boss2'].forEach(makeWhite);
+
+/* ================= Sprite defs ================= */
+/* cell sheets: 4 cols x 2 rows. frames: index = row*4+col.
+   All hero sheets now share the red layout: idle/walk/run/jump on the top row,
+   punch/kick/pose on the bottom row (blue's pose sits in the last cell). */
+const SHEETS = {
+  blue:   { img:'blue',   cell:280, frames:{idle:0,walk:1,run:2,jump:3,punch:4,kick:5,pose:7,crouch:8,crouchpunch:9,crouchkick:10} },
+  grey:   { img:'grey',   cell:280, frames:{idle:0,walk:1,run:2,jump:3,punch:4,kick:5,pose:6,crouch:8,crouchpunch:9,crouchkick:10} },
+  red:    { img:'red',    cell:280, frames:{idle:0,walk:1,run:2,jump:3,punch:4,kick:5,pose:6,crouch:8,crouchpunch:9,crouchkick:10} },
+  bandana:{ img:'bandana',cell:280, frames:{idle:0,walk:1,run:2,jump:3,punch:4,kick:5,pose:6} },
+  boss1:  { img:'boss1',  cell:280, frames:{idle:0,walk:1,run:2,jump:3,punch:4,kick:5,pose:6} },
+  boss2:  { img:'boss2',  cell:280, frames:{idle:0,walk:1,run:2,jump:3,punch:4,kick:5,pose:6} },
+  /* mohawk sheet was rebuilt into the same 4x2 grid of 280px cells as the other sheets:
+     green-mohawk poses extracted one per cell (idle/walk-stride/run/jump, punch/kick/pose) */
+  mohawk: { img:'mohawk', cell:280, frames:{idle:0,walk:1,run:2,jump:3,punch:4,kick:5,pose:6} }
+};
+function frameRect(sheetKey, frameName){
+  const s = SHEETS[sheetKey];
+  if(s.rects) return s.rects[frameName] || s.rects.idle;
+  const idx = s.frames[frameName] != null ? s.frames[frameName] : s.frames.idle;
+  const col = idx % 4, row = Math.floor(idx / 4);
+  return { x: col*s.cell, y: row*s.cell, w: s.cell, h: s.cell };
+}
+
+/* ================= Characters & stages ================= */
+const HEROES = [
+  { key:'blue', name:'J',   desc:'BALANCED',     hp:110, speed:3.7, punch:12, kick:18, pose:28 },
+  { key:'grey', name:'R',   desc:'SPEED',     hp:95,  speed:4.6, punch:10, kick:15, pose:24 },
+  { key:'red',  name:'D',   desc:'POWER',       hp:130, speed:3.2, punch:15, kick:23, pose:34 }
+];
+const ETYPES = {
+  /* character scale x1.3 (heroes 186 -> 242px): every h below is the old size x1.3 */
+  bandana:{ sheet:'bandana', name:'BANDANA', hp:42, speed:2.05, dmg:9,  score:100, h:229 },
+  mohawk: { sheet:'mohawk',  name:'MOHAWK', hp:58, speed:2.45, dmg:12, score:150, h:257 },
+  boss1:  { sheet:'boss1',   name:'BOSS MUSCLE', hp:240, speed:1.95, dmg:17, score:1500, h:296, boss:true },
+  boss2:  { sheet:'boss2',   name:'BOSS COAT',   hp:300, speed:2.15, dmg:20, score:2500, h:296, boss:true }
+};
+/* jump-over obstacles, themed per stage background */
+/* widths are the gameplay footprints (unchanged); heights follow the
+   illustrated art's real aspect ratios so nothing draws squashed */
+const OBSTACLE_DIM = {
+  crates:   { w:86,  h:75 },
+  hydrant:  { w:42,  h:68 },
+  bench:    { w:107, h:64 },
+  fence:    { w:112, h:111 },
+  planter:  { w:91,  h:82 },
+  drums:    { w:112, h:86 },
+  dumpster: { w:125, h:115 },
+  container:{ w:151, h:81 }
+};
+/* per-type size tuning (multiplies the base dims above / PROP_PXU):
+   big set pieces read bigger against the 242px hero */
+const OBS_SCALE  = { crates:1, hydrant:1.45, bench:1.7, fence:1.15, planter:1, drums:1.15, dumpster:1.2, container:1.5 };
+const PROP_SCALE = { crate:1, trash:1.1, drum:1.15, vending:1.65, speaker:1.1 };
+const STAGES = [
+  { name:'STAGE 1 NIGHT CITY', img:'stage1', world:2400, reinforce:1,
+    objects:[ {x:520,type:'crate',mic:true,scale:2}, {x:1180,type:'trash'}, {x:1700,type:'speaker',mic:true}, {x:2150,type:'crate',scale:2} ],
+    obstacles:[ {x:840,type:'crates',scale:2}, {x:1470,type:'hydrant',scale:1.5}, {x:1990,type:'drums',scale:1.5} ],
+    waves:[ {at:350, spawns:[['bandana',300],['bandana',-260]]},
+            {at:1000, spawns:[['bandana',280],['mohawk',340],['bandana',-300]]},
+            {at:1650, spawns:[['mohawk',300],['bandana',260],['bandana',-280,'carrier']]} ] },
+  { name:'STAGE 2 SUBWAY', img:'stage2', world:2500, reinforce:4,
+    objects:[ {x:600,type:'vending',mic:true,scale:1.3}, {x:1250,type:'trash',scale:2}, {x:1850,type:'crate',mic:true,scale:2}, {x:2250,type:'trash',scale:2} ],
+    obstacles:[ {x:2080,type:'crates',scale:2} ],
+    waves:[ {at:350, spawns:[['mohawk',300],['bandana',-280]]},
+            {at:1050, spawns:[['mohawk',280],['mohawk',-300],['bandana',320]]},
+            {at:1750, spawns:[['bandana',280],['mohawk',300,'carrier'],['mohawk',-260]]} ] },
+  { name:'STAGE 3 NIGHT PARK', img:'stage3', world:2500, reinforce:10,
+    objects:[ {x:560,type:'trash',mic:true}, {x:1200,type:'crate'}, {x:1480,type:'speaker',mic:true}, {x:2250,type:'crate'} ],
+    obstacles:[ {x:1663,type:'fence'}, {x:1792,type:'fence'}, {x:1921,type:'fence'}, {x:2050,type:'fence'} ],
+    waves:[ {at:350, spawns:[['bandana',300],['mohawk',-280],['bandana',260]]},
+            {at:1100, spawns:[['mohawk',300],['mohawk',-300],['bandana',280,'carrier']]},
+            {at:1800, spawns:[['mohawk',280],['bandana',300],['mohawk',-280]]} ] },
+  { name:'STAGE 4 BACK ALLEY', img:'stage4', world:2600, reinforce:9,
+    objects:[ {x:540,type:'drum',mic:true,scale:1.5}, {x:1150,type:'crate'}, {x:1700,type:'drum',mic:true,scale:1.5}, {x:2200,type:'trash',scale:1.5} ],
+    obstacles:[ {x:860,type:'dumpster',scale:1.5}, {x:1480,type:'drums',scale:1.5} ],
+    waves:[ {at:350, spawns:[['mohawk',300],['bandana',-280],['mohawk',260]]},
+            {at:1150, spawns:[['mohawk',280],['bandana',300,'carrier'],['mohawk',-280]]},
+            {at:1950, spawns:[['boss1',380],['bandana',-300]]} ] },
+  { name:'STAGE 5 HARBOR DOCKS', img:'stage5', world:2600, reinforce:16,
+    objects:[ {x:560,type:'crate',mic:true,scale:2}, {x:1200,type:'drum',scale:1.5}, {x:1800,type:'speaker'}, {x:2250,type:'crate',scale:2} ],
+    obstacles:[ {x:1520,type:'crates',scale:2} ],
+    waves:[ {at:350, spawns:[['mohawk',300],['mohawk',-280],['bandana',260,'carrier']]},
+            {at:1150, spawns:[['mohawk',280],['bandana',300],['mohawk',-280]]},
+            {at:1950, spawns:[['boss2',400],['mohawk',-300]]} ] }
+];
+
+/* ================= Audio (WebAudio) =================
+   No character voices at all. SFX are SNES Street Fighter II style:
+   short lo-fi sampled-style hits / whooshes / guard ticks, run through a
+   saturating, slightly muffled SFX bus for that 16-bit crunch.
+   BGM is synthesized to sound like a real band recording: acoustic-style
+   drums (kick transient + body, snare snap + body, metallic hats, claps,
+   shaker), fingered electric bass, Rhodes-style electric piano chords,
+   muted funk-guitar chops and a vibrato lead, glued with a bus compressor,
+   a feedback delay and a generated room reverb. */
+const AU = { ctx:null, on:true, master:null, musicGain:null, sfxIn:null, verbIn:null, dlyIn:null, step:0, nextTime:0, timer:null };
+function auInit(){
+  if(AU.ctx) return;
+  const C = window.AudioContext || window.webkitAudioContext; if(!C) return;
+  AU.ctx = new C();
+  const ctx = AU.ctx;
+  // glue compressor on everything, like a mastered recording
+  const comp = ctx.createDynamicsCompressor();
+  comp.threshold.value = -16; comp.knee.value = 22; comp.ratio.value = 5;
+  comp.attack.value = 0.003; comp.release.value = 0.24;
+  comp.connect(ctx.destination);
+  AU.master = ctx.createGain(); AU.master.gain.value = 0.9; AU.master.connect(comp);
+  AU.musicGain = ctx.createGain(); AU.musicGain.gain.value = 0.55; AU.musicGain.connect(AU.master);
+  // SFX bus: saturation + gentle lowpass = SNES sample crunch
+  AU.sfxIn = ctx.createGain(); AU.sfxIn.gain.value = 1;
+  const shaper = ctx.createWaveShaper();
+  const curve = new Float32Array(256);
+  for(let i=0;i<256;i++){ const x = i/127.5 - 1; curve[i] = Math.tanh(2.4*x); }
+  shaper.curve = curve;
+  const sfxLp = ctx.createBiquadFilter(); sfxLp.type='lowpass'; sfxLp.frequency.value = 6800;
+  AU.sfxIn.connect(shaper); shaper.connect(sfxLp); sfxLp.connect(AU.master);
+  // generated room reverb (decaying noise impulse)
+  const sr = ctx.sampleRate, irLen = Math.floor(sr*1.3);
+  const ir = ctx.createBuffer(2, irLen, sr);
+  for(let ch=0; ch<2; ch++){ const dd = ir.getChannelData(ch);
+    for(let i=0;i<irLen;i++) dd[i] = (Math.random()*2-1) * Math.pow(1 - i/irLen, 2.6) * 0.6; }
+  const verb = ctx.createConvolver(); verb.buffer = ir;
+  const verbWet = ctx.createGain(); verbWet.gain.value = 0.5;
+  AU.verbIn = ctx.createGain(); AU.verbIn.gain.value = 1;
+  AU.verbIn.connect(verb); verb.connect(verbWet); verbWet.connect(AU.master);
+  // dotted-feel feedback delay for the lead
+  AU.dlyIn = ctx.createGain(); AU.dlyIn.gain.value = 1;
+  const dly = ctx.createDelay(1); dly.delayTime.value = 0.29;
+  const fb = ctx.createGain(); fb.gain.value = 0.32;
+  const dlyLp = ctx.createBiquadFilter(); dlyLp.type='lowpass'; dlyLp.frequency.value = 1700;
+  const dlyWet = ctx.createGain(); dlyWet.gain.value = 0.16;
+  AU.dlyIn.connect(dly); dly.connect(dlyLp); dlyLp.connect(fb); fb.connect(dly);
+  dlyLp.connect(dlyWet); dlyWet.connect(AU.master);
+  // faint vinyl crackle under the music only
+  const len = sr * 2, buf = ctx.createBuffer(1, len, sr), d = buf.getChannelData(0);
+  for(let i=0;i<len;i++){ d[i] = (Math.random()*2-1) * 0.003; if(Math.random()<0.0005) d[i] += (Math.random()*2-1)*0.09; }
+  const src = ctx.createBufferSource(); src.buffer = buf; src.loop = true;
+  const lp = ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value = 3800;
+  const g = ctx.createGain(); g.gain.value = 0.35;
+  src.connect(lp); lp.connect(g); g.connect(AU.musicGain); src.start();
+}
+function noiseBuf(dur){
+  const len = Math.floor(AU.ctx.sampleRate * dur), b = AU.ctx.createBuffer(1, len, AU.ctx.sampleRate), d = b.getChannelData(0);
+  for(let i=0;i<len;i++) d[i] = Math.random()*2-1;
+  return b;
+}
+let _nb = null;
+function nzSrc(t, dur){
+  const s = AU.ctx.createBufferSource(); s.buffer = _nb;
+  s.playbackRate.value = 0.92 + Math.random()*0.16; // tiny human variation
+  return s;
+}
+/* ---- Realistic drum kit (layered transients + bodies, slight velocity life) ---- */
+function drum(type, t, vol){
+  if(!AU.ctx) return; const ctx = AU.ctx, out = AU.musicGain;
+  if(!_nb) _nb = noiseBuf(0.5);
+  const v = vol * (0.94 + Math.random()*0.12);
+  if(type==='kick'){
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type='sine'; o.frequency.setValueAtTime(158,t); o.frequency.exponentialRampToValueAtTime(43,t+0.095);
+    g.gain.setValueAtTime(v,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.27);
+    o.connect(g); g.connect(out); o.start(t); o.stop(t+0.29);
+    const s = nzSrc(t), f = ctx.createBiquadFilter(), g2 = ctx.createGain(); // beater click
+    f.type='highpass'; f.frequency.value=1100;
+    g2.gain.setValueAtTime(v*0.28,t); g2.gain.exponentialRampToValueAtTime(0.001,t+0.02);
+    s.connect(f); f.connect(g2); g2.connect(out); s.start(t); s.stop(t+0.03);
+  } else if(type==='snare'){
+    const s = nzSrc(t), f = ctx.createBiquadFilter(), g = ctx.createGain();
+    f.type='bandpass'; f.frequency.value=1900; f.Q.value=0.75;
+    g.gain.setValueAtTime(v*0.85,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.15);
+    s.connect(f); f.connect(g); g.connect(out); s.start(t); s.stop(t+0.17);
+    const s2 = nzSrc(t), f2 = ctx.createBiquadFilter(), g3 = ctx.createGain(); // snap
+    f2.type='highpass'; f2.frequency.value=5800;
+    g3.gain.setValueAtTime(v*0.3,t); g3.gain.exponentialRampToValueAtTime(0.001,t+0.045);
+    s2.connect(f2); f2.connect(g3); g3.connect(out); s2.start(t); s2.stop(t+0.06);
+    const o = ctx.createOscillator(), g4 = ctx.createGain(); // shell body
+    o.type='triangle'; o.frequency.setValueAtTime(196,t); o.frequency.exponentialRampToValueAtTime(168,t+0.06);
+    g4.gain.setValueAtTime(v*0.5,t); g4.gain.exponentialRampToValueAtTime(0.001,t+0.085);
+    o.connect(g4); g4.connect(out); o.start(t); o.stop(t+0.1);
+  } else if(type==='clap'){
+    for(let i=0;i<3;i++){ const tt = t + i*0.013;
+      const s = nzSrc(tt), f = ctx.createBiquadFilter(), g = ctx.createGain();
+      f.type='bandpass'; f.frequency.value=1150; f.Q.value=1.7;
+      g.gain.setValueAtTime(v*0.5,tt); g.gain.exponentialRampToValueAtTime(0.001,tt+(i===2?0.14:0.03));
+      s.connect(f); f.connect(g); g.connect(out); s.start(tt); s.stop(tt+0.16);
+    }
+  } else if(type==='hat' || type==='ohat'){
+    const s = nzSrc(t), f = ctx.createBiquadFilter(), g = ctx.createGain();
+    f.type='highpass'; f.frequency.value=8300;
+    const dur = type==='hat'?0.05:0.34;
+    g.gain.setValueAtTime(v,t); g.gain.exponentialRampToValueAtTime(0.001,t+dur);
+    s.connect(f); f.connect(g); g.connect(out); s.start(t); s.stop(t+dur+0.02);
+    const s2 = nzSrc(t), f2 = ctx.createBiquadFilter(), g2 = ctx.createGain(); // metallic ping
+    f2.type='bandpass'; f2.frequency.value=10300; f2.Q.value=7;
+    g2.gain.setValueAtTime(v*0.4,t); g2.gain.exponentialRampToValueAtTime(0.001,t+0.04);
+    s2.connect(f2); f2.connect(g2); g2.connect(out); s2.start(t); s2.stop(t+0.05);
+  } else if(type==='shaker'){
+    const s = nzSrc(t), f = ctx.createBiquadFilter(), g = ctx.createGain();
+    f.type='bandpass'; f.frequency.value=6300; f.Q.value=1.1;
+    g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(v,t+0.012);
+    g.gain.exponentialRampToValueAtTime(0.001,t+0.07);
+    s.connect(f); f.connect(g); g.connect(out); s.start(t); s.stop(t+0.09);
+  } else if(type==='scratch'){
+    const s = nzSrc(t); s.playbackRate.setValueAtTime(1.5,t);
+    s.playbackRate.linearRampToValueAtTime(0.5,t+0.07); s.playbackRate.linearRampToValueAtTime(1.7,t+0.14);
+    const f = ctx.createBiquadFilter(); f.type='bandpass'; f.frequency.value=1200; f.Q.value=2;
+    const g = ctx.createGain(); g.gain.setValueAtTime(v,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.15);
+    s.connect(f); f.connect(g); g.connect(out); s.start(t); s.stop(t+0.17);
+  }
+}
+function tone(freq, t, dur, type, vol, dest){
+  if(!AU.ctx) return; const ctx = AU.ctx;
+  const o = ctx.createOscillator(), g = ctx.createGain();
+  o.type = type; o.frequency.value = freq;
+  g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.001,t+dur);
+  o.connect(g); g.connect(dest || AU.musicGain); o.start(t); o.stop(t+dur+0.02);
+}
+/* ---- Fingered electric bass: sub sine + plucked string through a closing lowpass ---- */
+function bassNote(freq, t, dur, vol){
+  if(!AU.ctx) return; const ctx = AU.ctx, out = AU.musicGain;
+  const lp = ctx.createBiquadFilter(); lp.type='lowpass'; lp.Q.value=2;
+  lp.frequency.setValueAtTime(950,t); lp.frequency.exponentialRampToValueAtTime(280,t+Math.min(0.16,dur));
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(vol,t+0.008);
+  g.gain.exponentialRampToValueAtTime(vol*0.55,t+0.09);
+  g.gain.setTargetAtTime(0.0001, t+Math.max(0.05,dur-0.05), 0.03);
+  lp.connect(g); g.connect(out);
+  const o1 = ctx.createOscillator(); o1.type='sine'; o1.frequency.value=freq;
+  const o2 = ctx.createOscillator(); o2.type='triangle'; o2.frequency.value=freq;
+  const o3 = ctx.createOscillator(); o3.type='sawtooth'; o3.frequency.value=freq*1.003;
+  const g3 = ctx.createGain(); g3.gain.value=0.35;
+  o1.connect(lp); o2.connect(lp); o3.connect(g3); g3.connect(lp);
+  [o1,o2,o3].forEach(o=>{ o.start(t); o.stop(t+dur+0.12); });
+  const s = nzSrc(t), hf = ctx.createBiquadFilter(), cg = ctx.createGain(); // finger attack noise
+  hf.type='highpass'; hf.frequency.value=1800;
+  cg.gain.setValueAtTime(vol*0.16,t); cg.gain.exponentialRampToValueAtTime(0.001,t+0.015);
+  s.connect(hf); hf.connect(cg); cg.connect(out); s.start(t); s.stop(t+0.02);
+}
+/* ---- Rhodes-style electric piano chord: bell partials + gentle tremolo, into the room ---- */
+function epChord(freqs, t, dur, vol){
+  if(!AU.ctx) return; const ctx = AU.ctx;
+  const lp = ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=2500;
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(vol,t+0.015);
+  g.gain.setTargetAtTime(vol*0.55, t+0.12, 0.4);
+  g.gain.setTargetAtTime(0.0001, t+Math.max(0.2,dur-0.25), 0.18);
+  const lfo = ctx.createOscillator(), lg = ctx.createGain();
+  lfo.frequency.value=4.6; lg.gain.value=vol*0.14; lfo.connect(lg); lg.connect(g.gain);
+  lp.connect(g); g.connect(AU.musicGain);
+  const send = ctx.createGain(); send.gain.value=0.3; g.connect(send); send.connect(AU.verbIn);
+  freqs.forEach(f=>{
+    [[1,1],[2,0.32],[3.98,0.10]].forEach(part=>{
+      const o = ctx.createOscillator(), og = ctx.createGain();
+      o.type='sine'; o.frequency.value=f*part[0]; og.gain.value=part[1];
+      if(part[0]>2){ og.gain.setValueAtTime(part[1],t); og.gain.exponentialRampToValueAtTime(0.001,t+0.22); }
+      o.connect(og); og.connect(lp); o.start(t); o.stop(t+dur+0.6);
+    });
+  });
+  lfo.start(t); lfo.stop(t+dur+0.6);
+}
+/* ---- Muted funk-guitar chop: short detuned saws through a wah bandpass ---- */
+function stabChord(freqs, t, vol){
+  if(!AU.ctx) return; const ctx = AU.ctx;
+  const bp = ctx.createBiquadFilter(); bp.type='bandpass'; bp.Q.value=1.3;
+  bp.frequency.setValueAtTime(750,t); bp.frequency.exponentialRampToValueAtTime(2600,t+0.05);
+  bp.frequency.exponentialRampToValueAtTime(700,t+0.13);
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.15);
+  bp.connect(g); g.connect(AU.musicGain);
+  freqs.forEach(f=>{ [-5,5].forEach(cents=>{
+    const o = ctx.createOscillator(); o.type='sawtooth'; o.frequency.value=f; o.detune.value=cents;
+    const og = ctx.createGain(); og.gain.value=0.4;
+    o.connect(og); og.connect(bp); o.start(t); o.stop(t+0.17);
+  }); });
+}
+/* ---- Lead: two detuned saws, opening lowpass, vibrato and echo (horn-like) ---- */
+function leadNote(freq, t, dur, vol){
+  if(!AU.ctx) return; const ctx = AU.ctx;
+  const lp = ctx.createBiquadFilter(); lp.type='lowpass'; lp.Q.value=1.2;
+  lp.frequency.setValueAtTime(2900,t); lp.frequency.exponentialRampToValueAtTime(950,t+dur);
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(vol,t+0.025);
+  g.gain.setTargetAtTime(vol*0.72, t+0.06, 0.08);
+  g.gain.setTargetAtTime(0.0001, t+Math.max(0.06,dur-0.05), 0.04);
+  lp.connect(g); g.connect(AU.musicGain);
+  const vs = ctx.createGain(); vs.gain.value=0.35; g.connect(vs); vs.connect(AU.verbIn);
+  const ds = ctx.createGain(); ds.gain.value=0.5; g.connect(ds); ds.connect(AU.dlyIn);
+  [-7,7].forEach(cents=>{
+    const o = ctx.createOscillator(); o.type='sawtooth'; o.frequency.value=freq; o.detune.value=cents;
+    const vib = ctx.createOscillator(), vg = ctx.createGain();
+    vib.frequency.value=5.4; vg.gain.value=0; vib.connect(vg); vg.connect(o.detune);
+    vg.gain.setValueAtTime(0,t); vg.gain.linearRampToValueAtTime(7, t+Math.min(0.22,dur));
+    o.connect(lp); o.start(t); o.stop(t+dur+0.15); vib.start(t); vib.stop(t+dur+0.15);
+  });
+}
+/* Three hip hop grooves played by the synthesized "band" above.
+   The groove rotates per stage: STAGE 1/4 -> A, 2/5 -> B, 3 -> C.
+   bass: 2-bar fingered-bass line (Hz, 0 = rest) / chords: one EP chord per bar
+   over a 4-bar cycle / lead: sparse riff in the back half of the cycle */
+const TRACKS = [
+  { bpm:93, name:'A minor funk',
+    bass:[55,0,55,0, 0,55,0,65.4, 0,55,0,49, 0,55,0,82.4,
+          55,0,55,0, 0,55,0,65.4, 0,73.4,0,49, 98,0,82.4,0],
+    chords:[[110,130.8,164.8,196],[87.3,110,130.8,164.8],[130.8,164.8,196,246.9],[98,123.5,146.8,196]],
+    lead:{ 40:440, 44:523.3, 46:493.9, 56:392, 60:440 } },
+  { bpm:97, name:'G minor boom bap',
+    bass:[49,0,0,49, 0,0,49,0, 58.3,0,49,0, 0,0,43.7,0,
+          49,0,0,49, 0,0,49,0, 65.4,0,58.3,0, 73.4,0,65.4,0],
+    chords:[[98,116.5,146.8,174.6],[155.6,196,233.1,293.7],[116.5,146.8,174.6,220],[87.3,110,130.8,174.6]],
+    lead:{ 36:587.3, 40:466.2, 44:392, 52:349.2, 56:392, 60:466.2 } },
+  { bpm:89, name:'D minor late night',
+    bass:[73.4,0,0,73.4, 0,73.4,0,0, 87.3,0,73.4,0, 0,0,65.4,0,
+          73.4,0,0,73.4, 0,73.4,0,98, 0,87.3,0,73.4, 110,0,98,0],
+    chords:[[146.8,174.6,220,261.6],[116.5,146.8,174.6,220],[174.6,220,261.6,349.2],[110,164.8,207.7,261.6]],
+    lead:{ 32:440, 38:349.2, 44:293.7, 48:349.2, 54:440, 58:523.3 } }
+];
+let curTrack = 0;
+/* character-select groove: a laid-back loop that plays only on the title /
+   character select screen */
+const TITLE_TRACK = { bpm:82, name:'select groove',
+  bass:[55,0,0,0, 0,0,55,0, 0,0,65.4,0, 49,0,0,0,
+        55,0,0,0, 0,0,55,0, 73.4,0,65.4,0, 49,0,0,0],
+  chords:[[110,130.8,164.8,196],[103.8,130.8,155.6,207.7],[87.3,110,130.8,174.6],[98,123.5,146.8,196]],
+  lead:{ 36:329.6, 44:392, 52:440, 58:392 } };
+/* boss grooves: EACH boss has his own track — the same band, but a different
+   song per boss. They take over the moment that boss appears and hand back
+   to the stage groove when he falls.
+   BOSS MUSCLE (stage 4): heavy E-minor power groove, driving 16th bass.
+   BOSS COAT (final boss): faster, darker F-minor groove with extra scratches. */
+const BOSS1_TRACK = { bpm:138, name:'muscle power',
+  bass:[82.4,0,82.4,82.4, 0,82.4,0,82.4, 82.4,0,82.4,82.4, 98,0,110,0,
+        82.4,0,82.4,82.4, 0,82.4,0,82.4, 123.5,0,110,0, 98,0,73.4,0],
+  chords:[[164.8,196,246.9,329.6],[130.8,164.8,196,261.6],[146.8,174.6,220,293.7],[123.5,146.8,185,246.9]],
+  lead:{ 32:329.6, 36:392, 40:329.6, 44:493.9, 48:440, 52:392, 56:329.6, 60:311.1 } };
+const BOSS2_TRACK = { bpm:146, name:'coat of darkness',
+  bass:[87.3,87.3,0,87.3, 0,87.3,87.3,0, 103.8,0,87.3,0, 77.8,0,73.4,0,
+        87.3,87.3,0,87.3, 0,87.3,87.3,0, 110,0,103.8,0, 98,0,82.4,0],
+  chords:[[174.6,207.7,261.6,349.2],[138.6,174.6,207.7,277.2],[103.8,130.8,155.6,207.7],[116.5,146.8,174.6,233.1]],
+  lead:{ 32:349.2, 36:415.3, 40:349.2, 44:311.1, 48:293.7, 52:349.2, 56:466.2, 60:415.3 } };
+/* victory groove for the ranking screen: bright major-key hip hop with a
+   party feel — the "you did it!" celebration while you register your score */
+const CLEAR_TRACK = { bpm:104, name:'victory party',
+  bass:[65.4,0,0,65.4, 0,0,98,0, 87.3,0,0,87.3, 0,0,130.8,0,
+        55,0,0,55, 0,0,82.4,0, 98,0,0,98, 0,0,123.5,0],
+  chords:[[130.8,164.8,196,261.6],[174.6,220,261.6,349.2],[110,130.8,164.8,220],[98,123.5,146.8,196]],
+  lead:{ 32:523.3, 36:659.3, 40:784, 44:659.3, 48:587.3, 52:659.3, 56:784, 60:1046.5 } };
+let bgmMode = 'title'; // title | stage | boss1 | boss2 | clear — the scheduler reads this live
+function effTrack(){
+  if(bgmMode==='title') return TITLE_TRACK;
+  if(bgmMode==='boss1') return BOSS1_TRACK;
+  if(bgmMode==='boss2') return BOSS2_TRACK;
+  if(bgmMode==='clear') return CLEAR_TRACK;
+  return TRACKS[curTrack % TRACKS.length];
+}
+function scheduleStep(step, t){
+  const tr = effTrack();
+  const s64 = step % 64, s16 = s64 % 16, bar = Math.floor(s64/16);
+  const spb = 60/tr.bpm; // seconds per beat
+  /* drums: boom-bap pattern with a fill at the end of the 4-bar cycle */
+  if(s16===0 || s16===7 || s16===10) drum('kick', t, 0.95);
+  if(s64>=48 && s16===14) drum('kick', t, 0.7);
+  if(bgmMode==='boss1' || bgmMode==='boss2'){ if(s16===8) drum('kick', t, 0.8); if(s16===3 || s16===11) drum('clap', t, 0.3); } // boss grooves hit harder
+  if(bgmMode==='boss2' && (s64===14 || s64===46)) drum('scratch', t, 0.12); // the final boss's track scratches more
+  if(bgmMode==='clear' && (s16===4 || s16===12)) drum('clap', t, 0.32); // victory groove: party claps on the snare
+  if(s16===4 || s16===12){ drum('snare', t, 0.92); if(step%128>=64) drum('clap', t, 0.4); }
+  if(s64===62) drum('snare', t, 0.4); if(s64===63) drum('snare', t, 0.55);
+  drum('hat', t, s16%4===0 ? 0.34 : (s16%2===0 ? 0.24 : 0.17)); // 16ths, accented
+  if(s16===15 && bar===3) drum('ohat', t, 0.26);
+  if(s16%2===1) drum('shaker', t, 0.10);
+  if(s64===30 || s64===62) drum('scratch', t, 0.13);
+  /* electric piano: one sustained chord per bar */
+  if(s16===0) epChord(tr.chords[bar], t, spb*4*0.96, 0.055);
+  /* muted guitar chops on the off-beats of bars 1 and 3 */
+  if((bar===0 || bar===2) && (s16===8 || s16===11)) stabChord(tr.chords[bar], t, 0.16);
+  /* fingered bass line */
+  const b = tr.bass[s64 % 32]; if(b) bassNote(b, t, spb*0.46, 0.30);
+  /* lead riff in the back half */
+  const ld = tr.lead[s64]; if(ld) leadNote(ld, t, spb*0.7, 0.075);
+}
+function musicStart(){
+  if(!AU.ctx || AU.timer) return;
+  AU.step = 0; AU.nextTime = AU.ctx.currentTime + 0.06;
+  AU.timer = setInterval(()=>{
+    if(!AU.on) return;
+    while(AU.nextTime < AU.ctx.currentTime + 0.14){
+      const stepDur = 60/effTrack().bpm/4;
+      const tt = AU.nextTime + (AU.step % 2 === 1 ? stepDur*0.22 : 0); // laid-back swing on off-16ths
+      scheduleStep(AU.step, tt);
+      AU.nextTime += stepDur; AU.step++;
+    }
+  }, 27);
+}
+/* ---- SNES SF2-style SFX: all synthesized "samples" on the crunchy SFX bus.
+   No voices anywhere: swings are whooshes, hits are crack + body thump. ---- */
+function sNoise(t, dur, type, f0, f1, Q, vol){
+  const ctx = AU.ctx, s = nzSrc(t);
+  const f = ctx.createBiquadFilter(); f.type=type; f.Q.value=Q;
+  f.frequency.setValueAtTime(f0,t);
+  if(f1 && f1!==f0) f.frequency.exponentialRampToValueAtTime(Math.max(30,f1), t+dur);
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.001,t+dur);
+  s.connect(f); f.connect(g); g.connect(AU.sfxIn); s.start(t); s.stop(t+dur+0.02);
+}
+function sOsc(t, type, f0, f1, dur, vol){
+  const ctx = AU.ctx, o = ctx.createOscillator(), g = ctx.createGain();
+  o.type=type; o.frequency.setValueAtTime(f0,t);
+  if(f1 && f1!==f0) o.frequency.exponentialRampToValueAtTime(Math.max(25,f1), t+dur);
+  g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.001,t+dur);
+  o.connect(g); g.connect(AU.sfxIn); o.start(t); o.stop(t+dur+0.02);
+}
+function sfHitAt(t, s){ // the classic SF2 connect sound: snap crack over a body thump
+  sNoise(t, 0.055, 'lowpass', 3400, 900, 0.7, 0.5*s);
+  sNoise(t, 0.03, 'highpass', 2400, 2400, 0.7, 0.28*s);
+  sOsc(t, 'square', 330, 68, 0.09, 0.42*s);
+  sOsc(t, 'sine', 185, 52, 0.13, 0.62*s);
+}
+function sfx(kind){
+  if(!AU.ctx || !AU.on) return; const t = AU.ctx.currentTime;
+  if(!_nb) _nb = noiseBuf(0.5);
+  if(kind==='hit') sfHitAt(t, 1);
+  else if(kind==='hit2'){ sfHitAt(t, 1.55); sNoise(t+0.012, 0.05, 'bandpass', 900, 500, 1, 0.3); sOsc(t, 'sine', 130, 36, 0.2, 0.5); }
+  else if(kind==='punchWhiff' || kind==='whiff') sNoise(t, 0.09, 'bandpass', 480, 2100, 1.6, 0.20);
+  else if(kind==='kickWhiff') sNoise(t, 0.14, 'bandpass', 330, 1250, 1.4, 0.24);
+  else if(kind==='hurt'){ sfHitAt(t, 1.25); sOsc(t, 'sawtooth', 210, 58, 0.15, 0.30); }
+  else if(kind==='guard'){ // boss invincibility: hard metallic tick, like a blocked hit
+    sOsc(t, 'square', 1180, 1180, 0.035, 0.22); sOsc(t, 'square', 1770, 1650, 0.03, 0.15);
+    sNoise(t, 0.025, 'highpass', 5200, 5200, 0.7, 0.18);
+  }
+  else if(kind==='break'){
+    sNoise(t, 0.26, 'lowpass', 2600, 240, 0.7, 0.7);
+    sNoise(t+0.02, 0.05, 'bandpass', 950, 500, 1.2, 0.35);
+    sOsc(t, 'sine', 128, 36, 0.22, 0.65);
+  }
+  else if(kind==='jump') sNoise(t, 0.13, 'bandpass', 560, 1750, 2, 0.09);
+  else if(kind==='pose'){ // special-move whoosh into a heavy connect, no shout
+    sOsc(t, 'square', 175, 940, 0.16, 0.16);
+    sNoise(t, 0.2, 'bandpass', 380, 2500, 1.2, 0.26);
+    sfHitAt(t+0.15, 1.5);
+  }
+  else if(kind==='mic'){ [659,880,988,1319].forEach((f,i)=>sOsc(t+i*0.055, 'square', f, f, 0.08, 0.16)); }
+  else if(kind==='eat'){ sOsc(t, 'square', 523, 523, 0.07, 0.14); sOsc(t+0.075, 'square', 784, 784, 0.11, 0.14); }
+  else if(kind==='clear'){ [523,659,784,1046,1319].forEach((f,i)=>sOsc(t+i*0.09, 'square', f, f, 0.14, 0.15)); sOsc(t+0.48, 'square', 1568, 1568, 0.3, 0.13); }
+  else if(kind==='levelup'){ [523,659,784,1046,1319,1568].forEach((f,i)=>sOsc(t+i*0.06, 'square', f, f, 0.12, 0.15)); sNoise(t, 0.3, 'highpass', 6000, 6000, 0.7, 0.06); }
+  else if(kind==='vinyl'){ sNoise(t, 0.16, 'bandpass', 900, 2600, 2.5, 0.3); sNoise(t+0.05, 0.12, 'bandpass', 2400, 700, 2.5, 0.22); }
+  else if(kind==='rush'){ for(let i=0;i<4;i++) sNoise(t+i*0.05, 0.07, 'bandpass', 500+i*300, 1900, 1.6, 0.16); }
+  else if(kind==='hair'){ sNoise(t, 0.22, 'bandpass', 700, 2600, 2, 0.26); sNoise(t+0.06, 0.14, 'bandpass', 1800, 600, 2, 0.18); }
+  else if(kind==='trio'){ [392,523,659,784].forEach((f,i)=>sOsc(t+i*0.07, 'square', f, f, 0.11, 0.15)); sfHitAt(t+0.3, 1.3); sNoise(t, 0.3, 'bandpass', 400, 2400, 1.2, 0.2); }
+  else if(kind==='charge'){ sfHitAt(t, 1.9); sOsc(t, 'sine', 110, 30, 0.3, 0.6); sNoise(t, 0.18, 'bandpass', 300, 1800, 1.2, 0.25); }
+  else if(kind==='chargemax'){ sOsc(t, 'square', 1319, 1319, 0.07, 0.14); sOsc(t+0.07, 'square', 1760, 1760, 0.1, 0.14); }
+}
+</script>
+<script>
+'use strict';
+/* ================= Game state ================= */
+const cv = document.getElementById('game'), ctx = cv.getContext('2d');
+ctx.imageSmoothingEnabled = false;
+const W = 960, H = 810, GROUND = 738, GRAV = 0.62; // taller play screen again: H 690 -> 810, ground line scaled with it
+const $ = id => document.getElementById(id);
+const micSVG = got => '<svg class="'+(got?'got':'')+'" viewBox="0 0 24 36" aria-hidden="true"><rect x="9" y="14" width="6" height="14" rx="3" fill="#8a8f9a"/><rect x="5" y="1" width="14" height="16" rx="7" fill="#f5b921" stroke="#c78f06" stroke-width="1.5"/><line x1="6" y1="6" x2="18" y2="6" stroke="#c78f06"/><line x1="6" y1="10" x2="18" y2="10" stroke="#c78f06"/></svg>';
+
+let G = null; // game state
+let selHero = 0;
+let state = 'opening'; // opening | title | play | clear | over | allclear | pause
+let msgTimer = null;
+function showMsg(t, ms){
+  $('msg').textContent = t;
+  if(msgTimer) clearTimeout(msgTimer);
+  msgTimer = setTimeout(()=>{ $('msg').textContent=''; }, ms||2600);
+}
+/* run timer: milliseconds from GAME START to the final clear. It ticks only
+   while playing, is shown at the top of the screen (HUD TIME), and is
+   registered into the ranking together with the score. */
+let runTime = 0;
+function fmtTime(ms){
+  const s = Math.max(0, ms)/1000, m = Math.floor(s/60);
+  return m + ':' + String(Math.floor(s%60)).padStart(2,'0') + '.' + Math.floor((s%1)*10);
+}
+function setTimeHud(){
+  const ts = fmtTime(runTime);
+  if(setTimeHud._s !== ts){ setTimeHud._s = ts; $('hudTime').textContent = ts; }
+}
+/* ================= Leveling (finite-stage progression) =================
+   Each stage fields a fixed crew of enemies (waves + a capped number of
+   reinforcements, roughly 1.5 levels' worth of XP); beating them earns XP.
+   Each level raises HP / power / speed and unlocks a new special move:
+   LV2 RAPID RUSH (6 auto hits), LV3 RECORD THROW, LV4 VINYL BURST
+   (records burst around you, nearby foes only), LV5 TRIO ATTACK
+   (all 3 heroes; allies arrive as LV15 fighters — LV15 stats for their
+   own hero — and stay until their 15%-of-LV15 HP runs out). Every 2
+   levels gained (LV 3, 5, 7, ...) also earns
+   one spare life: going down with a life in stock revives the player on
+   the spot at full HP, blinking invulnerable for 2 seconds; going down
+   with none left is game over and a restart from the beginning. */
+const PROG = { level:1, xp:0, lives:0, nextLifeAt:3 };
+/* every special move — POSE included — burns the gold gauge under the HP bar
+   (the same system POSE always used). The gauge refills over time, and the
+   higher a move's unlock level, the more gauge it costs. */
+const GAUGE_COST = { pose:25, rush:35, rec:45, vinyl:60, trio:100 };
+const GAUGE_REGEN = 0.024; // per ms: empty -> full in about 4.2 seconds
+/* after TRIO burns the whole gauge, it refills at this fraction of the normal
+   rate until it reaches full again — then normal speed resumes */
+const GAUGE_REGEN_SLOW = 0.3;
+let PROJ_SEQ = 0;
+function xpNext(lv){ return 50 + (lv-1)*40; }
+function heroStats(h, lvOverride){
+  const lv = lvOverride!=null ? lvOverride : PROG.level;
+  return { hp: h.hp + (lv-1)*14, speed: h.speed + Math.min(0.9,(lv-1)*0.09),
+    punch: h.punch + (lv-1)*2, kick: h.kick + (lv-1)*3, pose: h.pose + (lv-1)*3 };
+}
+function gainXP(n){
+  if(!G || !G.player) return;
+  const p = G.player;
+  PROG.xp += n;
+  floatText(p.x, GROUND - p.z, 205, '+'+n+' XP', '#39c2d7');
+  while(PROG.xp >= xpNext(PROG.level)){
+    PROG.xp -= xpNext(PROG.level); PROG.level++;
+    /* every 2 levels gained earns one spare life (LV 3, 5, 7, ...) */
+    const lifeNow = PROG.level >= PROG.nextLifeAt;
+    if(lifeNow){ PROG.lives++; PROG.nextLifeAt += 2; }
+    const st = heroStats(p.hero), oldMax = p.maxhp;
+    p.stats = st; p.maxhp = st.hp;
+    p.hp = Math.min(p.maxhp, p.hp + (st.hp-oldMax) + Math.round(st.hp*0.25));
+    sfx('levelup'); G.shake = Math.max(G.shake, 5);
+    floatText(p.x, GROUND - p.z, 238, 'LEVEL UP! LV '+PROG.level, '#ffd94d');
+    if(lifeNow) floatText(p.x, GROUND - p.z, 264, '1UP! EXTRA LIFE!', '#9fe870');
+    spawnParts(p.x, GROUND - p.z, 90, 16, ['#ffd94d','#39c2d7','#fff'], 4.5);
+    if(PROG.level===2) showMsg('NEW MOVE! RAPID RUSH — ONE PRESS UNLEASHES 6 AUTO HITS: LOW, PUNCH, KICK x2! (I KEY / RUSH BUTTON)', 4200);
+    else if(PROG.level===3) showMsg('NEW MOVE! RECORD THROW — PRESS THE REC BUTTON (OR H KEY) TO FLING RECORDS AHEAD!', 4200);
+    else if(PROG.level===4) showMsg('NEW MOVE! VINYL BURST — RECORDS BURST AROUND YOU AND HIT NEARBY FOES, A SUPER POSE! (U KEY / VINYL BUTTON)', 4200);
+    else if(PROG.level===5) showMsg('NEW MOVE! TRIO ATTACK — ALL 3 HEROES FIGHT TOGETHER! ALLIES ROAM FREE AS LV15 FIGHTERS AND STAY UNTIL THEIR HP RUNS OUT (O KEY / TRIO BUTTON)', 4200);
+    else showMsg('LEVEL UP! LV '+PROG.level+' — HP, POWER & SPEED UP!'+(lifeNow ? ' 1UP — EXTRA LIFE EARNED!' : ''), 3000);
+  }
+  updateHUD();
+}
+function newPlayer(heroIdx){
+  const h = HEROES[heroIdx];
+  const st = heroStats(h);
+  return { hero:h, stats:st, x:120, z:0, vz:0, kvx:0, launchDir:0, launchT:0, air:false, crouching:false, hp:st.hp, maxhp:st.hp, face:1,
+    atk:null, atkId:0, gauge:100, gaugeMsgT:0, gaugeLock:false, invuln:0, reviveT:0, hurtT:0, walkT:0, moving:false,
+    rushQueue:0, rushSeq:null, rushTimer:0, slowGauge:false };
+}
+function loadStage(idx, keepScore){
+  const st = STAGES[idx];
+  curTrack = idx % TRACKS.length; // BGM groove rotates per stage
+  bgmMode = 'stage';
+  G = { stageIdx:idx, stage:st, player:newPlayer(selHero),
+    enemies:[], objects:st.objects.map(o=>({x:o.x, type:o.type, mic:!!o.mic, hp:24, broken:false, wob:Math.random()*6, scale:o.scale||1})),
+    /* per-instance scale (o.scale in STAGES) multiplies the type's tuned size.
+       The sprite draws at the full scaled height (dh), but the stand-on /
+       jump-over height (h) is capped at 222px — a full jump tops out near
+       227px, so a 3x dumpster or drum stack drawn at full height would
+       otherwise wall the stage off completely. */
+    obstacles:st.obstacles.map(o=>{ const s = (OBS_SCALE[o.type]||1) * (o.scale||1); const fw = Math.round(OBSTACLE_DIM[o.type].w*s), fh = Math.round(OBSTACLE_DIM[o.type].h*s); return {x:o.x, type:o.type, w:fw, h:Math.min(fh,222), dh:fh}; }),
+    items:[], parts:[], texts:[], projs:[], eprojs:[], allies:[], spawnT:2000, spawnLeft: st.reinforce||0, waves:st.waves.map(w=>({at:w.at, spawns:w.spawns, done:false})),
+    pending:[], mics:0, score: keepScore||0, cam:0, shake:0, time:0, boss:null, bossGate:null, exitHintT:0 };
+  $('hudStage').textContent = st.name;
+  $('bossbar').style.display = 'none';
+  updateHUD();
+}
+/* HUD face icon: the selected hero's head, cropped from his idle frame,
+   shown next to his name with the spare-life count beside it */
+let hudFaceKey = null;
+function drawHudFace(key){
+  if(hudFaceKey === key) return;
+  const img = IMG[key]; if(!img) return;
+  const draw = ()=>{ const c = $('hudFace'); if(!c) return; const g = c.getContext('2d');
+    g.imageSmoothingEnabled = false; g.clearRect(0,0,c.width,c.height);
+    g.drawImage(img, 90, 0, 100, 100, 0, 0, c.width, c.height); hudFaceKey = key; };
+  if(img.complete && img.naturalWidth) draw(); else img.addEventListener('load', draw);
+}
+function updateHUD(){
+  if(!G) return;
+  const p = G.player;
+  $('hudName').textContent = p.hero.name;
+  const f = $('hpFill'); f.style.width = Math.max(0, p.hp/p.maxhp*100)+'%';
+  f.classList.toggle('low', p.hp/p.maxhp < 0.3);
+  const pf = $('poseFill'); /* the gold bar is the shared special-move gauge */
+  pf.style.width = Math.max(0, Math.min(100, p.gauge))+'%'; pf.classList.toggle('cool', p.gauge < GAUGE_COST.pose);
+  pf.classList.toggle('slow', !!p.slowGauge); /* amber while the post-TRIO slow refill runs */
+  pf.classList.toggle('lock', !!p.gaugeLock); /* red while specials are locked, until the gauge is full */
+  $('hudMics').textContent = G.mics + ' / 3';
+  $('hudScore').textContent = G.score;
+  $('hudLv').textContent = 'LV ' + PROG.level;
+  $('hudLives').textContent = '×' + PROG.lives;
+  drawHudFace(p.hero.key);
+  refreshMoveButtons();
+  if(G.boss && G.boss.hp>0){
+    $('bossbar').style.display='block';
+    $('bossName').textContent = G.boss.def.name;
+    $('bossFill').style.width = Math.max(0, G.boss.hp/G.boss.maxhp*100)+'%';
+  } else $('bossbar').style.display='none';
+}
+
+/* special-move buttons: locked until the level, then show the gauge cost
+   (dimmed while the gauge cannot pay for the move) */
+function refreshMoveButtons(){
+  const p = G ? G.player : null;
+  document.querySelectorAll('.tbtn[data-k="pose"], .tbtn[data-k="vinyl"], .tbtn[data-k="rush"], .tbtn[data-k="rec"], .tbtn[data-k="trio"]').forEach(b=>{
+    const kind = b.dataset.k;
+    const need = kind==='pose' ? 1 : (kind==='rush' ? 2 : (kind==='rec' ? 3 : (kind==='vinyl' ? 4 : 5)));
+    const cost = GAUGE_COST[kind];
+    const locked = PROG.level < need;
+    const names = { pose:'POSE!', rush:'RUSH', rec:'REC', vinyl:'VINYL', trio:'TRIO' };
+    let label, dim = locked;
+    if(locked) label = names[kind] + '<small>LV '+need+'</small>';
+    else if(kind==='trio' && G && G.allies && G.allies.length){
+      label = 'TRIO<small>' + Math.max(1, Math.ceil(G.allies[0].hp/G.allies[0].maxhp*100)) + '% HP</small>';
+      dim = true;
+    } else if(p && p.gaugeLock){
+      label = names[kind] + '<small>RECHARGE</small>'; // locked until the gauge is full again
+      dim = true;
+    } else {
+      const afford = p && p.gauge >= cost;
+      label = names[kind] + '<small>' + (afford ? 'COST '+cost : 'LOW '+cost) + '</small>';
+      dim = !afford;
+    }
+    b.classList.toggle('locked', dim);
+    if(b._lbl !== label){ b._lbl = label; b.innerHTML = label; }
+  });
+}
+
+/* ================= Physics: one ground line + jump-over obstacles ================= */
+function groundAt(x){
+  let g = 0;
+  if(G) for(const o of G.obstacles){
+    if(Math.abs(x - o.x) < o.w/2 + 24 && o.h > g) g = o.h;
+  }
+  return g;
+}
+function physStep(ent, dt){
+  const f = Math.max(0.4, Math.min(2.2, dt/16.7));
+  const g = groundAt(ent.x);
+  if(ent.vz === 0 && Math.abs(ent.z - g) <= 12){ ent.z = g; return; } // grounded (incl. small step-up)
+  ent.z += ent.vz * f;
+  ent.vz -= GRAV * f;
+  if(ent.z <= g){ ent.z = g; ent.vz = 0; }
+}
+function tryMove(ent, dx){
+  if(!dx) return;
+  const nx = ent.x + dx;
+  for(const o of G.obstacles){
+    if(Math.abs(nx - o.x) < o.w/2 + 26 && ent.z < o.h - 10) return; // blocked by obstacle
+  }
+  ent.x = nx;
+}
+
+/* ================= Input ================= */
+const keys = {};
+const KEYMAP = { ArrowLeft:'left', KeyA:'left', ArrowRight:'right', KeyD:'right',
+  ArrowUp:'jump', KeyW:'jump', ArrowDown:'down', KeyS:'down',
+  KeyJ:'punch', KeyK:'kick', KeyL:'pose', KeyU:'vinyl', KeyI:'rush', KeyH:'rec', KeyO:'trio', Space:'jump' };
+addEventListener('keydown', e=>{
+  const k = KEYMAP[e.code]; if(k){ keys[k]=true; e.preventDefault(); }
+  if(e.code==='KeyP'){ togglePause(); }
+  if(state==='title' && ['Digit1','Digit2','Digit3'].includes(e.code)) selectHero(+e.code.slice(-1)-1);
+});
+addEventListener('keyup', e=>{ const k = KEYMAP[e.code]; if(k) keys[k]=false; });
+/* block long-press selection / copy menus globally (buttons, HUD, overlays) */
+document.addEventListener('contextmenu', e=>e.preventDefault());
+document.addEventListener('selectstart', e=>e.preventDefault());
+document.addEventListener('dragstart', e=>e.preventDefault());
+document.querySelectorAll('.tbtn').forEach(b=>{
+  const k = b.dataset.k;
+  const on = e=>{ e.preventDefault(); keys[k]=true; b.classList.add('on'); };
+  const off = e=>{ e.preventDefault(); keys[k]=false; b.classList.remove('on'); };
+  b.addEventListener('pointerdown', on);
+  b.addEventListener('pointerup', off); b.addEventListener('pointerleave', off); b.addEventListener('pointercancel', off);
+  b.addEventListener('contextmenu', e=>e.preventDefault());
+});
+/* ---- slide stick: drag / slide the lever left or right to move.
+   Past the dead zone it simply holds keys.left / keys.right, so keyboard
+   and stick share the exact same movement code. ---- */
+(function(){
+  const stick = document.getElementById('stick'), lever = document.getElementById('stickLever');
+  if(!stick || !lever) return;
+  const RANGE = 34, DEAD = 9, JUMP_DEAD = 13; // px of lever travel / dead zones
+  let pid = null;
+  function apply(dx, dy){
+    lever.style.transform = 'translate(' + dx + 'px, ' + dy + 'px)';
+    keys.left = dx < -DEAD; keys.right = dx > DEAD;
+    keys.jump = dy < -JUMP_DEAD; // slide up to jump (no jump button anymore)
+    keys.down = dy > JUMP_DEAD && Math.abs(dx) <= DEAD + 3; // crouch only on a straight-down slide: diagonal-down just moves
+    stick.classList.toggle('tilt-l', keys.left);
+    stick.classList.toggle('tilt-r', keys.right);
+    stick.classList.toggle('tilt-u', keys.jump);
+    stick.classList.toggle('tilt-d', keys.down);
+  }
+  function upd(e){
+    const r = stick.getBoundingClientRect();
+    let dx = e.clientX - (r.left + r.width/2);
+    let dy = e.clientY - (r.top + r.height/2);
+    dx = Math.max(-RANGE, Math.min(RANGE, dx));
+    dy = Math.max(-RANGE, Math.min(RANGE*0.6, dy));
+    apply(dx, dy);
+  }
+  function end(){
+    if(pid===null) return; pid = null;
+    lever.classList.add('snap'); // spring back to centre
+    apply(0, 0);
+  }
+  stick.addEventListener('pointerdown', e=>{
+    e.preventDefault();
+    pid = e.pointerId;
+    try{ stick.setPointerCapture(pid); }catch(_){}
+    lever.classList.remove('snap');
+    upd(e);
+  });
+  stick.addEventListener('pointermove', e=>{ if(pid===e.pointerId) upd(e); });
+  stick.addEventListener('pointerup', end);
+  stick.addEventListener('pointercancel', end);
+  stick.addEventListener('contextmenu', e=>e.preventDefault());
+})();
+
+/* ================= Combat helpers ================= */
+let ATK_SEQ = 0;
+function spawnParts(x, baseY, z, n, colors, spread){
+  for(let i=0;i<n;i++){
+    G.parts.push({ x, by:baseY, z:z||0, vx:(Math.random()-0.5)*(spread||3), vy:(Math.random()-0.5)*2, vz:2+Math.random()*3.4,
+      life:22+Math.random()*16, t:0, c:colors[i%colors.length], s:2+Math.random()*3 });
+  }
+}
+function floatText(x, baseY, z, txt, c){ G.texts.push({x, by:baseY, z:z||0, txt, c:c||'#ffd94d', t:0, life:46}); }
+function damageEnemy(e, dmg, dir, power, rush, punchKb){
+  if(e.hp<=0) return;
+  /* boss guard: ~1s of invincibility after each hit taken — but RAPID RUSH
+     (LV2) hits punch straight through it: while the rush is firing, boss
+     invincibility is void */
+  if(e.def.boss && e.invuln>0 && !rush){
+    spawnParts(e.x, GROUND - e.z, 90, 4, ['#39c2d7','#bdf3ff','#fff'], 3);
+    sfx('guard');
+    return;
+  }
+  if(e.type==='boss2') dmg = Math.max(1, Math.round(dmg*0.5)); // the final boss has double defense: every hit lands at half strength
+  e.hp -= dmg; e.hurtT = 130; e.flashT = 90;
+  e.stallT = 0; // getting hit means the fight is active here — reset the camping timer
+  if(e.def.boss) e.invuln = 1000;
+  /* knockback slide: kicks / records keep the heavy slide, but PUNCHES are
+     back to the original amount (2.0); every non-boss enemy — mohawk
+     included — uses the same parameters; bosses keep their old amount.
+     POSE passes power 0 on purpose: no knockback at all (a plain 0 must not
+     fall back to the default shove, hence the ==null check) */
+  const kbMul = e.def.boss ? 1.1 : (punchKb ? 2.0 : 6.0);
+  e.vx = dir * (power==null ? 2.2 : power) * kbMul;
+  e.state = 'hurt'; e.stateT = 0;
+  e.hurtDur = e.def.boss ? 150 : 230;
+  spawnParts(e.x, GROUND - e.z, 80, 5, ['#fff','#ffd94d','#e83a30'], 3.4);
+  if(e.hp<=0){
+    e.state='down'; e.stateT=0; e.dead=true;
+    /* the killing blow: FIVE TIMES the usual knockback (the e.vx set just
+       above, x5) and the foe fades away while it slides. The 5x shove is
+       CAPPED: a kick / pose / record kill would otherwise start at over
+       100px a frame and still streak straight across the whole screen to
+       the edge — the cap, plus the stronger slide friction in updateEnemy,
+       keeps every corpse's travel under ~280px, so no defeated enemy ever
+       flies to the edge of the screen again, on any path */
+    e.vx = Math.max(-46, Math.min(46, e.vx * 5));
+    G.score += e.def.score; floatText(e.x, GROUND - e.z, 130, '+'+e.def.score, '#9fe870');
+    gainXP(e.def.boss ? 120 : (e.type==='mohawk' ? 16 : 12));
+    spawnParts(e.x, GROUND - e.z, 60, 14, ['#fff','#ffd94d','#39c2d7'], 4.6);
+    /* mics stop appearing entirely once the stage's 3 are collected */
+    if(e.carrier && G.mics<3){ dropItem(e.x, 'mic'); floatText(e.x, GROUND - e.z, 160, 'DROPPED A MIC!', '#f5b921'); }
+    else if(e.def.boss && G.mics<3){ dropItem(e.x, 'mic'); floatText(e.x, GROUND - e.z, 160, 'BOSS DROPPED A MIC!', '#f5b921'); }
+    else if(Math.random()<0.16) dropItem(e.x, 'burger');
+    if(e.def.boss && G.boss===e){ G.boss=null; }
+    sfx('hit2');
+  } else sfx('hit');
+  updateHUD();
+}
+function dropItem(x, kind){
+  const rest = groundAt(x);
+  G.items.push({x, kind, t:0, rest, z:rest+36, vz:-1.6});
+}
+function hurtPlayer(dmg, dir, fromZ){
+  const p = G.player;
+  if(p.invuln>0) return;
+  if(fromZ!=null && Math.abs(p.z - fromZ) > 52) return; // different height: attack whiffs
+  p.hp -= dmg; p.invuln = 650; p.hurtT = 220;
+  p.kvx = dir * (5.4 + Math.min(2.6, dmg*0.1)); // knockback slide, applied in update()
+  spawnParts(p.x, GROUND - p.z, 80, 6, ['#e83a30','#fff'], 3);
+  sfx('hurt'); G.shake = Math.max(G.shake, 4);
+  if(p.hp<=0){ p.hp = 0; onPlayerDown(); }
+  updateHUD();
+}
+
+/* knocked out: with a spare life in stock the player burns one and gets
+   straight back up at full HP, blinking and untouchable for 2 seconds
+   while play continues. With no lives left it is game over. */
+function onPlayerDown(){
+  const p = G.player;
+  if(PROG.lives > 0){
+    PROG.lives--;
+    p.hp = p.maxhp;
+    p.atk = null; p.rushSeq = null; p.rushQueue = 0;
+    p.kvx = 0; p.launchT = 0; p.vz = 0; p.hurtT = 0;
+    p.invuln = 2000; p.reviveT = 2000;
+    sfx('levelup'); G.shake = Math.max(G.shake, 5);
+    floatText(p.x, GROUND - p.z, 238, 'REVIVED!', '#9fe870');
+    spawnParts(p.x, GROUND - p.z, 90, 16, ['#9fe870','#ffd94d','#fff'], 4.5);
+    showMsg('BACK ON YOUR FEET! '+PROG.lives+' '+(PROG.lives===1?'LIFE':'LIVES')+' LEFT IN STOCK', 2600);
+    updateHUD();
+  } else {
+    gameOver();
+  }
+}
+
+/* TRIO allies have their own small HP pool (15% of their LV15 max HP): enemy hits
+   wear it down, and at zero the ally goes down and leaves the fight */
+function damageAlly(a, dmg, dir){
+  if(!a || a.dead) return;
+  a.hp -= dmg; a.hurtT = 220;
+  a.x = Math.max(24, Math.min(G.stage.world-24, a.x + dir*9)); // small knockback shove
+  spawnParts(a.x, GROUND - a.z, 80, 6, ['#e83a30','#fff'], 3);
+  sfx('hurt');
+  if(a.hp<=0){
+    a.hp = 0; a.dead = true;
+    spawnParts(a.x, GROUND - a.z, 70, 12, ['#39c2d7','#fff','#e83a30'], 4.2);
+  }
+}
+/* enemy attacks hit whoever they were aimed at: the player or a TRIO ally */
+function hurtFighter(ally, dmg, dir, fromZ){
+  if(ally) damageAlly(ally, dmg, dir);
+  else hurtPlayer(dmg, dir, fromZ);
+}
+
+/* BOSS COAT's coat spin: one whirl hits everyone around him, and anyone
+   caught is LAUNCHED — they fly all the way to the edge of the stage.
+   The flight itself is handled by launchT in update() / updateAlly(). */
+function coatSpinHit(e){
+  G.shake = Math.max(G.shake, 7); sfx('charge');
+  floatText(e.x, GROUND - e.z, 281, 'COAT SPIN!', '#ffd94d');
+  spawnParts(e.x, GROUND - e.z, 80, 14, ['#23232b','#3a3a44','#101014','#f5b921'], 5);
+  const p = G.player;
+  if(Math.abs(p.x-e.x)<244 && Math.abs(p.z-e.z)<83){
+    const dir = p.x>=e.x ? 1 : -1, hpBefore = p.hp;
+    hurtPlayer(e.dmg+4, dir, e.z);
+    if(p.hp < hpBefore){ // the hit connected: send them flying to the stage edge
+      p.kvx = 0; p.launchDir = dir; p.launchT = 1500; p.vz = Math.max(p.vz, 6.5);
+    }
+  }
+  if(G.allies) for(const a of G.allies){
+    if(a.dead) continue;
+    if(Math.abs(a.x-e.x)<244 && Math.abs(a.z-e.z)<83){
+      const dir = a.x>=e.x ? 1 : -1;
+      damageAlly(a, e.dmg+4, dir);
+      if(!a.dead){ a.launchDir = dir; a.launchT = 1500; }
+    }
+  }
+}
+
+/* ================= Player actions ================= */
+/* shared gauge gate for every special move (POSE included) */
+function spendGauge(cost){
+  const p = G.player;
+  /* once a special has fired, every special stays locked until the gauge
+     has refilled all the way back to full */
+  if(p.gaugeLock){
+    if(G.time - p.gaugeMsgT > 900){ p.gaugeMsgT = G.time; floatText(p.x, GROUND - p.z, 218, 'GAUGE RECHARGING!', '#ff8a7a'); }
+    return false;
+  }
+  if(p.gauge < cost){
+    if(G.time - p.gaugeMsgT > 900){ p.gaugeMsgT = G.time; floatText(p.x, GROUND - p.z, 218, 'NOT ENOUGH GAUGE!', '#ff8a7a'); }
+    return false;
+  }
+  p.gauge -= cost;
+  p.gaugeLock = true;
+  return true;
+}
+function startAttack(kind, auto){
+  const p = G.player;
+  if(state!=='play') return;
+  const low = kind==='lowpunch' || kind==='lowkick';
+  if(p.crouching && !low && !auto) return; // while crouched, only the low crouch attacks come out
+  if(p.atk) return;
+  const now = performance.now();
+  if(kind==='pose'){
+    if(!spendGauge(GAUGE_COST.pose)) return;
+    p.atk = { kind, t0:now, dur:420, hitDone:false, id:++ATK_SEQ };
+    sfx('pose');
+    G.shake = Math.max(G.shake, 6);
+    floatText(p.x, GROUND - p.z, 190, 'YO!!', '#f5b921');
+  } else if(kind==='punch' || kind==='lowpunch'){
+    p.atk = { kind, t0:now, dur: auto?120:240, hitDone:false, id:++ATK_SEQ, rush:!!auto };
+    sfx('punchWhiff');
+  } else if(kind==='kick' || kind==='lowkick'){
+    p.atk = { kind, t0:now, dur: auto?170:340, hitDone:false, id:++ATK_SEQ, rush:!!auto };
+    sfx('kickWhiff');
+  }
+}
+/* ---- Special moves unlocked by leveling ---- */
+function startSpecial(kind){
+  const p = G.player;
+  if(state!=='play') return;
+  if(p.crouching) return; // no special moves while crouched either
+  if(kind==='rush'){
+    if(PROG.level<2){ showMsg('RAPID RUSH UNLOCKS AT LV 2 — BEAT MORE ENEMIES!', 2000); return; }
+    if(p.rushSeq && p.rushSeq.length) return;
+    if(!spendGauge(GAUGE_COST.rush)) return;
+    /* one press: six attacks fire on their own at full speed —
+       crouch attack, punch, kick, then the same three again */
+    p.rushSeq = ['lowpunch','punch','kick','lowpunch','punch','kick'];
+    p.rushQueue = p.rushSeq.length; p.rushTimer = 0; sfx('rush');
+    floatText(p.x, GROUND - p.z, 205, 'RAPID RUSH!', '#ff8a3c');
+  } else if(kind==='rec'){
+    if(PROG.level<3){ showMsg('RECORD THROW UNLOCKS AT LV 3 — BEAT MORE ENEMIES!', 2000); return; }
+    if(!spendGauge(GAUGE_COST.rec)) return;
+    /* one press flings three records straight ahead in the facing direction */
+    sfx('vinyl');
+    floatText(p.x, GROUND - p.z, 205, 'RECORD THROW!', '#ff8a7a');
+    const recDmg = p.stats.punch + 12;
+    for(let i=0;i<3;i++){
+      G.projs.push({ id:++PROJ_SEQ, x:p.x + p.face*26, z:p.z + 92 + (i-1)*16, vx:p.face*(8.6 + i*1.15),
+        vz:1.1 - i*0.55, spin:Math.random()*6, t:0, life:820, dmg:recDmg });
+    }
+    G.shake = Math.max(G.shake, 2);
+  } else if(kind==='vinyl'){
+    if(PROG.level<4){ showMsg('VINYL BURST UNLOCKS AT LV 4 — BEAT MORE ENEMIES!', 2000); return; }
+    if(!spendGauge(GAUGE_COST.vinyl)) return;
+    sfx('vinyl');
+    floatText(p.x, GROUND - p.z, 205, 'VINYL BURST!', '#d9b8ff');
+    /* a super POSE: 12 records burst out around the player and shatter close
+       by (ox caps their range), so only nearby enemies get hit */
+    for(let i=0;i<12;i++){
+      const dir = i%2===0 ? 1 : -1, tier = i>>1;
+      G.projs.push({ id:++PROJ_SEQ, x:p.x, z:p.z+95, vx:dir*(6.2 + tier*0.95 + Math.random()*1.1),
+        vz:2.4 - tier*0.55, spin:Math.random()*6, t:0, life:420, dmg:p.stats.pose + 16, ox:p.x });
+    }
+    spawnParts(p.x, GROUND - p.z, 80, 14, ['#d9b8ff','#ffd94d','#fff'], 5);
+    G.shake = Math.max(G.shake, 5);
+  } else if(kind==='trio'){
+    if(PROG.level<5){ showMsg('TRIO ATTACK UNLOCKS AT LV 5 — BEAT MORE ENEMIES!', 2000); return; }
+    if(G.allies && G.allies.length) return;
+    if(!spendGauge(GAUGE_COST.trio)) return;
+    /* costs the MAX gauge: afterwards the gauge refills slowly until full */
+    p.slowGauge = true;
+    sfx('trio');
+    floatText(p.x, GROUND - p.z, 225, 'LV15 TRIO ATTACK!', '#39c2d7');
+    /* the other two heroes appear at the player's left and right as LV15
+       fighters — whatever the player's own level is, each ally's HP, speed,
+       punch, kick and pose use the LV15 growth curve for his own hero.
+       They still arrive at only 15% HP (15% of that LV15 max HP), then
+       roam the whole stage hunting enemies on their own. No time limit:
+       they stay until enemy hits bring their HP to zero. */
+    const others = HEROES.filter(h=>h.key!==p.hero.key);
+    G.allies = others.map((h,i)=>{
+      const side = i===0 ? -1 : 1;
+      const ax = Math.max(30, Math.min(G.stage.world-30, p.x + side*105));
+      spawnParts(ax, GROUND - p.z, 90, 12, ['#39c2d7','#ffd94d','#fff'], 4.2);
+      const st = heroStats(h, 15); // LV15 stats for this ally's own hero
+      const maxhp = Math.max(10, Math.round(st.hp * 0.15)); // allies arrive at just 15% of their LV15 HP
+      return { hero:h, stats:st, level:15, side, x:ax, z:p.z, vz:0, air:false, hp:maxhp, maxhp, hurtT:0, dead:false,
+        launchDir:0, launchT:0,
+        face:p.face, atk:null, atkCd:240 + i*220 + Math.random()*200, walkT:Math.random()*100, moving:false };
+    });
+    G.shake = Math.max(G.shake, 4);
+  }
+}
+/* ---- TRIO allies (LV5): AI partners who fight beside the player ---- */
+function updateAlly(a, dt){
+  if(a.atkCd>0) a.atkCd -= dt;
+  if(a.hurtT>0) a.hurtT -= dt;
+  physStep(a, dt);
+  a.air = (a.z > groundAt(a.x)+1 || a.vz!==0);
+  /* coat-spin launch: allies fly to the stage edge just like the player */
+  if(a.launchT>0){
+    a.launchT -= dt;
+    const lf = Math.max(0.4, Math.min(2.2, dt/16.7));
+    const beforeX = a.x;
+    tryMove(a, a.launchDir * 15.5 * lf);
+    a.x = Math.max(26, Math.min(G.stage.world-26, a.x));
+    if(Math.abs(a.x-beforeX) < 1.2 || a.x<=27 || a.x>=G.stage.world-27 || a.launchT<=0) a.launchT = 0;
+    return;
+  }
+  const p = G.player;
+  let tgt = null, best = 1e9;
+  for(const e of G.enemies){
+    if(e.dead) continue;
+    const d = Math.abs(e.x-a.x) + Math.abs(e.z-a.z)*0.6;
+    if(d<best){ best = d; tgt = e; }
+  }
+  a.moving = false;
+  let destX = null;
+  if(tgt){ // free-roaming: allies hunt the nearest enemy anywhere on the stage
+    a.face = tgt.x>=a.x ? 1 : -1;
+    if(Math.abs(tgt.x-a.x)>92 || Math.abs(tgt.z-a.z)>52){
+      destX = tgt.x - a.face*70;
+    } else if(a.atkCd<=0 && !a.atk){
+      const kind = Math.random()<0.5 ? 'punch' : 'kick';
+      a.atk = { kind, t0:performance.now(), dur: kind==='kick'?360:250, hitDone:false, id:++ATK_SEQ };
+      a.atkCd = 420 + Math.random()*280;
+      sfx(kind==='kick' ? 'kickWhiff' : 'punchWhiff');
+    }
+  } else {
+    destX = p.x + a.side*105;
+    a.face = p.face;
+    if(Math.abs(a.x-destX)<14) destX = null;
+  }
+  if(destX!=null){
+    const dx = destX - a.x;
+    const step = Math.sign(dx) * Math.min(Math.abs(dx), a.stats.speed*(Math.abs(dx)>460 ? 1.85 : 1.12) * dt/16.7); // hurry when the prey is far away
+    if(step){
+      const before = a.x;
+      tryMove(a, step); a.moving = true; a.walkT += dt;
+      if(Math.abs(a.x-before) < Math.abs(step)*0.5 && a.z <= groundAt(a.x)+1 && a.vz===0) a.vz = 16.5; // hop obstacles
+    }
+  }
+  a.x = Math.max(24, Math.min(G.stage.world-24, a.x));
+  if(a.atk){ allyAttackHits(a); if(performance.now()-a.atk.t0 > a.atk.dur) a.atk = null; }
+}
+function allyAttackHits(a){
+  const atk = a.atk; if(!atk || atk.hitDone) return;
+  const el = performance.now() - atk.t0;
+  let range, dmg, zTol, power;
+  if(atk.kind==='punch'){ if(el<50||el>200) return; range=135; dmg=a.stats.punch; zTol=83; power=2.4; }
+  else { if(el<90||el>280) return; range=164; dmg=a.stats.kick; zTol=83; power=3.6; }
+  let hitAny = false;
+  for(const e of G.enemies){
+    if(e.dead || e.lastHitId===atk.id) continue;
+    const dx = e.x - a.x;
+    if(dx*a.face > -14 && Math.abs(dx)<range && Math.abs(e.z-a.z)<zTol){
+      e.lastHitId = atk.id; damageEnemy(e, dmg, dx>=0?1:-1, power, false, atk.kind==='punch'); hitAny = true;
+    }
+  }
+  if(hitAny) atk.hitDone = true;
+}
+function attackHits(){
+  const p = G.player, a = p.atk; if(!a || a.hitDone) return;
+  const el = performance.now() - a.t0;
+  const hero = p.stats;
+  let range, dmg, zTol, power;
+  if(a.kind==='punch'){ if(el<50||el>200) return; range=135; dmg=hero.punch; zTol=83; power=2.4; }
+  else if(a.kind==='kick'){ if(el<90||el>280) return; range=164; dmg=hero.kick; zTol=83; power=3.6; }
+  else if(a.kind==='lowpunch'){ if(el<40||el>190) return; range=133; dmg=hero.punch; zTol=60; power=2.6; }
+  else if(a.kind==='lowkick'){ if(el<80||el>280) return; range=174; dmg=hero.kick; zTol=60; power=4.4; }
+  else { if(el<90||el>320) return; range=208; dmg=Math.max(1, Math.round(hero.pose/2)); zTol=114; power=0; } // POSE: half power, NO knockback — foes stay put and eat the hit standing
+  if(a.rush) dmg = Math.max(2, Math.round(dmg*0.55)); // rush trades power for speed
+  let hitAny = false;
+  for(const e of G.enemies){
+    if(e.dead || e.lastHitId===a.id) continue;
+    const dx = e.x - p.x;
+    const inFront = a.kind==='pose' ? Math.abs(dx)<range : (dx*p.face> -14 && Math.abs(dx)<range);
+    if(inFront && Math.abs(e.z - p.z)<zTol){ e.lastHitId = a.id; damageEnemy(e, dmg, dx>=0?1:-1, power, a.rush, a.kind==='punch' || a.kind==='lowpunch'); hitAny = true; }
+  }
+  for(const o of G.objects){
+    if(o.broken || o.lastHitId===a.id) continue;
+    const dx = o.x - p.x;
+    const inFront = a.kind==='pose' ? Math.abs(dx)<range+18 : (dx*p.face> -16 && Math.abs(dx)<range+18);
+    if(inFront && p.z < 46){
+      o.hp -= dmg; o.wob = 8; o.lastHitId = a.id; hitAny = true;
+      spawnParts(o.x, GROUND, 44, 4, ['#c9a06a','#8a6a3a','#fff'], 3);
+      if(o.hp<=0) breakObject(o); else sfx('hit');
+    }
+  }
+  if(hitAny) a.hitDone = (a.kind!=='pose');
+}
+function breakObject(o){
+  o.broken = true; sfx('break');
+  spawnParts(o.x, GROUND, 40, 16, ['#c9a06a','#7a5a30','#555','#999'], 5);
+  G.score += 50;
+  if(o.mic && G.mics<3){ dropItem(o.x, 'mic'); floatText(o.x, GROUND, 130, 'MIC FOUND!', '#f5b921'); } // no more mics once the stage's 3 are collected
+  else if(Math.random()<0.3) dropItem(o.x, 'burger');
+  updateHUD();
+}
+
+/* ================= Enemies ================= */
+function spawnEnemy(type, x, flag){
+  /* never more than one mohawk on the field: extra mohawk spawns become bandanas */
+  if(type==='mohawk' && G.enemies.some(e=>e.type==='mohawk' && !e.dead)) type = 'bandana';
+  const def = ETYPES[type];
+  /* while a boss is on the field no grunt spawns at all — the boss fight
+     stays one-on-one (the boss himself is exempt, obviously) */
+  if(!def.boss && G.boss && G.boss.hp>0) return null;
+  const scale = (1 + G.stageIdx*0.07) * (1 + (PROG.level-1)*0.07); // foes toughen as you level
+  const e = { type, def, sheet:def.sheet, x:Math.max(30,Math.min(G.stage.world-30,x)),
+    z:0, vz:0, vx:0,
+    dmg: Math.round(def.dmg * (1 + (PROG.level-1)*0.05)),
+    hp: Math.round(def.hp*scale), maxhp: Math.round(def.hp*scale),
+    face:-1, state:'enter', stateT:0, hurtT:0, flashT:0, hurtDur:230, walkT:Math.random()*100,
+    carrier: flag==='carrier', dead:false, lastHitId:-1,
+    atkCd: 500+Math.random()*600, atkKind:'kick', windupDur:300,
+    dashCd: 1400+Math.random()*1600, dashDir:1, dashHit:false,
+    invuln:0, jumpCd: 2000+Math.random()*1600, jumpVx:0, jumpHit:false,
+    hairCd: 1500+Math.random()*1300,
+    /* final boss (BOSS COAT) only: hat throws and coat spins are limited
+       per fight — 5 hats and 3 coat spins, ever, until he goes down */
+    hatLeft: type==='boss2' ? 5 : 0, coatLeft: type==='boss2' ? 3 : 0,
+    hatCd: 2400+Math.random()*800, coatCd: 2000+Math.random()*800, coatHit:false,
+    /* camping check: time spent stuck around one spot without hurting the
+       player — when it passes the limit the enemy leaps to a new position */
+    stallT:0, stallX:-1, lastPHP:-1 };
+  G.enemies.push(e);
+  if(def.boss){
+    G.boss = e;
+    /* the boss takes the stage alone: every living grunt on the field
+       vanishes in a puff the moment he appears (a carrier's mic drops
+       where he stood, so a mic can never vanish along with him), queued
+       grunt spawns are cancelled, and no new grunts arrive while he
+       lives — the spawnEnemy guard above and the spawner check in
+       update() keep the fight one-on-one */
+    for(const o of G.enemies){
+      if(o===e || o.def.boss || o.dead) continue;
+      spawnParts(o.x, GROUND - o.z, 80, 9, ['#cfc8bb','#8f8a7c','#fff'], 3.4);
+      if(o.carrier && G.mics<3) dropItem(o.x, 'mic');
+    }
+    G.enemies = G.enemies.filter(o=> o===e || o.def.boss || o.dead);
+    /* cancel queued grunt spawns in place (no reassignment: the pending
+       loop in update() may be iterating this very array right now) */
+    for(let i=G.pending.length-1;i>=0;i--)
+      if(!(ETYPES[G.pending[i].type] && ETYPES[G.pending[i].type].boss)) G.pending.splice(i,1);
+    showMsg('⚠ '+def.name+' IS HERE!', 2200);
+  }
+  updateHUD();
+  return e;
+}
+function updateEnemy(e, dt){
+  const p = G.player;
+  e.stateT += dt; if(e.hurtT>0) e.hurtT-=dt; if(e.flashT>0) e.flashT-=dt;
+  if(e.invuln>0) e.invuln-=dt;
+  if(e.dead){
+    /* killing-blow knockback: the downed foe slides and fades out as it
+       goes. Friction here is stronger than a normal hurt slide (0.84 vs
+       0.86) and the initial shove was capped in damageEnemy, so the slide
+       always dies out within ~280px — never a straight flight to the edge */
+    if(e.vx){
+      e.x += e.vx; e.vx *= 0.84;
+      e.x = Math.max(24, Math.min(G.stage.world-24, e.x));
+      if(Math.abs(e.vx)>3 && Math.random()<0.6) spawnParts(e.x, GROUND - e.z, 30, 1, ['#bbb','#888'], 2);
+      if(Math.abs(e.vx)<0.3) e.vx = 0;
+    }
+    return;
+  }
+  physStep(e, dt);
+  /* target: the nearest fighter — the player or a TRIO ally (allies roam
+     the stage and can be beaten down, so enemies hunt them too) */
+  let tAlly = null, tx = p.x, tz = p.z, tBest = Math.abs(p.x-e.x) + Math.abs(p.z-e.z)*0.6;
+  if(G.allies) for(const a of G.allies){
+    if(a.dead) continue;
+    const d = Math.abs(a.x-e.x) + Math.abs(a.z-e.z)*0.6;
+    if(d < tBest){ tBest = d; tAlly = a; tx = a.x; tz = a.z; }
+  }
+  const dx = tx - e.x, adx = Math.abs(dx);
+  const zdiff = Math.abs(e.z - tz);
+  const grounded = e.z <= groundAt(e.x)+1 && e.vz===0;
+  e.face = dx>=0 ? 1 : -1;
+  if(e.state==='hurt'){
+    e.x += e.vx; e.vx *= 0.86;
+    e.x = Math.max(24, Math.min(G.stage.world-24, e.x));
+    if(e.stateT > (e.hurtDur||230)){ e.state='chase'; e.stateT=0; }
+    return;
+  }
+  if(e.state==='hairwind'){ // mohawk winds up, then flings its hair
+    if(e.stateT >= 380){
+      e.state='hairthrow'; e.stateT=0;
+      G.eprojs.push({ x:e.x + e.face*34, z:e.z + 138, vx:e.face*3.6, fromZ:e.z,
+        dmg:e.dmg+2, spin:Math.random()*6, t:0, life:2800 });
+      e.hairCd = 8000; // after flinging its hair, a mohawk cannot throw again for 8 seconds
+      sfx('hair');
+      spawnParts(e.x, GROUND - e.z, 165, 5, ['#46c256','#2c7a35','#8be89a'], 2.4);
+    }
+    return;
+  }
+  if(e.state==='hairthrow'){
+    if(e.stateT>260){ e.state='chase'; e.stateT=0; }
+    return;
+  }
+  if(e.state==='hatwind'){ // final boss pulls his hat off, then flings it
+    if(e.stateT >= 420){
+      e.state='hatthrow'; e.stateT=0;
+      e.hatLeft--;
+      G.eprojs.push({ kind:'hat', x:e.x + e.face*36, z:e.z + 112, vx:e.face*5.6, fromZ:e.z,
+        dmg:e.dmg+2, spin:Math.random()*6, t:0, life:2600 });
+      e.hatCd = 2400+Math.random()*900;
+      sfx('hair');
+      spawnParts(e.x, GROUND - e.z, 150, 5, ['#23232b','#f5b921','#fff'], 2.4);
+    }
+    return;
+  }
+  if(e.state==='hatthrow'){
+    if(e.stateT>280){ e.state='chase'; e.stateT=0; }
+    return;
+  }
+  if(e.state==='coatwind'){ // final boss grabs his coat, then whirls it around
+    if(e.stateT >= 480){
+      e.state='coatspin'; e.stateT=0;
+      e.coatLeft--; e.coatHit=false;
+      sfx('pose');
+    }
+    return;
+  }
+  if(e.state==='coatspin'){
+    if(!e.coatHit){ e.coatHit=true; coatSpinHit(e); }
+    if(Math.random()<0.65) spawnParts(e.x + (Math.random()-0.5)*170, GROUND - e.z, 50+Math.random()*90, 2, ['#23232b','#3a3a44','#101014'], 3.2);
+    if(e.stateT>460){ e.state='chase'; e.stateT=0; e.coatCd = 3000+Math.random()*1200; }
+    return;
+  }
+  if(e.state==='repos'){ // reposition leap: a camping enemy jumps to a new spot
+    e.x += e.jumpVx * dt/16.7;
+    e.x = Math.max(24, Math.min(G.stage.world-24, e.x));
+    if(e.stateT>110 && e.z <= groundAt(e.x)+1 && e.vz===0){ e.state='chase'; e.stateT=0; e.stallX=e.x; e.stallT=0; }
+    return;
+  }
+  if(e.state==='windup'){
+    if(e.stateT >= e.windupDur){
+      e.state='strike'; e.stateT=0;
+      const reach = e.atkKind==='kick' ? 174 : 156;
+      if(adx<reach && zdiff<65) hurtFighter(tAlly, e.atkKind==='kick' ? e.dmg+3 : e.dmg, e.face, e.z);
+      else sfx('whiff');
+    }
+    return;
+  }
+  if(e.state==='strike'){
+    if(e.stateT>230){ e.state='chase'; e.stateT=0; e.atkCd = e.def.boss ? 400+Math.random()*380 : 480+Math.random()*520; }
+    return;
+  }
+  if(e.state==='dashwind'){
+    if(e.stateT>380){ e.state='dash'; e.stateT=0; e.dashDir=e.face; e.dashHit=false; sfx('whiff'); }
+    return;
+  }
+  if(e.state==='dash'){
+    e.x += e.dashDir * 7.4 * dt/16.7;
+    e.x = Math.max(24, Math.min(G.stage.world-24, e.x));
+    if(!e.dashHit && Math.abs(tx-e.x)<96 && zdiff<65){ e.dashHit=true; hurtFighter(tAlly, e.dmg+4, e.dashDir, e.z); }
+    if(e.stateT>430){ e.state='chase'; e.stateT=0; e.atkCd=520; }
+    return;
+  }
+  if(e.state==='jumpwind'){ // boss crouches, then leaps at the player
+    if(e.stateT>360){
+      e.state='jumpatk'; e.stateT=0; e.jumpHit=false;
+      e.vz = 17.6;
+      e.jumpVx = e.face * Math.max(3.0, Math.min(6.6, adx/58));
+      sfx('jump');
+    }
+    return;
+  }
+  if(e.state==='jumpatk'){
+    e.x += e.jumpVx * dt/16.7;
+    e.x = Math.max(24, Math.min(G.stage.world-24, e.x));
+    if(!e.jumpHit && Math.abs(tx-e.x)<94 && Math.abs(tz-e.z)<83){ // mid-air body blow
+      e.jumpHit=true; hurtFighter(tAlly, e.dmg, Math.sign(tx-e.x)||e.face, e.z);
+    }
+    if(e.z <= groundAt(e.x)+1 && e.vz===0){ // landing shockwave
+      e.state='chase'; e.stateT=0; e.atkCd=620; e.jumpCd = 3000+Math.random()*1600;
+      G.shake = Math.max(G.shake, 5); sfx('break');
+      spawnParts(e.x, GROUND - groundAt(e.x), 4, 12, ['#999','#777','#bbb'], 4.4);
+      if(Math.abs(p.x-e.x)<166 && p.z < 42) hurtPlayer(e.dmg+2, Math.sign(p.x-e.x)||1, 0);
+      if(G.allies) for(const a of G.allies){ if(!a.dead && Math.abs(a.x-e.x)<166 && a.z < 42) damageAlly(a, e.dmg+2, Math.sign(a.x-e.x)||1); }
+    }
+    return;
+  }
+  /* chase */
+  e.atkCd -= dt; if(e.dashCd>0) e.dashCd -= dt; if(e.jumpCd>0) e.jumpCd -= dt; if(e.hairCd>0) e.hairCd -= dt;
+  if(e.hatCd>0) e.hatCd -= dt; if(e.coatCd>0) e.coatCd -= dt;
+  const sp = e.def.speed * (e.state==='enter'?1.3:1) * dt/16.7;
+  /* mohawks keep their distance: close in past ~442px, back off inside ~280px, hold between */
+  const isMoh = e.type==='mohawk';
+  let moveDir = 0;
+  if(isMoh && e.state!=='enter'){
+    if(Math.abs(e.z - tz) > 40 && grounded) moveDir = Math.sign(dx); // get off the obstacle / climb to the target's level first (grounded only: never reverse mid-hop)
+    else if(adx > 442) moveDir = Math.sign(dx);
+    else if(adx < 280) moveDir = -Math.sign(dx);
+  } else if(adx > 64) moveDir = Math.sign(dx);
+  if(moveDir){
+    const step = moveDir * sp;
+    const before = e.x;
+    tryMove(e, step);
+    e.walkT += dt;
+    /* blocked by an obstacle while the player is beyond it: hop over */
+    if(Math.abs(e.x-before) < Math.abs(step)*0.5 && grounded) e.vz = 16.5;
+  }
+  if(e.state==='enter' && adx<360) e.state='chase';
+  /* camping check (ALL enemies, bosses included): stuck around the same
+     spot for ~2.8s while the player's HP never drops -> leap to a new spot.
+     Close up, the leap carries the enemy past the player; from far away it
+     hops toward them. Actually moving, or landing hits, resets the timer. */
+  if(e.stallX<0) e.stallX = e.x;
+  if(e.lastPHP<0) e.lastPHP = p.hp;
+  if(p.hp < e.lastPHP) e.stallT = 0;
+  e.lastPHP = p.hp;
+  if(grounded){
+    if(Math.abs(e.x - e.stallX) < 26) e.stallT += dt; else { e.stallX = e.x; e.stallT = 0; }
+    if(e.stallT > 2800){
+      e.state='repos'; e.stateT=0; e.stallT=0;
+      e.vz = 16.2;
+      e.jumpVx = (dx>=0?1:-1) * (adx<260 ? 5.8 : 3.6);
+      sfx('jump');
+    }
+  } else e.stallT = 0;
+  if(e.state==='repos'){ /* just leapt: no attack triggers until it lands */ }
+  else if(e.type==='boss2' && e.coatLeft>0 && e.coatCd<=0 && adx<188 && zdiff<64 && grounded){
+    e.state='coatwind'; e.stateT=0; // someone is close: whirl the coat (3 per fight)
+  } else if(e.type==='boss2' && e.hatLeft>0 && e.hatCd<=0 && adx>=230 && adx<=920 && zdiff<70 && grounded){
+    e.state='hatwind'; e.stateT=0; // mid-to-long range: fling the hat (5 per fight)
+  } else if(e.def.boss && e.jumpCd<=0 && adx>170 && adx<660 && zdiff<60 && grounded){
+    e.state='jumpwind'; e.stateT=0;
+  } else if(e.def.boss && e.dashCd<=0 && adx>240 && adx<560 && zdiff<50 && grounded){
+    e.state='dashwind'; e.stateT=0; e.dashCd = 3400+Math.random()*1200;
+  } else if(isMoh && e.hairCd<=0 && adx>=170 && adx<=580 && zdiff<60 && grounded){
+    e.state='hairwind'; e.stateT=0;
+  } else if(adx<138 && zdiff<65 && e.atkCd<=0 && grounded){
+    e.state='windup'; e.stateT=0;
+    e.atkKind = (e.atkKind==='punch') ? 'kick' : 'punch'; // alternate punch / kick
+    e.windupDur = e.atkKind==='kick' ? 360 : (e.def.boss ? 250 : 300);
+  }
+  e.x = Math.max(24, Math.min(G.stage.world-24, e.x));
+}
+
+/* ================= Update ================= */
+let prevAtkKeys = {};
+function update(dt){
+  if(state!=='play') return;
+  const p = G.player, st = G.stage;
+  G.time += dt;
+  /* BGM: a live boss swaps the stage groove for THAT boss's own track */
+  bgmMode = (G.boss && G.boss.hp>0) ? (G.boss.type==='boss2' ? 'boss2' : 'boss1') : 'stage';
+  /* run timer: counts from GAME START until the final clear */
+  runTime += dt; setTimeHud();
+  /* the special gauge refills over time; every special move spends it.
+     After TRIO it refills slowly until it is full again (slowGauge). */
+  p.gauge = Math.min(100, p.gauge + dt * GAUGE_REGEN * (p.slowGauge ? GAUGE_REGEN_SLOW : 1));
+  if(p.gauge>=100){ p.slowGauge = false; p.gaugeLock = false; } // full again: slow refill ends, specials unlock
+  if(p.invuln>0) p.invuln -= dt;
+  if(p.reviveT>0) p.reviveT -= dt;
+  if(p.hurtT>0) p.hurtT -= dt;
+  /* crouch: grounded + straight-down held (diagonal-down just moves instead).
+     Rooted while crouched (no walk / jump), and low enough that a flying
+     mohawk crest passes overhead. Punch / kick while crouched become low
+     crouch attacks. */
+  p.crouching = !!keys.down && !keys.left && !keys.right && p.z <= groundAt(p.x)+1 && p.vz===0;
+  /* RAPID RUSH: the queued auto-attacks fire one after another at full speed */
+  if(p.rushSeq && p.rushSeq.length){
+    p.rushTimer -= dt;
+    if(Math.random()<0.5) spawnParts(p.x - p.face*20, GROUND - p.z, 80, 1, ['#ff8a3c','#ffd94d'], 1.5);
+    if(p.rushTimer<=0 && !p.atk && !p.crouching){
+      startAttack(p.rushSeq[0], true);
+      if(p.atk){ p.rushSeq.shift(); p.rushQueue = p.rushSeq.length; p.rushTimer = 130; }
+    }
+  }
+  /* attacks trigger (edge): punch / kick while crouched are crouch attacks */
+  for(const k of ['punch','kick','pose']){
+    if(keys[k] && !prevAtkKeys[k]){
+      if(k==='pose') startAttack('pose');
+      else if(p.crouching) startAttack(k==='punch' ? 'lowpunch' : 'lowkick');
+      else startAttack(k);
+    }
+    prevAtkKeys[k] = !!keys[k];
+  }
+  for(const k of ['vinyl','rush','rec','trio']){
+    if(keys[k] && !prevAtkKeys[k]) startSpecial(k);
+    prevAtkKeys[k] = !!keys[k];
+  }
+  if(keys.jump && !prevAtkKeys.jump && !p.crouching && p.z <= groundAt(p.x)+1 && p.vz===0){ p.vz = 16.8; sfx('jump'); }
+  prevAtkKeys.jump = !!keys.jump;
+  /* movement: left / right only (knockback from a hit can still slide the
+     player — that is handled separately below). While RAPID RUSH is firing
+     its auto-attacks the player can keep moving sideways. */
+  p.moving = false;
+  if(!p.crouching && p.launchT<=0 && (!p.atk || p.air || p.atk.rush)){
+    const sp = p.stats.speed * dt/16.7;
+    if(keys.left){ tryMove(p, -sp); p.face=-1; p.moving=true; }
+    if(keys.right){ tryMove(p, sp); p.face=1; p.moving=true; }
+  }
+  p.x = Math.max(24, Math.min(st.world-24, p.x));
+  if(p.moving) p.walkT += dt;
+  /* knockback slide: friction decay, stopped by obstacles and world edges */
+  if(p.kvx){
+    const kf = Math.max(0.4, Math.min(2.2, dt/16.7));
+    tryMove(p, p.kvx * kf);
+    p.kvx *= Math.pow(0.80, kf);
+    if(Math.abs(p.kvx)<0.3) p.kvx = 0;
+    p.x = Math.max(24, Math.min(st.world-24, p.x));
+  }
+  /* coat-spin launch: no friction, no control — the player flies at full
+     speed until they reach the edge of the stage or slam into an obstacle */
+  if(p.launchT>0){
+    p.launchT -= dt;
+    const lf = Math.max(0.4, Math.min(2.2, dt/16.7));
+    const beforeX = p.x;
+    tryMove(p, p.launchDir * 15.5 * lf);
+    p.x = Math.max(26, Math.min(st.world-26, p.x));
+    if(Math.random()<0.7) spawnParts(p.x, GROUND - p.z, 36, 1, ['#bbb','#888'], 2);
+    if(Math.abs(p.x-beforeX) < 1.2 || p.x<=27 || p.x>=st.world-27 || p.launchT<=0){
+      if(p.launchT>0 && Math.abs(p.x-beforeX) >= 1.2) G.shake = Math.max(G.shake, 3); // slammed into the edge
+      p.launchT = 0;
+    }
+  }
+  /* jump / gravity / landing */
+  const wasAir = p.air, fallSpeed = p.vz;
+  physStep(p, dt);
+  p.air = (p.z > groundAt(p.x)+1 || p.vz!==0);
+  if(wasAir && !p.air && fallSpeed < -3) spawnParts(p.x, GROUND - p.z, 2, 5, ['#999','#777'], 2.2);
+  /* attack progress */
+  if(p.atk){ attackHits(); if(performance.now()-p.atk.t0 > p.atk.dur) p.atk=null; }
+  /* waves */
+  for(const w of G.waves){
+    if(!w.done && p.x > w.at){
+      w.done = true;
+      for(const s of w.spawns){
+        /* the boss stays hidden until all 3 of the stage's mics are found:
+           hold his spawn back; the 3rd mic pickup releases it */
+        if(ETYPES[s[0]].boss && G.mics < 3){ G.bossGate = s[0]; showMsg("THE BOSS WON'T SHOW UNTIL YOU FIND ALL 3 MICS!", 2800); continue; }
+        G.pending.push({type:s[0], x:p.x + s[1], flag:s[2], delay: G.pending.length*260});
+      }
+    }
+  }
+  for(let i=G.pending.length-1;i>=0;i--){
+    const q = G.pending[i]; q.delay -= dt;
+    if(q.delay<=0){ spawnEnemy(q.type, q.x, q.flag); G.pending.splice(i,1); }
+  }
+  /* reinforcement spawner: each stage has a FIXED quota of extra punks
+     (stage.reinforce) on top of its waves — no endless spawning any more.
+     Waves + reinforcements add up to roughly 1.5 levels' worth of XP per
+     stage. Mic carriers keep appearing too, so the 3 mics stay reachable. */
+  G.spawnT -= dt;
+  if(G.spawnT<=0){
+    const alive = G.enemies.reduce((n,e)=>n+(e.dead?0:1),0) + G.pending.length;
+    const cap = (G.boss ? 3 : 4) + Math.min(3, Math.floor(PROG.level/2)) + Math.min(1, G.stageIdx);
+    G.spawnT = Math.max(2400, 4300 - PROG.level*120 - G.stageIdx*120) * (0.8 + Math.random()*0.5);
+    if(alive < cap && G.spawnLeft > 0 && !G.boss){
+      G.spawnLeft--;
+      const type = Math.random() < 0.42 + G.stageIdx*0.05 ? 'mohawk' : 'bandana';
+      const side = Math.random()<0.5 ? -1 : 1;
+      const x = Math.max(40, Math.min(st.world-40, p.x + side*(580 + Math.random()*180)));
+      spawnEnemy(type, x, (G.mics<3 && Math.random()<0.13) ? 'carrier' : undefined);
+    }
+  }
+  /* vinyl records in flight: fly through foes, one hit per enemy per record */
+  for(let i=G.projs.length-1;i>=0;i--){
+    const pr = G.projs[i]; pr.t += dt;
+    pr.x += pr.vx * dt/16.7; pr.z += pr.vz * dt/16.7; pr.vz -= 0.16 * dt/16.7; pr.spin += 0.35 * dt/16.7;
+    if(pr.z < 6){ pr.z = 6; pr.vz = Math.abs(pr.vz)*0.45; } // skim along the ground
+    /* VINYL BURST records (ox set) shatter once they leave the player's
+       neighbourhood; RECORD THROW records (no ox) fly until their life ends */
+    let dead = pr.t>pr.life || pr.x<8 || pr.x>st.world-8 || (pr.ox!=null && Math.abs(pr.x-pr.ox)>318);
+    if(!dead){
+      for(const e of G.enemies){
+        if(e.dead || e['vh'+pr.id]) continue;
+        if(Math.abs(e.x-pr.x)<46 && pr.z > e.z-8 && pr.z < e.z + e.def.h){
+          e['vh'+pr.id] = 1; damageEnemy(e, pr.dmg!=null ? pr.dmg : (p.stats.pose + 6), pr.vx>=0?1:-1, 3.4);
+          /* RECORD THROW records (no ox) shatter on the first enemy they hit;
+             VINYL BURST records (ox set) fly on until they leave the area */
+          if(pr.ox==null){ dead = true; spawnParts(pr.x, GROUND, pr.z, 6, ['#17171c','#3a3a44','#f5b921'], 3); break; }
+        }
+      }
+      for(const o of G.objects){
+        if(o.broken || o['vh'+pr.id]) continue;
+        if(Math.abs(o.x-pr.x)<44 && pr.z<120){
+          o['vh'+pr.id] = 1; o.hp -= (pr.dmg!=null ? pr.dmg : p.stats.pose); o.wob = 8;
+          spawnParts(o.x, GROUND, 44, 3, ['#c9a06a','#fff'], 3);
+          if(o.hp<=0) breakObject(o);
+        }
+      }
+    }
+    if(dead) G.projs.splice(i,1);
+  }
+  /* enemy projectiles: mohawk hair crests fly slow (weak-hadouken speed) and
+     pass over a crouching fighter; the final boss's hat flies faster and
+     lower, so crouching does NOT dodge it — jump it instead */
+  for(let i=G.eprojs.length-1;i>=0;i--){
+    const mp = G.eprojs[i]; mp.t += dt;
+    const isHat = mp.kind==='hat';
+    mp.x += mp.vx * dt/16.7; mp.spin += (isHat ? 0.3 : 0.12) * dt/16.7;
+    if(Math.random()<0.25) spawnParts(mp.x, GROUND, mp.z, 1, isHat ? ['#23232b','#3a3a44'] : ['#46c256','#2c7a35'], 0.8);
+    let dead = mp.t>mp.life || mp.x<8 || mp.x>st.world-8;
+    const hitBand = isHat ? (zz=> zz > 6 && zz < 150) : (zz=> zz > 26 && zz < 178);
+    const hitCols = isHat ? ['#23232b','#f5b921','#fff'] : ['#46c256','#8be89a','#fff'];
+    if(!dead && (isHat || !p.crouching) && Math.abs(mp.x-p.x)<42 && hitBand(mp.z - p.z)){
+      const hpBefore = p.hp;
+      hurtPlayer(mp.dmg, mp.vx>=0?1:-1, null);
+      /* a mohawk's flying hair knocks the player back SIX TIMES as hard as
+         a normal hit: hurtPlayer() has just set the usual kvx slide, so
+         multiply that slide by six (hat hits stay normal) */
+      if(!isHat && state==='play' && p.hp>0 && p.hp < hpBefore){
+        p.kvx *= 6;
+        floatText(p.x, GROUND - p.z, 215, 'BLOWN AWAY!', '#8be89a');
+        G.shake = Math.max(G.shake, 5);
+      }
+      spawnParts(mp.x, GROUND, mp.z, 7, hitCols, 3);
+      dead = true;
+    }
+    if(!dead && G.allies) for(const a of G.allies){ // a flying projectile can down an ally too
+      if(a.dead) continue;
+      if(Math.abs(mp.x-a.x)<42 && hitBand(mp.z - a.z)){
+        damageAlly(a, mp.dmg, mp.vx>=0?1:-1);
+        spawnParts(mp.x, GROUND, mp.z, 7, hitCols, 3);
+        dead = true; break;
+      }
+    }
+    if(dead) G.eprojs.splice(i,1);
+  }
+  /* enemies */
+  for(const e of G.enemies) updateEnemy(e, dt);
+  /* TRIO allies: fight on their own, leave only when their HP runs out */
+  if(G.allies && G.allies.length){
+    for(const a of G.allies) updateAlly(a, dt);
+    for(let i=G.allies.length-1;i>=0;i--){
+      if(G.allies[i].dead){
+        spawnParts(G.allies[i].x, GROUND - G.allies[i].z, 90, 10, ['#39c2d7','#ffd94d','#fff'], 3.5);
+        floatText(G.allies[i].x, GROUND - G.allies[i].z, 160, G.allies[i].hero.name+' IS DOWN!', '#ff8a7a');
+        G.allies.splice(i,1);
+      }
+    }
+  }
+  /* keep enemies from stacking on the same spot */
+  for(let i=0;i<G.enemies.length;i++) for(let j=i+1;j<G.enemies.length;j++){
+    const a=G.enemies[i], b=G.enemies[j];
+    if(a.dead || b.dead) continue;
+    const d = b.x - a.x;
+    if(Math.abs(d)<48 && Math.abs(a.z-b.z)<44){
+      const push = (48-Math.abs(d))/2 * (d>=0?1:-1);
+      a.x -= push; b.x += push;
+    }
+  }
+  G.enemies = G.enemies.filter(e=> !(e.dead && e.stateT>700)); // a downed foe is removed once its fade-out finishes
+  for(const e of G.enemies) if(e.dead) e.stateT += dt;
+  /* items */
+  for(let i=G.items.length-1;i>=0;i--){
+    const it = G.items[i]; it.t += dt;
+    if(it.z>it.rest || it.vz!==0){ it.z += it.vz; it.vz -= 0.5; if(it.z<=it.rest){ it.z=it.rest; it.vz=0; } }
+    if(it.z===it.rest && Math.abs(it.x-p.x)<48 && Math.abs(it.rest-p.z)<36){
+      if(it.kind==='mic'){ G.mics++; G.score+=300; sfx('mic'); floatText(p.x, GROUND - p.z, 150, 'MIC GET! '+G.mics+'/3', '#f5b921');
+        if(G.mics>=3){
+          if(G.bossGate && !G.boss){ /* the 3rd mic draws the held-back boss out */
+            G.pending.push({type:G.bossGate, x:p.x + (p.x < st.world-560 ? 430 : -430), delay:1100});
+            G.bossGate = null;
+            showMsg('ALL 3 MICS! THE BOSS IS COMING!', 3200);
+          } else showMsg('ALL 3 MICS! RUN TO THE EXIT ON THE RIGHT!', 3200);
+        } }
+      else { p.hp = Math.min(p.maxhp, p.hp+30); G.score+=50; sfx('eat'); floatText(p.x, GROUND - p.z, 140, '+30', '#9fe870'); }
+      G.items.splice(i,1); updateHUD();
+    }
+  }
+  /* particles & texts */
+  for(const pt of G.parts){ pt.t++; pt.x+=pt.vx; pt.z+=pt.vz; pt.vz-=0.35; if(pt.z<0) pt.z=0; }
+  G.parts = G.parts.filter(pt=>pt.t<pt.life);
+  for(const t of G.texts) t.t++;
+  G.texts = G.texts.filter(t=>t.t<t.life);
+  /* camera */
+  const target = Math.max(0, Math.min(st.world - W, p.x - W*0.42));
+  G.cam += (target - G.cam)*0.12;
+  if(G.shake>0) G.shake *= 0.86;
+  /* exit */
+  if(G.mics>=3 && p.x > st.world-70){ stageClear(); return; }
+  if(p.x > st.world-70 && G.mics<3){
+    if(G.exitHintT<=0){ showMsg((3-G.mics)+' MIC(S) LEFT! SEARCH ENEMIES AND OBJECTS', 2200); G.exitHintT = 3000; }
+  }
+  if(G.exitHintT>0) G.exitHintT -= dt;
+  updateHUD();
+}
+</script>
+<script>
+'use strict';
+/* ================= Drawing ================= */
+function drawSprite(sheetKey, frameName, x, baseY, z, h, face, flash, sy){
+  const img = flash && WHITE[sheetKey] ? WHITE[sheetKey] : IMG[SHEETS[sheetKey].img];
+  if(!img || !(img.naturalWidth||img.width)) return;
+  const r = frameRect(sheetKey, frameName);
+  const w = h * (r.w/r.h);
+  const hh = h * (sy || 1); // vertical squash (crouching)
+  ctx.save();
+  ctx.translate(Math.round(x), Math.round(baseY - (z||0)));
+  if(face<0) ctx.scale(-1,1);
+  ctx.drawImage(img, r.x, r.y, r.w, r.h, -w/2, -hh, w, hh);
+  ctx.restore();
+}
+function shadow(x, y, s){
+  ctx.fillStyle='rgba(0,0,0,.38)';
+  ctx.beginPath(); ctx.ellipse(x, y+4, s, s*0.32, 0, 0, Math.PI*2); ctx.fill();
+}
+/* ================= Pixel-art sprites (props / obstacles / mic) ================= */
+const PXU = 3; // game px per sprite pixel
+const PROP_PXU = 3.0; // breakable props base scale (per-type tuning via PROP_SCALE)
+                      // obstacles draw at exactly o.w x o.h (OBSTACLE_DIM x OBS_SCALE)
+function rng(seed){ let s = seed>>>0; return ()=>{ s = (s*1664525 + 1013904223)>>>0; return s/4294967296; }; }
+function makeSpr(wu, hu, painter, seed){
+  const c = document.createElement('canvas'); c.width = wu; c.height = hu;
+  const g = c.getContext('2d'); const R = rng(seed || 7);
+  const P = {
+    r(x,y,w,h,col){ g.fillStyle=col; g.fillRect(Math.round(x),Math.round(y),Math.round(w),Math.round(h)); },
+    p(x,y,col){ g.fillStyle=col; g.fillRect(Math.round(x),Math.round(y),1,1); },
+    box(x,y,w,h,fill,out){ g.fillStyle=out; g.fillRect(x,y,w,h); g.fillStyle=fill; g.fillRect(x+1,y+1,w-2,h-2); },
+    disc(cx,cy,r,col){ g.fillStyle=col; for(let dy=-r;dy<=r;dy++){ const hw=Math.floor(Math.sqrt(r*r-dy*dy)); g.fillRect(cx-hw, cy+dy, hw*2+1, 1); } },
+    speck(x,y,w,h,col,n){ for(let i=0;i<n;i++){ g.fillStyle=col; g.fillRect(x+Math.floor(R()*w), y+Math.floor(R()*h), 1, 1); } }
+  };
+  painter(P, wu, hu);
+  return c;
+}
+function paintCrateAt(P, ox, oy, w, h){
+  const out='#2a1c0d', base='#7d5527', light='#a06c31', dark='#4e3315';
+  P.box(ox,oy,w,h,base,out);
+  P.r(ox+1,oy+1,w-2,2,light);
+  P.r(ox+1,oy+h-3,w-2,2,dark);
+  const rows=3, rh=Math.floor(h/rows);
+  for(let i=1;i<rows;i++) P.r(ox+1,oy+i*rh,w-2,1,dark);
+  for(let i=0;i<w-4;i++){
+    const t=i/(w-5), y1=oy+2+Math.round(t*(h-5)), y2=oy+h-3-Math.round(t*(h-5));
+    P.r(ox+2+i, y1, 2, 2, dark); P.r(ox+2+i, y2, 2, 2, dark);
+  }
+  P.r(ox+1,oy+1,2,h-2,dark); P.r(ox+w-3,oy+1,2,h-2,dark);
+  P.p(ox+2,oy+2,'#c9c9c9'); P.p(ox+w-3,oy+2,'#c9c9c9'); P.p(ox+2,oy+h-3,'#c9c9c9'); P.p(ox+w-3,oy+h-3,'#c9c9c9');
+  P.speck(ox+2,oy+3,w-4,h-6,'#5d3d1a', Math.floor(w*h/16));
+  P.speck(ox+2,oy+2,w-4,h-5,'#96682f', Math.floor(w*h/26));
+}
+function paintDrumAt(P, ox, oy, w, h, base, light, dark, out){
+  P.box(ox,oy,w,h,base,out);
+  P.r(ox+1,oy+1,w-2,1,light);
+  P.r(ox+1,oy+3,w-2,1,dark); P.r(ox+1,oy+Math.floor(h/2),w-2,1,dark); P.r(ox+1,oy+h-4,w-2,1,dark);
+  P.r(ox+2,oy+1,2,h-2,light);
+  P.r(ox+w-4,oy+1,1,h-2,'rgba(0,0,0,.22)');
+  P.r(ox+1,oy+h-2,w-2,1,'rgba(0,0,0,.25)');
+  P.speck(ox+2,oy+h-9,w-4,7,'#7a4a26', 8);
+}
+const FONT35 = { M:['101','111','111','101','101'], I:['111','010','010','010','111'],
+  C:['011','100','100','100','011'], '-':['000','000','111','000','000'], '7':['111','001','010','010','010'] };
+function text35(P, x, y, txt, col){
+  let cx = x;
+  for(const ch of txt){ const gl = FONT35[ch];
+    if(gl) for(let r=0;r<5;r++) for(let c=0;c<3;c++) if(gl[r][c]==='1') P.p(cx+c, y+r, col);
+    cx += 4; }
+}
+const SPR = { prop:{}, obs:{}, mic:null };
+SPR.prop.crate = makeSpr(25,21,(P,w,h)=>paintCrateAt(P,0,0,w,h), 11);
+SPR.prop.trash = makeSpr(18,28,(P,w,h)=>{
+  const out='#20232a', base='#5d646e', light='#828c97', dark='#383d45';
+  P.r(Math.floor(w/2)-2,0,4,1,dark);
+  P.box(0,1,w,3,light,out);
+  P.box(1,4,w-2,h-4,base,out);
+  for(let x=4;x<w-2;x+=3) P.r(x,5,1,h-6,dark);
+  P.r(2,5,1,h-6,light);
+  P.r(1,h-3,w-2,2,'rgba(0,0,0,.28)');
+  P.speck(2,h-8,w-4,6,'#7a5230',9);
+  P.speck(2,5,w-4,h-8,'#49505a',11);
+}, 23);
+SPR.prop.drum = makeSpr(20,27,(P,w,h)=>paintDrumAt(P,0,0,w,h,'#2e5d8a','#417cae','#1d3f5e','#12283d'), 37);
+SPR.prop.vending = makeSpr(26,41,(P,w,h)=>{
+  const out='#330f0b', base='#9c2b23', light='#c2432f', dark='#5f1811';
+  P.box(0,0,w,h,base,out);
+  P.r(1,1,w-2,4,light);
+  P.r(3,2,8,2,'#ffd94d'); P.r(13,2,3,2,'#f2ead8'); P.r(18,2,5,2,'#39c2d7');
+  P.box(2,7,13,25,'#0d1418','#05070a');
+  const canCols=['#d23b2e','#3f9e4d','#e8912d','#2e7fc2'];
+  for(let s=0;s<3;s++){ const sy=10+s*8;
+    for(let i=0;i<3;i++){ P.r(3+i*4, sy, 3, 5, canCols[(s+i)%4]); P.r(3+i*4, sy, 3, 1, 'rgba(255,255,255,.35)'); }
+    P.r(3,sy+5,11,1,'#9fb6bd');
+  }
+  P.r(4,8,2,23,'rgba(255,255,255,.18)');
+  P.r(18,8,5,7,dark); P.p(20,10,'#ffd94d'); P.r(19,13,3,1,'#16181c');
+  P.box(17,h-12,7,8,'#200a08',out); P.r(18,h-11,5,2,'#3d3d3d');
+  for(let x=3;x<12;x+=3) P.r(x,h-4,2,2,'rgba(0,0,0,.35)');
+  P.r(1,h-3,w-2,1,'rgba(0,0,0,.3)');
+}, 41);
+SPR.prop.speaker = makeSpr(27,31,(P,w,h)=>{
+  const out='#060608', base='#1e1e26';
+  P.box(0,0,w,h,base,out);
+  P.r(1,1,w-2,2,'#d9a41c'); P.r(1,3,w-2,1,'#7a5b00');
+  P.disc(13,12,7,'#0a0a0e'); P.disc(13,12,5,'#3d3d4c'); P.disc(13,12,2,'#14141a');
+  P.disc(13,23,4,'#0a0a0e'); P.disc(13,23,3,'#33333f'); P.disc(13,23,1,'#14141a');
+  P.p(2,5,'#8a8f9a'); P.p(w-3,5,'#8a8f9a'); P.p(2,h-3,'#8a8f9a'); P.p(w-3,h-3,'#8a8f9a');
+  P.r(1,h-2,w-2,1,'rgba(0,0,0,.4)');
+}, 53);
+SPR.obs.crates = makeSpr(33,35,(P,w,h)=>{
+  paintCrateAt(P,0,16,33,19);
+  paintCrateAt(P,5,0,24,16);
+}, 67);
+SPR.obs.hydrant = makeSpr(16,22,(P,w,h)=>{
+  const out='#47110c', base='#b03227', light='#d8553f', dark='#7c1f16';
+  P.r(6,0,4,2,'#8a8f9a');
+  P.box(3,2,10,4,base,out);
+  P.box(4,6,8,11,base,out);
+  P.r(5,7,2,9,light);
+  P.r(4,11,8,1,dark);
+  P.box(0,8,4,5,base,out); P.box(12,8,4,5,base,out);
+  P.p(1,10,'#e8e2d2'); P.p(14,10,'#e8e2d2');
+  P.p(3,14,'#c9c9c9'); P.p(5,15,'#c9c9c9');
+  P.box(2,17,12,3,dark,out);
+  P.r(1,20,14,2,'#5e130d');
+}, 71);
+SPR.obs.bench = makeSpr(41,19,(P,w,h)=>{
+  const wood='#6e4f2c', woodL='#8a6538', woodD='#4a3319', iron='#2e3138';
+  P.r(3,4,2,15,iron); P.r(36,4,2,15,iron);
+  P.r(2,1,37,3,wood); P.r(2,1,37,1,woodL); P.r(2,3,37,1,woodD);
+  P.r(2,6,37,3,wood); P.r(2,8,37,1,woodD);
+  P.r(1,10,6,2,iron); P.r(34,10,6,2,iron);
+  P.r(1,12,39,3,woodL); P.r(1,14,39,1,woodD);
+  P.r(6,15,2,4,iron); P.r(33,15,2,4,iron);
+  P.speck(3,1,35,2,'#54391a',7); P.speck(3,12,35,2,'#54391a',7);
+}, 83);
+SPR.obs.fence = makeSpr(43,25,(P,w,h)=>{
+  const post='#7d858e', light='#aab3bc', dark='#565e66', out='#26292e';
+  for(let y=3;y<h-1;y+=3) for(let x=1;x<w-1;x++) if((x+y)%6===0) P.p(x,y,'rgba(190,200,210,.30)');
+  P.r(0,6,w,2,dark); P.r(0,6,w,1,post);
+  P.r(0,16,w,2,dark); P.r(0,16,w,1,post);
+  for(const px of [1,20,40]){
+    P.p(px+1,0,light);
+    P.r(px,1,3,h-1,post); P.r(px+2,1,1,h-1,out); P.r(px,1,1,h-1,light);
+  }
+}, 97);
+SPR.obs.planter = makeSpr(35,19,(P,w,h)=>{
+  P.disc(8,7,5,'#1d3820'); P.disc(17,5,6,'#1d3820'); P.disc(26,7,5,'#1d3820');
+  P.disc(8,6,4,'#2c5230'); P.disc(17,4,5,'#2c5230'); P.disc(26,6,4,'#2c5230');
+  P.speck(3,1,29,8,'#406f43',16);
+  P.r(0,9,35,2,'#8a5a30'); P.r(0,9,35,1,'#a06c31'); P.r(0,10,35,1,'#3a2410');
+  P.box(1,11,33,8,'#6e4525','#3a2410');
+  for(let x=9;x<w-2;x+=8) P.r(x,12,1,6,'#4a2c12');
+  P.r(2,17,31,1,'rgba(0,0,0,.3)');
+}, 103);
+SPR.obs.drums = makeSpr(43,27,(P,w,h)=>{
+  paintDrumAt(P,0,0,15,27,'#38618f','#4a77a5','#26455f','#152a3d');
+  paintDrumAt(P,28,0,15,27,'#7a3b2e','#94503c','#572a20','#33150f');
+  paintDrumAt(P,14,0,15,27,'#2e5d8a','#417cae','#1d3f5e','#12283d');
+}, 109);
+SPR.obs.dumpster = makeSpr(48,32,(P,w,h)=>{
+  const out='#14231a', base='#33523a', light='#446b4c', dark='#223826';
+  P.box(2,5,44,24,base,out);
+  for(let x=8;x<w-4;x+=6) P.r(x,6,1,22,dark);
+  P.r(3,6,2,22,light);
+  P.r(20,12,9,5,'rgba(232,226,210,.22)');
+  P.r(3,26,42,2,'rgba(0,0,0,.3)');
+  P.box(0,0,48,5,light,out);
+  P.r(24,1,1,3,out);
+  P.r(8,2,6,1,dark); P.r(34,2,6,1,dark);
+  P.r(6,29,7,3,'#101216'); P.r(35,29,7,3,'#101216');
+  P.speck(4,20,40,7,'#6e4525',10);
+}, 127);
+SPR.obs.container = makeSpr(58,37,(P,w,h)=>{
+  const out='#33130b', base='#7e3524', light='#9c4a30', dark='#552216';
+  P.box(0,0,w,h,base,out);
+  for(let x=3;x<w-3;x+=4){ P.r(x,2,2,h-4, (x%8===3)?dark:base); P.r(x,2,1,h-4,light); }
+  P.r(1,1,w-2,2,dark); P.r(1,h-3,w-2,2,dark);
+  P.r(40,2,1,h-4,out); P.r(38,16,1,8,'#c9c9c9'); P.r(42,16,1,8,'#c9c9c9');
+  text35(P, 5, 6, 'MIC-7', 'rgba(232,226,210,.8)');
+  P.speck(2,h-8,w-4,6,'#4a1e10',14);
+  P.speck(2,3,w-4,10,'#8a3a22',10);
+}, 131);
+SPR.mic = makeSpr(16,28,(P,w,h)=>{
+  P.box(6,16,4,11,'#232329','#0c0c10');
+  P.r(7,17,1,9,'#55555f');
+  P.r(6,26,4,1,'#c78f06');
+  P.r(5,14,6,2,'#f5b921'); P.r(5,15,6,1,'#c78f06');
+  const hw=[3,5,6,7,7,7,7,7,7,6,6,5,5,4];
+  for(let y=0;y<14;y++){ const half=hw[y];
+    P.r(8-half,y,half*2,1, y<3?'#e6ecf2':(y<9?'#c3ccd4':'#9aa3ad'));
+    P.r(8-half,y,1,1,'#394048'); P.r(8+half-1,y,1,1,'#394048');
+    if(y===0) P.r(8-half+1,0,half*2-2,1,'#f7fafc');
+  }
+  for(const gy of [4,7,10]){ const half=hw[gy]; P.r(8-half+1,gy,half*2-2,1,'rgba(40,46,54,.55)'); }
+  for(let y=2;y<13;y++){ const half=hw[y]; P.r(8+half-3,y,2,1,'rgba(70,78,88,.45)'); }
+  P.r(6,12,4,2,'#7e8894');
+}, 139);
+/* display widths of the illustrated breakable props at scale 1 (the old
+   hand-tuned footprints); height follows each painting's own aspect */
+const PROP_W = { crate:75, trash:59, drum:69, vending:129, speaker:89 };
+function drawProp(o){
+  const x = o.x, base = GROUND, wob = o.wob>0 ? Math.sin(G.time*0.09)*2 : 0;
+  if(o.wob>0) o.wob -= 0.4;
+  const art = IMG['obj-'+o.type];
+  let spr, sw, sh;
+  if(art && art.complete && art.naturalWidth>0){
+    spr = art;
+    sw = PROP_W[o.type] * (o.scale||1);
+    sh = sw * art.naturalHeight / art.naturalWidth;
+  } else {
+    spr = SPR.prop[o.type];
+    const pscale = PROP_PXU * (PROP_SCALE[o.type]||1) * (o.scale||1);
+    sw = spr.width*pscale; sh = spr.height*pscale;
+  }
+  ctx.save(); ctx.translate(Math.round(x + wob), base);
+  ctx.fillStyle='rgba(0,0,0,.35)'; ctx.beginPath(); ctx.ellipse(0,6,Math.max(30,sw*0.44),10,0,0,Math.PI*2); ctx.fill();
+  ctx.drawImage(spr, -sw/2, -sh, sw, sh);
+  if(!o.broken && o.hp<24){
+    const dmg = 1 - o.hp/24;
+    ctx.strokeStyle='rgba(12,9,6,.8)'; ctx.lineWidth=2;
+    ctx.beginPath();
+    ctx.moveTo(-sw*0.18, -sh+1); ctx.lineTo(-sw*0.06, -sh*0.64); ctx.lineTo(-sw*0.2, -sh*0.38);
+    if(dmg>0.45){ ctx.moveTo(sw*0.22, -sh+1); ctx.lineTo(sw*0.1, -sh*0.58); ctx.lineTo(sw*0.24, -sh*0.32); }
+    ctx.stroke();
+  }
+  ctx.restore();
+  /* hp ticks for damaged props */
+  if(!o.broken && o.hp<24){
+    const top = sh;
+    ctx.fillStyle='rgba(0,0,0,.6)'; ctx.fillRect(x-30, base-top-18, 60, 8);
+    ctx.fillStyle='#ffd94d'; ctx.fillRect(x-29, base-top-17, 58*(o.hp/24), 6);
+  }
+}
+function drawObstacle(o){
+  const art = IMG['obj-'+o.type];
+  const spr = (art && art.complete && art.naturalWidth>0) ? art : SPR.obs[o.type];
+  ctx.save(); ctx.translate(Math.round(o.x), GROUND);
+  ctx.fillStyle='rgba(0,0,0,.35)'; ctx.beginPath(); ctx.ellipse(0,6,o.w*0.52,10,0,0,Math.PI*2); ctx.fill();
+  ctx.drawImage(spr, -o.w/2, -(o.dh||o.h), o.w, (o.dh||o.h));
+  ctx.restore();
+}
+function drawMic(it){
+  const bob = it.z===it.rest ? Math.sin(it.t*0.006)*4 : 0;
+  const x = it.x, y = GROUND - it.z + bob;
+  shadow(it.x, GROUND - it.rest, 20);
+  const gl = ctx.createRadialGradient(x, y-56, 4, x, y-56, 60);
+  gl.addColorStop(0,'rgba(245,185,33,.5)'); gl.addColorStop(1,'rgba(245,185,33,0)');
+  ctx.fillStyle=gl; ctx.beginPath(); ctx.arc(x, y-56, 60, 0, Math.PI*2); ctx.fill();
+  ctx.drawImage(SPR.mic, Math.round(x-24), Math.round(y-84), 48, 84);
+  const tw = 0.5 + 0.5*Math.sin(it.t*0.012), tw2 = 0.5 + 0.5*Math.sin(it.t*0.012 + 2.2);
+  ctx.fillStyle='rgba(255,240,190,'+(0.3+0.5*tw)+')';
+  ctx.fillRect(x-31, y-84, 7, 2); ctx.fillRect(x-28.5, y-86.5, 2, 7);
+  ctx.fillStyle='rgba(255,240,190,'+(0.3+0.5*tw2)+')';
+  ctx.fillRect(x+24, y-58, 7, 2); ctx.fillRect(x+26.5, y-60.5, 2, 7);
+}
+function drawBurger(it){
+  const bob = it.z===it.rest ? Math.sin(it.t*0.006)*3 : 0;
+  const x = it.x, y = GROUND - it.z + bob;
+  shadow(it.x, GROUND - it.rest, 17);
+  ctx.save(); ctx.translate(x, y-10);
+  ctx.fillStyle='#e8a34f'; ctx.beginPath(); ctx.ellipse(0,-10,20,11,0,Math.PI,0); ctx.fill();
+  ctx.fillStyle='#7ec850'; ctx.fillRect(-20,-9,40,5);
+  ctx.fillStyle='#8a4b21'; ctx.fillRect(-19,-4,38,7);
+  ctx.fillStyle='#f2c063'; ctx.fillRect(-20,3,40,7);
+  ctx.restore();
+}
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  if(!G){ ctx.fillStyle='#0b0b10'; ctx.fillRect(0,0,W,H); return; }
+  const st = G.stage, camX = Math.round(G.cam + (G.shake>0.4 ? (Math.random()-0.5)*G.shake : 0));
+  /* background tiles */
+  const bg = IMG[st.img];
+  if(bg && bg.naturalWidth){
+    const bh = H, bw = Math.round(H * bg.naturalWidth / bg.naturalHeight);
+    let start = Math.floor(camX / bw) * bw;
+    for(let x = start; x < camX + W + bw; x += bw){
+      const idx = Math.round(x/bw);
+      ctx.save();
+      if(idx % 2 === 1){ ctx.translate(x - camX + bw, 0); ctx.scale(-1,1); ctx.drawImage(bg, 0, 0, bw, bh); }
+      else ctx.drawImage(bg, x - camX, 0, bw, bh);
+      ctx.restore();
+    }
+  } else { ctx.fillStyle='#14141e'; ctx.fillRect(0,0,W,H); }
+  /* ground shading */
+  const gr = ctx.createLinearGradient(0,446,0,H);
+  gr.addColorStop(0,'rgba(0,0,0,0)'); gr.addColorStop(0.55,'rgba(0,0,0,.26)'); gr.addColorStop(1,'rgba(0,0,0,.48)');
+  ctx.fillStyle=gr; ctx.fillRect(0,446,W,H-446);
+  ctx.fillStyle='rgba(255,255,255,.06)'; ctx.fillRect(0,GROUND+8,W,2);
+  /* goal gate: always visible; border edges cycle colors once the gate is open */
+  {
+    const open = G.mics>=3;
+    const gw = 108, gh = 330;
+    const gx = st.world - 8 - gw - camX, gy = GROUND - gh;
+    if(gx > -gw-70 && gx < W+70){
+      const cxg = gx + gw/2;
+      /* light pillar */
+      const beam = ctx.createLinearGradient(0, gy, 0, GROUND);
+      if(open){ beam.addColorStop(0,'rgba(245,185,33,0)'); beam.addColorStop(1,'rgba(245,185,33,'+(0.21+0.07*Math.sin(G.time*0.006)).toFixed(3)+')'); }
+      else { beam.addColorStop(0,'rgba(140,150,170,0)'); beam.addColorStop(1,'rgba(140,150,170,.10)'); }
+      ctx.fillStyle = beam; ctx.fillRect(gx, gy, gw, gh);
+      /* border: each edge takes the next color in turn (chasing rainbow) */
+      const pal = ['#ffd94d','#ff5da2','#39c2d7','#7ee787','#c792ff','#ff8a3c'];
+      const step = Math.floor(G.time/240);
+      ctx.lineWidth = 6; ctx.lineCap = 'round';
+      const edges = [ [gx,gy,gx+gw,gy], [gx+gw,gy,gx+gw,GROUND], [gx+gw,GROUND,gx,GROUND], [gx,GROUND,gx,gy] ];
+      edges.forEach((e,i)=>{
+        const col = open ? pal[(step+i)%pal.length] : '#5d6472';
+        ctx.strokeStyle = col;
+        ctx.shadowColor = col; ctx.shadowBlur = open ? 16 : 0;
+        ctx.beginPath(); ctx.moveTo(e[0],e[1]); ctx.lineTo(e[2],e[3]); ctx.stroke();
+      });
+      ctx.shadowBlur = 0;
+      /* GOAL letters: gold gradient + glow when open, silver when locked */
+      const bounce = open ? Math.sin(G.time*0.008)*4 : 0;
+      ctx.textAlign = 'center';
+      ctx.font = '30px "Press Start 2P", monospace';
+      const tg = ctx.createLinearGradient(0, gy+16+bounce, 0, gy+62+bounce);
+      if(open){ tg.addColorStop(0,'#fff6c8'); tg.addColorStop(.45,'#ffd94d'); tg.addColorStop(.58,'#f5a623'); tg.addColorStop(1,'#a86e00'); }
+      else { tg.addColorStop(0,'#eef1f6'); tg.addColorStop(.5,'#9aa3ad'); tg.addColorStop(1,'#59616e'); }
+      ctx.lineWidth = 8; ctx.strokeStyle = 'rgba(22,12,0,.92)';
+      ctx.shadowColor = open ? 'rgba(245,185,33,.95)' : 'rgba(0,0,0,0)'; ctx.shadowBlur = open ? 24 : 0;
+      ctx.strokeText('GOAL', cxg, gy+58+bounce);
+      ctx.fillStyle = tg; ctx.fillText('GOAL', cxg, gy+58+bounce);
+      ctx.shadowBlur = 0;
+      if(open){
+        /* sliding golden arrows */
+        const slide = (G.time*0.055) % 26;
+        ctx.font = '20px "Press Start 2P", monospace'; ctx.fillStyle = '#ffd94d';
+        ctx.shadowColor = 'rgba(245,185,33,.95)'; ctx.shadowBlur = 14;
+        ctx.fillText('▶', cxg-25+slide, GROUND-118);
+        ctx.fillText('▶', cxg+1+slide, GROUND-118);
+        ctx.shadowBlur = 0;
+        /* twinkling star sparkles */
+        const tw = [[-gw/2+9,74],[gw/2-7,112],[-gw/2+17,196],[gw/2-15,246],[2,152]];
+        tw.forEach((s,i)=>{
+          const sx = cxg+s[0], sy = gy+s[1], r = 7;
+          ctx.globalAlpha = 0.35 + 0.65*Math.abs(Math.sin(G.time*0.004 + i*1.7));
+          ctx.fillStyle = '#fff3b0';
+          ctx.beginPath();
+          ctx.moveTo(sx,sy-r); ctx.lineTo(sx+2,sy-2); ctx.lineTo(sx+r,sy); ctx.lineTo(sx+2,sy+2);
+          ctx.lineTo(sx,sy+r); ctx.lineTo(sx-2,sy+2); ctx.lineTo(sx-r,sy); ctx.lineTo(sx-2,sy-2);
+          ctx.closePath(); ctx.fill();
+        });
+        ctx.globalAlpha = 1;
+      } else {
+        ctx.font = '10px "Press Start 2P", monospace';
+        ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(0,0,0,.85)'; ctx.fillStyle = '#d7dee9';
+        const label = (3-G.mics)+' TO GO';
+        ctx.strokeText(label, cxg, gy+90); ctx.fillText(label, cxg, gy+90);
+      }
+    }
+  }
+  /* world entities (single ground line: fixed draw order) */
+  ctx.save(); ctx.translate(-camX,0);
+  for(const o of G.objects) if(!o.broken) drawProp(o);
+  for(const o of G.obstacles) drawObstacle(o);
+  for(const it of G.items) (it.kind==='mic' ? drawMic(it) : drawBurger(it));
+  for(const pr of G.projs) drawRecord(pr);
+  for(const mp of G.eprojs) (mp.kind==='hat' ? drawHatProj(mp) : drawHairProj(mp));
+  for(const e of G.enemies) drawEnemy(e);
+  if(G.allies) for(const a of G.allies) drawAlly(a);
+  drawPlayer();
+  ctx.restore();
+  /* particles */
+  for(const pt of G.parts){
+    ctx.globalAlpha = 1 - pt.t/pt.life;
+    ctx.fillStyle = pt.c; ctx.fillRect(pt.x - camX - pt.s/2, pt.by - pt.z - pt.s/2, pt.s, pt.s);
+  }
+  ctx.globalAlpha = 1;
+  /* floating texts (special-move callouts, score popups over foes, ...):
+     drawn at double size so they read at a glance */
+  ctx.textAlign='center';
+  for(const t of G.texts){
+    ctx.globalAlpha = 1 - t.t/t.life;
+    ctx.font='22px "Press Start 2P", monospace'; ctx.fillStyle=t.c; ctx.strokeStyle='rgba(0,0,0,.8)'; ctx.lineWidth=6;
+    const yy = t.by - t.z - t.t*0.7;
+    ctx.strokeText(t.txt, t.x-camX, yy); ctx.fillText(t.txt, t.x-camX, yy);
+  }
+  ctx.globalAlpha = 1;
+  /* stage intro card */
+  if(G.time < 1700 && state==='play'){
+    const a = G.time<1300 ? 1 : 1-(G.time-1300)/400;
+    ctx.globalAlpha = a; ctx.textAlign='center';
+    ctx.font='23px "Press Start 2P", monospace'; ctx.fillStyle='#f2ead8'; ctx.strokeStyle='#000'; ctx.lineWidth=6;
+    ctx.strokeText(st.name, W/2, 190); ctx.fillText(st.name, W/2, 190);
+    ctx.font='11px "Press Start 2P", monospace'; ctx.fillStyle='#f5b921';
+    ctx.fillText('FIND THE 3 MICS!', W/2, 224);
+    ctx.globalAlpha = 1;
+  }
+  /* player hurt vignette */
+  if(G.player.invuln>0 && G.player.hp>0){
+    ctx.fillStyle='rgba(232,58,48,.10)'; ctx.fillRect(0,0,W,H);
+  }
+}
+function drawHairProj(mp){
+  shadow(mp.x, GROUND - groundAt(mp.x), 13);
+  ctx.save(); ctx.translate(Math.round(mp.x), Math.round(GROUND - mp.z));
+  ctx.rotate(Math.sin(mp.spin)*0.16);
+  if(mp.vx<0) ctx.scale(-1,1);
+  /* the flung crest: a fan of green spikes on a curved base */
+  ctx.fillStyle='#2c7a35';
+  ctx.beginPath(); ctx.ellipse(0,7,18,6.5,0,0,Math.PI*2); ctx.fill();
+  const spikes=[[-16,-6],[-11,-15],[-5,-20],[2,-22],[9,-18],[15,-10]];
+  ctx.fillStyle='#46c256';
+  for(const sp2 of spikes){
+    ctx.beginPath(); ctx.moveTo(sp2[0]-4.5,5); ctx.lineTo(sp2[0],sp2[1]); ctx.lineTo(sp2[0]+4.5,5); ctx.closePath(); ctx.fill();
+  }
+  ctx.fillStyle='#8be89a';
+  for(const sp2 of spikes){
+    ctx.beginPath(); ctx.moveTo(sp2[0]-1.5,3); ctx.lineTo(sp2[0],sp2[1]+4); ctx.lineTo(sp2[0]+1.5,3); ctx.closePath(); ctx.fill();
+  }
+  ctx.restore();
+}
+function drawHatProj(mp){
+  shadow(mp.x, GROUND - groundAt(mp.x), 13);
+  ctx.save(); ctx.translate(Math.round(mp.x), Math.round(GROUND - mp.z));
+  ctx.rotate(Math.sin(mp.spin)*0.35);
+  if(mp.vx<0) ctx.scale(-1,1);
+  /* the final boss's flung hat: a black fedora with a gold band */
+  ctx.fillStyle='#101016';
+  ctx.beginPath(); ctx.ellipse(0,4,24,7,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#1d1d26';
+  ctx.beginPath(); ctx.moveTo(-13,4); ctx.lineTo(-10,-12); ctx.lineTo(10,-12); ctx.lineTo(13,4); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#f5b921'; ctx.fillRect(-12,-2,24,4);
+  ctx.fillStyle='rgba(255,255,255,.25)'; ctx.fillRect(-9,-11,5,3);
+  ctx.restore();
+}
+function drawRecord(pr){
+  shadow(pr.x, GROUND - groundAt(pr.x), 14);
+  ctx.save(); ctx.translate(Math.round(pr.x), Math.round(GROUND - pr.z)); ctx.rotate(pr.spin);
+  ctx.fillStyle='#0c0c10'; ctx.beginPath(); ctx.arc(0,0,17,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle='#2e2e36'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.arc(0,0,12.5,0,Math.PI*2); ctx.stroke();
+  ctx.beginPath(); ctx.arc(0,0,8.5,0,Math.PI*2); ctx.stroke();
+  ctx.fillStyle='#f5b921'; ctx.beginPath(); ctx.arc(0,0,5,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#0c0c10'; ctx.beginPath(); ctx.arc(0,0,1.6,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,.35)'; ctx.fillRect(-13,-15,7,3);
+  ctx.restore();
+}
+function playerFrame(p){
+  if(p.atk){
+    if(p.atk.kind==='lowpunch') return 'crouchpunch'; // dedicated crouch-attack art (bottom row of the sheet)
+    if(p.atk.kind==='lowkick') return 'crouchkick';
+    if(p.atk.kind==='punch') return 'punch';
+    if(p.atk.kind==='kick') return 'kick';
+    return 'pose';
+  }
+  if(p.crouching) return 'crouch'; // dedicated crouch art (bottom row of the sheet)
+  if(p.air) return 'jump';
+  if(p.moving) return (Math.floor(p.walkT/130)%2===0) ? 'walk' : 'run';
+  return 'idle';
+}
+function allyFrame(a){
+  if(a.atk) return a.atk.kind;
+  if(a.air) return 'jump';
+  if(a.moving) return (Math.floor(a.walkT/130)%2===0) ? 'walk' : 'run';
+  return 'idle';
+}
+function drawAlly(a){
+  const gy = groundAt(a.x);
+  const shSize = Math.max(15, 42 - (a.z-gy)*0.09);
+  shadow(a.x, GROUND - gy, shSize);
+  drawSprite(a.hero.key, allyFrame(a), a.x, GROUND, a.z, 242, a.face, a.hurtT>60);
+  ctx.globalAlpha = 1;
+  /* ally ring + name tag so partners read as teammates, not enemies */
+  ctx.strokeStyle='rgba(57,194,215,.7)'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.ellipse(a.x, GROUND - a.z - 4, 39, 13, 0, 0, Math.PI*2); ctx.stroke();
+  ctx.font='9px "Press Start 2P", monospace'; ctx.textAlign='center';
+  ctx.fillStyle='#39c2d7'; ctx.strokeStyle='rgba(0,0,0,.85)'; ctx.lineWidth=3;
+  const yy = GROUND - a.z - 265;
+  const atag = a.hero.name + ' LV' + (a.level||15); // allies fight as LV15
+  ctx.strokeText(atag, a.x, yy); ctx.fillText(atag, a.x, yy);
+  /* ally HP bar: they fight on until this runs out */
+  if(a.hp<a.maxhp){
+    const bw = 64;
+    ctx.fillStyle='rgba(0,0,0,.65)'; ctx.fillRect(a.x-bw/2, yy-15, bw, 6);
+    ctx.fillStyle='#39c2d7'; ctx.fillRect(a.x-bw/2+1, yy-14, (bw-2)*Math.max(0,a.hp/a.maxhp), 4);
+  }
+}
+function drawPlayer(){
+  const p = G.player;
+  const gy = groundAt(p.x);
+  const shSize = Math.max(15, 42 - (p.z-gy)*0.09);
+  shadow(p.x, GROUND - gy, shSize);
+  if(p.reviveT>0 && Math.floor(G.time/90)%2===0) ctx.globalAlpha = 0.12; // hard blink for the 2s revive
+  else if(p.invuln>0 && Math.floor(G.time/70)%2===0 && p.hurtT<=0) ctx.globalAlpha = 0.45;
+  drawSprite(p.hero.key, playerFrame(p), p.x, GROUND, p.z, 242, p.face, p.hurtT>60);
+  ctx.globalAlpha = 1;
+  /* RAPID RUSH afterimage while the auto-attacks are firing */
+  if(p.rushQueue>0){
+    ctx.globalAlpha = 0.3;
+    drawSprite(p.hero.key, playerFrame(p), p.x - p.face*31, GROUND, p.z, 242, p.face, false);
+    ctx.globalAlpha = 1;
+  }
+  if(p.atk && p.atk.kind==='pose'){
+    const el = performance.now()-p.atk.t0, r = 44 + el*0.34;
+    ctx.strokeStyle='rgba(245,185,33,.75)'; ctx.lineWidth=5;
+    ctx.beginPath(); ctx.ellipse(p.x, GROUND - p.z - 10, r, r*0.36, 0, 0, Math.PI*2); ctx.stroke();
+  }
+}
+function drawEnemy(e){
+  const gy = groundAt(e.x);
+  const shSize = Math.max(14, (e.def.boss?52:39) - (e.z-gy)*0.09);
+  shadow(e.x, GROUND - gy, shSize);
+  let frame = 'idle';
+  if(e.dead) frame = 'idle';
+  else if(e.state==='jumpatk') frame = 'jump';
+  else if(e.z > gy+2) frame = 'jump';
+  else if(e.state==='windup' || e.state==='dashwind' || e.state==='jumpwind' || e.state==='hairwind' || e.state==='hatwind' || e.state==='coatwind') frame = 'pose';
+  else if(e.state==='strike' || e.state==='dash' || e.state==='hairthrow' || e.state==='hatthrow') frame = (e.state==='hairthrow' || e.state==='hatthrow') ? 'punch' : (e.atkKind==='kick' ? 'kick' : 'punch');
+  else if(e.state==='coatspin') frame = 'pose';
+  else if(e.state==='chase'||e.state==='enter') frame = (Math.floor(e.walkT/150)%2===0)?'walk':'run';
+  ctx.save();
+  if(e.dead){ /* fades and sinks away from the moment it goes down, while the capped 5x knockback slide carries it */
+    ctx.globalAlpha = Math.max(0, 1 - e.stateT/700); ctx.translate(0, e.stateT*0.02); }
+  if((e.state==='windup' || e.state==='dashwind' || e.state==='jumpwind' || e.state==='hairwind' || e.state==='hatwind' || e.state==='coatwind') && !e.dead) ctx.translate(-e.face*5, 0); // lean-back telegraph
+  drawSprite(e.sheet, frame, e.x, GROUND, e.z, e.def.h, e.face, e.flashT>0);
+  ctx.restore();
+  /* coat spin: the long coat whirls around the final boss in dark arcs */
+  if(e.state==='coatspin' && !e.dead){
+    const cxp = e.x, cyp = GROUND - e.z - 120;
+    ctx.save(); ctx.translate(cxp, cyp); ctx.rotate(G.time*0.022);
+    ctx.strokeStyle='rgba(16,16,22,.88)'; ctx.lineWidth=18; ctx.lineCap='round';
+    for(let i=0;i<3;i++){ ctx.beginPath(); ctx.arc(0,0,114, i*2.1, i*2.1+1.5); ctx.stroke(); }
+    ctx.strokeStyle='rgba(110,110,135,.45)'; ctx.lineWidth=6;
+    for(let i=0;i<3;i++){ ctx.beginPath(); ctx.arc(0,0,138, i*2.1+0.7, i*2.1+2.1); ctx.stroke(); }
+    ctx.restore();
+  }
+  /* boss invincibility shield (~1s after taking a hit) */
+  if(e.def.boss && e.invuln>0 && !e.dead){
+    const cxp = e.x, cyp = GROUND - e.z - e.def.h/2;
+    const pulse = 0.55 + 0.3*Math.sin(G.time*0.02);
+    ctx.strokeStyle = 'rgba(57,194,215,'+pulse.toFixed(3)+')'; ctx.lineWidth = 3.5;
+    ctx.beginPath(); ctx.ellipse(cxp, cyp, e.def.h*0.34, e.def.h*0.58, 0, 0, Math.PI*2); ctx.stroke();
+    ctx.strokeStyle = 'rgba(189,243,255,'+(pulse*0.6).toFixed(3)+')'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.ellipse(cxp, cyp, e.def.h*0.38, e.def.h*0.63, 0, 0, Math.PI*2); ctx.stroke();
+  }
+  /* attack telegraph */
+  if((e.state==='windup' || e.state==='dashwind' || e.state==='jumpwind' || e.state==='hairwind' || e.state==='hatwind' || e.state==='coatwind') && !e.dead){
+    const blink = Math.floor(G.time/90)%2===0;
+    ctx.fillStyle = blink ? '#ff3b30' : '#ffd94d';
+    ctx.font='20px "Press Start 2P", monospace'; ctx.textAlign='center';
+    ctx.strokeStyle='rgba(0,0,0,.85)'; ctx.lineWidth=4;
+    const yy = GROUND - e.z - e.def.h - 26;
+    ctx.strokeText('!', e.x, yy); ctx.fillText('!', e.x, yy);
+  }
+  if(!e.dead && (e.def.boss || e.hp<e.maxhp)){
+    const w = e.def.boss? 120:76;
+    ctx.fillStyle='rgba(0,0,0,.65)'; ctx.fillRect(e.x-w/2, GROUND - e.z - e.def.h - 12, w, 7);
+    ctx.fillStyle= e.def.boss ? '#e83a30' : '#e8a030';
+    ctx.fillRect(e.x-w/2+1, GROUND - e.z - e.def.h - 11, (w-2)*Math.max(0,e.hp/e.maxhp), 5);
+  }
+}
+
+/* ================= Flow ================= */
+function hideOverlays(){ ['ovOpening','ovTitle','ovClear','ovOver','ovAll','ovPause'].forEach(id=>$(id).classList.add('hidden')); }
+function startGame(){
+  auInit(); if(AU.ctx && AU.ctx.state==='suspended') AU.ctx.resume();
+  musicStart();
+  hideOverlays(); state='play';
+  PROG.level = 1; PROG.xp = 0; PROG.lives = 0; PROG.nextLifeAt = 3;
+  runTime = 0; setTimeHud(); // the clear-time clock starts now
+  loadStage(0, 0);
+  showMsg('FIND 3 MICS! BEAT THE CREW TO LEVEL UP!', 2600);
+}
+function stageClear(){
+  state='clear'; sfx('clear');
+  const bonus = Math.round(G.player.hp) * 10;
+  G.score += 500 + bonus;
+  $('clearTitle').textContent = G.stage.name + ' CLEAR!';
+  $('clearSub').innerHTML = 'ALL 3 MICS COLLECTED!<br>CLEAR BONUS +'+(500+bonus)+' (HP LEFT '+Math.round(G.player.hp)+')<br>SCORE: <b>'+G.score+'</b>';
+  $('btnNext').textContent = (G.stageIdx>=STAGES.length-1) ? 'SEE RESULTS ▶' : 'NEXT STAGE ▶';
+  $('ovClear').classList.remove('hidden');
+  updateHUD();
+}
+function gameOver(){
+  state='over';
+  $('overSub').innerHTML = 'YOU WENT DOWN ON '+G.stage.name+' WITH NO LIVES LEFT...<br>FINAL SCORE: <b>'+G.score+'</b><br>TIME: <b>'+fmtTime(runTime)+'</b><br><span style="font-size:8px">GAME OVER — START OVER FROM STAGE 1, BACK AT LV 1</span>';
+  $('ovOver').classList.remove('hidden');
+}
+/* score ranking: beating the final boss lets the player register their
+   score AND their start-to-clear time under their name (kept for this
+   session). The screen plays the celebratory victory hip hop groove. */
+const RANKINGS = [];
+let rankDone = false;
+function renderRanking(){
+  const ol = $('rankList'); if(!ol) return;
+  if(!RANKINGS.length){ ol.innerHTML = '<li class="none">NO SCORES YET — BE THE FIRST!</li>'; return; }
+  ol.innerHTML = RANKINGS.slice(0,8).map((r,i)=>'<li'+(r.fresh?' class="fresh"':'')+'><span>'+(i+1)+'. '+r.name+'</span><span>'+r.score+' · '+fmtTime(r.time||0)+'</span></li>').join('');
+}
+function showRanking(testJump){
+  state='allclear';
+  rankDone = false;
+  bgmMode = 'clear'; musicStart(); // celebration hip hop while you register
+  $('allSub').innerHTML = (testJump ? 'TEST JUMP — RANKING SCREEN' : 'YOU GOT EVERY MIC BACK!')+'<br>FINAL SCORE: <b>'+G.score+'</b><br>CLEAR TIME: <b>'+fmtTime(runTime)+'</b><br>🎤🎤🎤 THANKS FOR PLAYING!';
+  $('rankName').value = ''; $('rankName').disabled = false;
+  $('btnRank').disabled = false;
+  $('rankMsg').textContent = testJump
+    ? 'TEST JUMP TO THE RANKING SCREEN — ENTER YOUR NAME AND REGISTER YOUR SCORE & CLEAR TIME:'
+    : 'YOU BEAT THE FINAL BOSS! ENTER YOUR NAME AND REGISTER YOUR SCORE & CLEAR TIME:';
+  renderRanking();
+  $('ovAll').classList.remove('hidden');
+}
+function allClear(){ showRanking(false); }
+function togglePause(){
+  if(state==='play'){ state='pause'; $('ovPause').classList.remove('hidden'); }
+  else if(state==='pause'){ state='play'; $('ovPause').classList.add('hidden'); }
+}
+function toTitle(){
+  hideOverlays(); state='title'; $('ovTitle').classList.remove('hidden');
+  G = null; $('bossbar').style.display='none';
+  bgmMode = 'title'; // back to the character-select groove
+}
+
+/* character select: the SELECTED hero's card shows his banzai pose (the
+   both-hands-up pose-attack frame); the others stay on their idle frame */
+function selectHero(i){
+  selHero = i;
+  document.querySelectorAll('.char').forEach((el,j)=>{
+    el.classList.toggle('sel', j===i);
+    const th = el.querySelector('.thumb');
+    if(th){
+      if(j===i){ const idx = SHEETS[HEROES[j].key].frames.pose, col = idx%4, row = Math.floor(idx/4);
+        th.style.backgroundPosition = (col/3*100)+'% '+(row/2*100)+'%'; }
+      else th.style.backgroundPosition = '0 0';
+    }
+  });
+  $('hudName').textContent = HEROES[i].name;
+  hudFaceKey = null; drawHudFace(HEROES[i].key);
+}
+(function buildCharSel(){
+  const box = $('charsel');
+  HEROES.forEach((h,i)=>{
+    const d = document.createElement('button');
+    d.className = 'char pix8' + (i===0?' sel':'');
+    d.innerHTML = '<div class="thumb pix4" style="background-image:url('+IMG[h.key].getAttribute('src')+')"></div>'
+      + '<div class="nm">'+h.name+'</div><div class="st">'+h.desc
+      + '<span class="srow"><span>HP</span><b>'+h.hp+'</b></span>'
+      + '<span class="srow"><span>SPD</span><b>'+(h.speed>=4?'★★★':h.speed>=3.5?'★★☆':'★☆☆')+'</b></span>'
+      + '<span class="srow"><span>POW</span><b>'+(h.punch>=14?'★★★':h.punch>=12?'★★☆':'★☆☆')+'</b></span></div>';
+    d.addEventListener('click', ()=>{ selectHero(i); auInit(); if(AU.ctx && AU.ctx.state==='suspended') AU.ctx.resume(); bgmMode='title'; musicStart(); });
+    box.appendChild(d);
+  });
+  selectHero(selHero); // sync the first card to the banzai pose + HUD face
+})();
+
+/* the character-select groove starts on the first tap anywhere on the title screen */
+$('ovTitle').addEventListener('pointerdown', ()=>{
+  auInit(); if(AU.ctx && AU.ctx.state==='suspended') AU.ctx.resume();
+  if(state==='title'){ bgmMode='title'; musicStart(); }
+});
+/* opening screen: PRESS START moves on to character select — this tap is
+   also the first audio gesture, so the select groove starts here */
+function dismissOpening(){
+  if(state!=='opening') return;
+  auInit(); if(AU.ctx && AU.ctx.state==='suspended') AU.ctx.resume();
+  hideOverlays(); state='title'; $('ovTitle').classList.remove('hidden');
+  bgmMode='title'; musicStart();
+}
+$('btnOpening').addEventListener('click', dismissOpening);
+addEventListener('keydown', e=>{ if(state==='opening' && (e.key==='Enter' || e.key===' ')) dismissOpening(); });
+$('btnStart').addEventListener('click', startGame);
+$('btnNext').addEventListener('click', ()=>{
+  const sc = G.score;
+  if(G.stageIdx >= STAGES.length-1){ hideOverlays(); allClear(); return; }
+  hideOverlays(); state='play'; loadStage(G.stageIdx+1, sc);
+  showMsg(STAGES[G.stageIdx].name+' — FIND 3 MICS!', 2600);
+});
+$('btnRetry').addEventListener('click', startGame); // game over = start again from the very beginning
+$('btnResume').addEventListener('click', togglePause);
+$('btnPause').addEventListener('click', ()=>{ if(state==='play'||state==='pause') togglePause(); });
+['btnToTitle1','btnToTitle2','btnToTitle3'].forEach(id=>$(id).addEventListener('click', toTitle));
+/* info modal */
+function openInfo(){ closeSettings(); if(state==='play') togglePause(); $('infoModal').classList.remove('hidden'); }
+function closeInfo(){ $('infoModal').classList.add('hidden'); }
+$('btnInfo').addEventListener('click', openInfo);
+$('btnInfoClose').addEventListener('click', closeInfo);
+$('infoModal').addEventListener('click', e=>{ if(e.target===$('infoModal')) closeInfo(); });
+/* settings window (gear button at the top-right of the HUD): holds the
+   system and test buttons. It does NOT pause the game, so the test
+   buttons — which only work during play — behave exactly as they did
+   on the old always-visible row */
+function openSettings(){ $('setModal').classList.remove('hidden'); }
+function closeSettings(){ $('setModal').classList.add('hidden'); }
+$('btnSettings').addEventListener('click', openSettings);
+$('btnSetClose').addEventListener('click', closeSettings);
+$('setModal').addEventListener('click', e=>{ if(e.target===$('setModal')) closeSettings(); });
+addEventListener('keydown', e=>{ if(e.key==='Escape'){ closeInfo(); closeSettings(); } });
+$('btnSound').addEventListener('click', function(){
+  auInit(); AU.on = !AU.on;
+  if(AU.musicGain) AU.musicGain.gain.value = AU.on?0.55:0;
+  this.textContent = AU.on ? '♪' : '✕';
+  this.style.opacity = AU.on ? '1' : '.5';
+});
+/* ranking registration (all-clear screen) */
+$('btnRank').addEventListener('click', ()=>{
+  if(rankDone || state!=='allclear' || !G) return;
+  const name = ($('rankName').value || '').trim().toUpperCase().replace(/[<>&"]/g,'') || 'PLAYER';
+  RANKINGS.forEach(r=>r.fresh=false);
+  RANKINGS.push({ name, score:G.score, time:Math.round(runTime), fresh:true });
+  RANKINGS.sort((a,b)=>b.score-a.score);
+  rankDone = true;
+  $('btnRank').disabled = true; $('rankName').disabled = true;
+  $('rankMsg').textContent = 'REGISTERED! YOU ARE RANK #'+(RANKINGS.findIndex(r=>r.fresh)+1)+' OF '+RANKINGS.length;
+  sfx('clear');
+  renderRanking();
+});
+/* keep name typing out of the game's keyboard controls */
+$('rankName').addEventListener('keydown', e=>{
+  e.stopPropagation();
+  if(e.key==='Enter') $('btnRank').click();
+});
+/* ---- test buttons (settings window): level up / stage skip / ranking ---- */
+$('btnTestLv').addEventListener('click', ()=>{
+  if(!G || !G.player || state!=='play') return;
+  gainXP(Math.max(1, xpNext(PROG.level) - PROG.xp)); // exactly one level
+});
+$('btnTestSkip').addEventListener('click', ()=>{
+  if(!G || state!=='play') return;
+  closeSettings();
+  hideOverlays();
+  if(G.stageIdx >= STAGES.length-1){ allClear(); return; }
+  const sc = G.score;
+  loadStage(G.stageIdx+1, sc);
+  showMsg('TEST SKIP: '+STAGES[G.stageIdx].name+' — FIND 3 MICS!', 2200);
+});
+/* test button: jump straight to the ranking screen, carrying the current
+   score and elapsed time, to check the registration flow and its music */
+$('btnTestRank').addEventListener('click', ()=>{
+  auInit(); if(AU.ctx && AU.ctx.state==='suspended') AU.ctx.resume();
+  if(!G) loadStage(0,0);
+  closeSettings();
+  hideOverlays();
+  showRanking(true);
+});
+
+/* ================= Main loop ================= */
+let lastT = performance.now();
+function loop(now){
+  const dt = Math.min(50, now - lastT); lastT = now;
+  if(state==='play') update(dt);
+  $('wrap').classList.toggle('playing', state==='play');
+  draw();
+  requestAnimationFrame(loop);
+}
+loadStage(0,0); state='opening'; G.player.x = 200;
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
