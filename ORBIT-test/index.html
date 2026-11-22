@@ -576,6 +576,7 @@
         document.getElementById("ledPwr").className = "led on-green";
         injectCompactCss();
         injectBallVolSync();
+        injectTextAlphaFix();
         injectHwAudio();
         injectSimExtras();
         injectDemoSet();
@@ -784,6 +785,38 @@
         "    }",
         "  } catch (e) {}",
         "  setInterval(function(){ if (cur() <= 0) applyAll(); }, 300);",
+        "})();"
+      ].join("\n");
+      (orbitDoc.body || orbitDoc.documentElement).appendChild(sc);
+    }
+
+    /* ===== FONTの1個目の文字が透明になる不具合の修正注入 =====
+       ORBIT本体の描画ループは texts.forEach(drawTextObject) で文字を
+       描くが、forEach はコールバックへ (要素, インデックス, 配列) を
+       渡すため、drawTextObject(t, alpha) の alpha にインデックスが
+       入ってしまう。結果、1個目の文字は alpha=0 で完全に透明に描か
+       れ（マスクは作られるのでボールは当たるのに見えない）、2個目
+       以降は alpha>=1 で正常表示になる——「初回配置だけ透明」の正体。
+       本体ソースは改変せず、読み込み後に drawTextObject をラップし、
+       alpha に整数（＝forEachのインデックス）が来たら「指定なし」
+       として不透明(1)に読み替える。ドラッグ中ドラフトの明示指定
+       0.28 は小数なのでそのまま通し、薄いプレビュー表示は維持する。 */
+    function injectTextAlphaFix(){
+      if (!orbitDoc || orbitDoc.getElementById("sim-textalpha")) return;
+      var sc = orbitDoc.createElement("script");
+      sc.id = "sim-textalpha";
+      sc.textContent = [
+        "(function(){",
+        "  try {",
+        "    if (typeof drawTextObject !== 'function' || drawTextObject.__simAlphaFix) return;",
+        "    var orig = drawTextObject;",
+        "    var fixed = function(t, alpha){",
+        "      if (typeof alpha !== 'number' || !isFinite(alpha) || Math.floor(alpha) === alpha) alpha = 1;",
+        "      return orig.call(this, t, alpha);",
+        "    };",
+        "    fixed.__simAlphaFix = true;",
+        "    drawTextObject = fixed;",
+        "  } catch (e) {}",
         "})();"
       ].join("\n");
       (orbitDoc.body || orbitDoc.documentElement).appendChild(sc);
