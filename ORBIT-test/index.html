@@ -490,7 +490,7 @@
         </div>
       </div>
 
-      <p class="foot">液晶は実機と同じ320×240固定です。ORBIT側のツールバーとボタンはコンパクト化してあるので、演奏エリアが目いっぱい使えます。GRANULARやオブジェクトの設定パネル、設定画面を開くと、液晶全体に前面表示され、設定項目が広くスクロールできます（閉じれば通常表示に戻ります）。ツマミは縦ドラッグで回り、ダブルタップでORBIT側の初期値に戻ります。BALL VOLは、出現中のボール全部の音量をその場で変え、最小ではボールの音が完全に消えます。ツマミやボタンを操作すると、液晶下部にパラメーター名と現在値が小さなドット文字で一瞬表示されます（オブジェクト切替は設定画面に名前が出るため表示しません）。ツマミの下に数値表示はありません（実機に無いため）。最初に「サウンド開始」を押すと、ORBITの音も一緒に解放されます。<br />音は実機（Pico 2 W＋PWM出力）に載せたときの質感に合わせてあります：全体がモノラル＋帯域制限（22.05kHz相当）になり、リバーブは簡易版の質感です。FIELDの環境音は録音ではなく生成音で、実機で作れる鳥・夜の2種だけが鳴ります。ライブレコーディング（演奏の録音とWAV保存）は実機に保存手段が無いため、機能ごとありません。グラニュラーの素材は外部入力（MIC、最大5秒）と内蔵デモのみで、ファイル読み込みとWAV書き出しはありません。内蔵デモは、実機の内蔵フラッシュに載せられるよう、4つのコードを短く鳴らした約2秒の素材（22.05kHzモノラル）に置き換えた5種だけに絞ってあります（Web版ORBITの全50種・9〜12秒ステレオは実機には入りません）。素材が短い分、デモを選ぶとDrift Speedが遅い値に寄り、短い素材をゆっくり漂わせて長く鳴らせます。プロジェクトの保存／読込はファイルではなく、本体の4つのスロットに対して行います。BPMは描画エリアには出ず、設定画面のTEMPO項目で確認・変更できます。アクセスカウンター（Views）も実機に無いので表示されません。<br />実機仕様に合わせ、ORBIT画面上の生成ツール群（BALL／LINE／…）と下部のボタンバーは表示されません。生成するオブジェクトはツマミ5（MODE）で選び、画面タップで生成します。ツマミで選ぶとそのオブジェクトの設定パネルが表示されたままになるので、その場で設定を変更できます（パネルの×か外側タップで閉じてから画面をタップすると生成されます）。FONTモードでは、FONTパネルのText欄か、パネルを閉じて画面をタップすると、液晶全体に英語キーボードが表示されます。一番上のテキストボックスで入力中の文字列を確認でき、✓ PLACEで確定するとタップした位置にテキストが配置されます（パネルのText欄から開いた場合は文字列だけが反映され、パネルに戻ります）。ボタン2（UNDO）は短押しでオブジェクトのUNDO、長押しでR UNDO。ボタン4（MOVE）は押すたびにムーブ→イレース→通常（生成モード）と切り替わります。GRAVITYツマミは0.00〜1.00（0.01刻み）で、ORBIT側の重力へ比例変換されます。</p>
+      <p class="foot">液晶は実機と同じ320×240固定です。ORBIT側のツールバーとボタンはコンパクト化してあるので、演奏エリアが目いっぱい使えます。GRANULARやオブジェクトの設定パネル、設定画面を開くと、液晶全体に前面表示され、設定項目が広くスクロールできます（閉じれば通常表示に戻ります）。ツマミは縦ドラッグで回り、ダブルタップでORBIT側の初期値に戻ります。BALL VOLは、出現中のボール全部の音量をその場で変え、最小ではボールの音が完全に消えます。ツマミやボタンを操作すると、液晶下部にパラメーター名と現在値が小さなドット文字で一瞬表示されます（オブジェクト切替は設定画面に名前が出るため表示しません）。ツマミの下に数値表示はありません（実機に無いため）。最初に「サウンド開始」を押すと、ORBITの音も一緒に解放されます。<br />音は実機（Pico 2 W＋PWM出力）に載せたときの質感に合わせてあります：全体がモノラル＋帯域制限（22.05kHz相当）になり、リバーブは簡易版の質感です。FIELDの環境音は録音ではなく生成音で、実機で作れる鳥・夜の2種だけが鳴ります。ライブレコーディング（演奏の録音とWAV保存）は実機に保存手段が無いため、機能ごとありません。グラニュラーの素材は外部入力（MIC、最大5秒）と内蔵デモのみで、ファイル読み込みとWAV書き出しはありません。内蔵デモは、実機の内蔵フラッシュに載せられるよう、4つのコードが重なって持続するパッド状の約2秒の素材（22.05kHzモノラル）に置き換えた5種だけに絞ってあります（Web版ORBITの全50種・9〜12秒ステレオは実機には入りません）。デモを選ぶと、Driftはゆっくり（中心が少しずつ移動）、SprayとChaosは広め、Density 24/秒・Grain Size 250ms、ReverbとDelayは控えめという、粒が脈打たずクリアに深く鳴るデフォルト値が入ります（スライダーは後から自由に変更できます）。プロジェクトの保存／読込はファイルではなく、本体の4つのスロットに対して行います。BPMは描画エリアには出ず、設定画面のTEMPO項目で確認・変更できます。アクセスカウンター（Views）も実機に無いので表示されません。<br />実機仕様に合わせ、ORBIT画面上の生成ツール群（BALL／LINE／…）と下部のボタンバーは表示されません。生成するオブジェクトはツマミ5（MODE）で選び、画面タップで生成します。ツマミで選ぶとそのオブジェクトの設定パネルが表示されたままになるので、その場で設定を変更できます（パネルの×か外側タップで閉じてから画面をタップすると生成されます）。FONTモードでは、FONTパネルのText欄をタップすると液晶全体に英語キーボードが表示されます。一番上のテキストボックスで入力中の文字列を確認でき、✓ PLACEで確定すると文字列がText欄へ反映されてパネルに戻ります。文字の配置は、パネルを閉じて描画エリアを押してドラッグし、離した位置に置くORBIT本来の操作で行います（キーボードは描画エリアのタップでは開きません）。ボタン2（UNDO）は短押しでオブジェクトのUNDO、長押しでR UNDO。ボタン4（MOVE）は押すたびにムーブ→イレース→通常（生成モード）と切り替わります。GRAVITYツマミは0.00〜1.00（0.01刻み）で、ORBIT側の重力へ比例変換されます。</p>
     </div>
 
     <script>
@@ -1215,9 +1215,13 @@
        RAM 520KB）には載らない。実機に載る形として、デモは
        「4つのコードを短く鳴らした約2秒の素材」（22.05kHzモノラル、
        1種あたり約44KB、5種で約220KB）に置き換え、性格の違う
-       5種だけを残す。素材が短い分、デモ読み込み時は Drift Speed を
-       遅い値（+0.05）へ寄せ、短いバッファをゆっくり漂わせて
-       擬似的に長く鳴らせるようにする（後からユーザーが調整可）。
+       5種だけを残す。素材はコード同士が重なって持続するパッド状
+       に合成する（アタックの強い短いスタブ×4だと、粒がアタック
+       か無音部ばかりを拾って1個ずつ脈打つ「ボフボフ」になる
+       ため）。デモ読み込み時は Drift +0.05 を含むクリア寄りの
+       デフォルト値一式をスライダーへ入れ、短いバッファをゆっく
+       り漂わせて擬似的に長く鳴らせるようにする（後からユーザー
+       が調整可）。
        GDEMOS や gLoadDemo は ORBIT 側クロージャ内にあるため直接
        触れず、(1) デモ生成が使う OfflineAudioContext の
        startRendering を包み、5秒以上のレンダリング（＝デモ生成）
@@ -1226,7 +1230,7 @@
        (3) 起動時に自動生成済みの初期デモ（注入前にフル尺で生成
        される）だけはステータスの秒数を見て読み直す、(4) スロット
        復元で対象外デモが読み込まれた場合は残す5種の先頭へ戻す、
-       (5) デモ読み込み後に Drift Speed を遅い値へ寄せる、で実現
+       (5) デモ読み込み後にデフォルト値一式をスライダーへ入れる、で実現
        する。startRendering を使うのはデモ生成だけ（デコードの
        予備経路は decodeAudioData を使う）なので他の再生には
        影響しない。 */
@@ -1236,16 +1240,37 @@
       sc.id = "sim-demoset";
       sc.textContent = [
         "(function(){",
-        "  var OUT_SR = 22050, LEN_SEC = 2.0, DRIFT_SLOW = 0.05;",
-        "  /* 5種のデモ: 各4コード（4音ずつ）を短く鳴らした素材。",
-        "     chords=周波数(Hz)の4コード進行、body=倍音の量、",
-        "     bell=オクターブベルの量、atk/dec=スタブの包絡 */",
+        "  var OUT_SR = 22050, LEN_SEC = 2.0;",
+        "  /* デモ選択時に入れるグラニュラーのデフォルト値。",
+        "     「ボフボフ」（粒が1個ずつ脈打ってこもる）の発生源を",
+        "     実測で切り分けた結果: (a)素材がアタックの強い短い",
+        "     スタブ×4で、窓RMSが平均の0倍（無音部）〜2.6倍まで",
+        "     振れ、粒がアタックか無音部ばかり拾う（主因）。",
+        "     (b)ドリフト極小で再生位置がほぼ固定＋Spray 0.26の",
+        "     狭さで同じ断面を繰り返し、(c)密度16/秒・粒190msで",
+        "     重なり約3粒と薄く、レート散らしもカオス0.22では",
+        "     ±11セントしかなく低音粒が位相揃いで積み上がる。",
+        "     (d)帯域制限（LP 10kHz×2段）は曇りの主因ではなかっ",
+        "     たが、リバーブ wet 0.855 は洗い流し方向に効くので",
+        "     少し下げる。対策: 素材はサステインの重なるパッドに",
+        "     作り替え（synth側）、パラメーターはドリフトを「中心",
+        "     のゆっくり移動」として残しつつ、散らし・密度・粒長・",
+        "     カオスを広げて粒同士を非相関化する。シミュレーショ",
+        "     ンでは出力包絡の変動係数が 0.35〜0.43 → 0.21〜0.25",
+        "     に下がり、最小窓RMSも平均の0.29倍→0.48倍に改善。",
+        "     いずれもスライダーの初期値として入れるだけなので、",
+        "     ユーザーは後から自由に変更できる */",
+        "  var DEMO_DEFAULTS = { gDrift: '0.05', gDensity: '24', gSize: '250', gSpray: '0.50', gChaos: '0.38', gReverb: '0.38', gDelay: '0.15', gWow: '0.15' };",
+        "  /* 5種のデモ: 各4コード（4音ずつ）が重なって持続する",
+        "     パッド素材。chords=周波数(Hz)の4コード進行、body=",
+        "     倍音の量、bell=オクターブベルの量、atk=アタック秒、",
+        "     dec=1コードの持続秒（間隔0.45秒より長く重なる） */",
         "  var DEMOS = {",
-        "    'Synth Pad + Bell': { chords: [[110.00,164.81,220.00,261.63],[87.31,130.81,174.61,220.00],[130.81,196.00,261.63,329.63],[98.00,146.83,196.00,246.94]], body: 0.30, bell: 0.22, atk: 0.012, dec: 0.50 },",
-        "    'Piano Pad': { chords: [[130.81,164.81,196.00,261.63],[98.00,123.47,146.83,196.00],[110.00,130.81,164.81,220.00],[87.31,110.00,130.81,174.61]], body: 0.34, bell: 0.10, atk: 0.006, dec: 0.46 },",
-        "    'Dream Pad': { chords: [[130.81,164.81,246.94,293.66],[110.00,130.81,164.81,293.66],[87.31,110.00,164.81,261.63],[98.00,146.83,246.94,349.23]], body: 0.20, bell: 0.26, atk: 0.05, dec: 0.55 },",
-        "    'Moon Pad': { chords: [[110.00,130.81,164.81,220.00],[87.31,110.00,130.81,174.61],[146.83,174.61,220.00,293.66],[82.41,123.47,164.81,246.94]], body: 0.30, bell: 0.08, atk: 0.015, dec: 0.52 },",
-        "    'Glass Pad': { chords: [[293.66,369.99,440.00,587.33],[220.00,293.66,440.00,554.37],[246.94,293.66,369.99,493.88],[196.00,246.94,293.66,392.00]], body: 0.14, bell: 0.34, atk: 0.008, dec: 0.50 }",
+        "    'Synth Pad + Bell': { chords: [[110.00,164.81,220.00,261.63],[87.31,130.81,174.61,220.00],[130.81,196.00,261.63,329.63],[98.00,146.83,196.00,246.94]], body: 0.30, bell: 0.22, atk: 0.10, dec: 1.05 },",
+        "    'Piano Pad': { chords: [[130.81,164.81,196.00,261.63],[98.00,123.47,146.83,196.00],[110.00,130.81,164.81,220.00],[87.31,110.00,130.81,174.61]], body: 0.34, bell: 0.10, atk: 0.07, dec: 1.00 },",
+        "    'Dream Pad': { chords: [[130.81,164.81,246.94,293.66],[110.00,130.81,164.81,293.66],[87.31,110.00,164.81,261.63],[98.00,146.83,246.94,349.23]], body: 0.20, bell: 0.26, atk: 0.14, dec: 1.10 },",
+        "    'Moon Pad': { chords: [[110.00,130.81,164.81,220.00],[87.31,110.00,130.81,174.61],[146.83,174.61,220.00,293.66],[82.41,123.47,164.81,246.94]], body: 0.30, bell: 0.08, atk: 0.10, dec: 1.05 },",
+        "    'Glass Pad': { chords: [[293.66,369.99,440.00,587.33],[220.00,293.66,440.00,554.37],[246.94,293.66,369.99,493.88],[196.00,246.94,293.66,392.00]], body: 0.14, bell: 0.34, atk: 0.08, dec: 1.00 }",
         "  };",
         "  var KEEP = [];",
         "  for (var k in DEMOS) KEEP.push(k);",
@@ -1265,26 +1290,24 @@
         "    for (s = 0; s < 4; s++){",
         "      var t0 = Math.floor(s * spacing * OUT_SR);",
         "      var notes = spec.chords[s % spec.chords.length];",
-        "      var span = Math.floor((spec.atk + spec.dec) * OUT_SR);",
+        "      var span = Math.floor(spec.dec * OUT_SR);",
         "      for (q = 0; q < notes.length; q++){",
         "        var f = notes[q];",
         "        var ph = (q * 1.93 + s * 0.71) % 6.2831853;",
         "        var inc = 2 * Math.PI * f / OUT_SR;",
-        "        var tau = Math.max(0.05, spec.dec * 0.34);",
+        "        var tau = Math.max(0.10, spec.dec * 0.30);",
         "        for (j = 0; j < span; j++){",
-        "          var idx = t0 + j; if (idx >= n) break;",
+        "          var idx = (t0 + j) % n;",
         "          var u = j / OUT_SR;",
-        "          var env = u < spec.atk ? (u / spec.atk) : Math.exp(-(u - spec.atk) / tau);",
-        "          var w = Math.sin(ph + inc * j) + spec.body * Math.sin(ph * 1.7 + inc * 2 * j) + spec.bell * Math.sin(ph * 2.3 + inc * 2 * j) * Math.exp(-(u) / (tau * 0.55));",
-        "          d[idx] += w * env * 0.24;",
+        "          var env = u < spec.atk ? (0.5 - 0.5 * Math.cos(Math.PI * u / spec.atk)) : Math.exp(-(u - spec.atk) / tau);",
+        "          var w = Math.sin(ph + inc * j) + 0.35 * Math.sin(ph * 1.31 + inc * 1.003 * j) + spec.body * Math.sin(ph * 1.7 + inc * 2 * j) + spec.bell * Math.sin(ph * 2.3 + inc * 2 * j) * Math.exp(-(u) / (tau * 0.8));",
+        "          d[idx] += w * env * 0.20;",
         "        }",
         "      }",
         "    }",
         "    var peak = 0, i2;",
         "    for (i2 = 0; i2 < n; i2++){ var a = d[i2] < 0 ? -d[i2] : d[i2]; if (a > peak) peak = a; }",
         "    if (peak > 0){ var g = 0.85 / peak; for (i2 = 0; i2 < n; i2++) d[i2] *= g; }",
-        "    var fadeN = Math.floor(OUT_SR * 0.05);",
-        "    for (i2 = 0; i2 < fadeN; i2++){ var u2 = 1 - i2 / fadeN; d[n - 1 - i2] *= u2 * u2; }",
         "    return buf;",
         "  }",
         "  try {",
@@ -1322,13 +1345,15 @@
         "  }",
         "  filterMenu();",
         "  setInterval(filterMenu, 1500);",
-        "  function slowDrift(){",
-        "    var s = document.getElementById('gDrift');",
-        "    if (!s) return;",
-        "    if (Math.abs(parseFloat(s.value) - DRIFT_SLOW) > 0.001) {",
-        "      s.value = String(DRIFT_SLOW);",
-        "      try { s.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {}",
-        "      try { s.dispatchEvent(new Event('change', { bubbles: true })); } catch (e) {}",
+        "  function applyDemoDefaults(){",
+        "    for (var id in DEMO_DEFAULTS) {",
+        "      var s = document.getElementById(id);",
+        "      if (!s) continue;",
+        "      if (Math.abs(parseFloat(s.value) - parseFloat(DEMO_DEFAULTS[id])) > 0.001) {",
+        "        s.value = DEMO_DEFAULTS[id];",
+        "        try { s.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {}",
+        "        try { s.dispatchEvent(new Event('change', { bubbles: true })); } catch (e) {}",
+        "      }",
         "    }",
         "  }",
         "  document.addEventListener('click', function(e){",
@@ -1337,13 +1362,13 @@
         "    if (t) {",
         "      var tx = t.textContent || '';",
         "      for (var i = 0; i < KEEP.length; i++) if (tx.indexOf(KEEP[i]) >= 0) { lastName = KEEP[i]; break; }",
-        "      setTimeout(slowDrift, 900);",
+        "      setTimeout(applyDemoDefaults, 900);",
         "    }",
         "  }, true);",
         "  function reloadKept(){",
         "    var it = keptItem(lastName) || keptItem(DEFAULT_NAME);",
         "    if (it) { try { it.click(); } catch (e) {} }",
-        "    setTimeout(slowDrift, 900);",
+        "    setTimeout(applyDemoDefaults, 900);",
         "  }",
         "  var statusEl = document.getElementById('gSrcStatus');",
         "  var nameEl = document.getElementById('gSrcName');",
@@ -1356,7 +1381,7 @@
         "  var poll = setInterval(function(){",
         "    pollTries++;",
         "    var s = statusSecs();",
-        "    if (s !== null && s <= LEN_SEC + 0.3) { slowDrift(); clearInterval(poll); return; }",
+        "    if (s !== null && s <= LEN_SEC + 0.3) { applyDemoDefaults(); clearInterval(poll); return; }",
         "    if (s !== null && s > LEN_SEC + 0.3) reloadKept();",
         "    if (pollTries > 14) clearInterval(poll);",
         "  }, 700);",
@@ -1365,7 +1390,7 @@
         "    if (!nameEl) return;",
         "    var t = nameEl.textContent || '';",
         "    if (t.indexOf('Demo:') === 0) {",
-        "      if (isKept(t)) { setTimeout(slowDrift, 600); return; }",
+        "      if (isKept(t)) { setTimeout(applyDemoDefaults, 600); return; }",
         "      if (guardTimer) return;",
         "      guardTries = 0;",
         "      guardTimer = setInterval(function(){",
@@ -1420,10 +1445,12 @@
       if (!orbitReady) return;
       var tool = MODE_TOOLS[idx];
       if (!tool) return;
-      /* FONTが選ばれたら英語キーボードの表示を予約し、それ以外の
-         ツールが選ばれたら予約を取り消してキーボードを閉じる */
-      if (tool.id === "font") scheduleKbOpen();
-      else { cancelKbOpen(); if (typeof kbOpen !== "undefined" && kbOpen) closeKeyboard(); }
+      /* キーボードは描画と競合しないよう、FONTパネルの Text 欄
+         からだけ開く（ツール選択や画面タップでは開かない）。
+         FONT以外のツールが選ばれたら、開いているキーボードを
+         閉じて予約も取り消す */
+      cancelKbOpen();
+      if (tool.id !== "font" && typeof kbOpen !== "undefined" && kbOpen) closeKeyboard();
       /* イレースONのまま生成モードを選んだら、タップで生成できる
          ようイレースを解除してからツールを選択する */
       var er = oEl("eraser");
@@ -1438,19 +1465,18 @@
       }
     }
     /* ===== FONT用 英語キーボード（実機仕様のテキスト入力UI） =====
-       FONTモードでテキストを配置するとき、液晶全体に英語QWERTY
+       FONTモードでテキストを入力するとき、液晶全体に英語QWERTY
        キーボードを前面表示する。一番上がテキストボックス（入力中
        の文字列）、その下にキーを敷く。ORBIT本体は無改変で、受け口
        は ORBIT の FONT 入力欄 #fontText（buildTextObject／canvasの
        pointerdown が参照する実在の入力欄）：
-         ・キーボードは (a) FONT選択が落ち着いたとき、(b) FONTモード
-           でキャンバスをタップしたとき、(c) FONTパネル内の Text 欄
-           をタップしたときに開く。(b) のタップは ORBIT 側へ渡さず
-           位置だけ記録する。
-         ・PLACE（確定）で文字列を #fontText へ書き戻し、(b) の記録
-           位置（無ければキャンバス中央）へ ORBIT 自身の canvas
-           pointerdown/up を再生して、通常どおりテキストオブジェ
-           クトを配置する。(c) から開いた場合は配置せずパネルへ戻る。
+         ・キーボードは FONT設定パネルの Text 欄タップでのみ開く。
+           描画エリアのタップ／ドラッグは横取りせず、ORBIT本来の
+           配置フロー（押してドラフト生成→ドラッグで位置決め→
+           離して配置）へそのまま渡す。
+         ・PLACE（確定）で文字列を #fontText へ書き戻して閉じ、
+           パネルへ戻る。配置はその後、描画エリアをドラッグする
+           ORBIT本来の操作で行う（入力済みの文字列が使われる）。
          ・CANCEL（キャンセル）は何も書かずに閉じる。⌫ が削除。 */
     var kbOverlay = document.getElementById("kbOverlay");
     var kbTextbox = document.getElementById("kbTextbox");
@@ -1459,12 +1485,6 @@
     var kbCount = document.getElementById("kbCount");
     var kbKeysEl = document.getElementById("kbKeys");
     var kbOpen = false, kbValue = "", kbShift = true;
-    var kbPendingPos = null, kbFromPanel = false;
-    /* 配置リプレイ中フラグ。placeFontText が再生する合成タップを、
-       下の横取りリスナー（実タップ→キーボード表示）が横取りして
-       キーボードを再表示し、配置まで止めてしまう不具合の対策。
-       リプレイ中／タグ付きイベントは横取り対象から外す。 */
-    var kbReplaying = false;
     var kbOpenTimer = null, kbBridgeReady = false, kbOkBtn = null;
     var KB_MAX = 40;
     var KB_ROWS = [
@@ -1474,25 +1494,13 @@
       ["Z","X","C","V","B","N","M"],
       []
     ];
-    function scheduleKbOpen(){
-      cancelKbOpen();
-      kbOpenTimer = setTimeout(function(){
-        kbOpenTimer = null;
-        if (!orbitReady || kbOpen) return;
-        var fb = oEl("font");
-        if (fb && fb.classList.contains("active")) openKeyboard({});
-      }, 650);
-    }
     function cancelKbOpen(){
       if (kbOpenTimer) { clearTimeout(kbOpenTimer); kbOpenTimer = null; }
     }
-    function openKeyboard(opts){
+    function openKeyboard(){
       if (!orbitReady || kbOpen) return;
-      opts = opts || {};
       var ft = oEl("fontText");
       kbValue = ft ? String(ft.value || "") : "";
-      kbPendingPos = opts.pos || null;
-      kbFromPanel = !!opts.fromPanel;
       kbShift = true;
       buildKbKeys();
       renderKbText();
@@ -1502,8 +1510,6 @@
     function closeKeyboard(){
       kbOverlay.hidden = true;
       kbOpen = false;
-      kbPendingPos = null;
-      kbFromPanel = false;
     }
     function renderKbText(){
       if (kbValue) {
@@ -1534,64 +1540,13 @@
         setTimeout(function(){ kbTextbox.classList.remove("err"); }, 350);
         return;
       }
-      /* ORBITの受け口 #fontText へ橋渡し（input/change も発火） */
+      /* ORBITの受け口 #fontText へ橋渡し（input/change も発火）。
+         配置はキーボードでは行わず、閉じた後に描画エリアを
+         ドラッグする ORBIT 本来の操作に任せる。パネルに戻るので
+         サイズ等の設定も続けられる */
       var ft = oEl("fontText");
       if (ft) { ft.value = text; fireInput(ft); }
-      var pos = kbPendingPos, fromPanel = kbFromPanel;
       closeKeyboard();
-      if (fromPanel) return; /* パネルに戻り、サイズ等の設定を続ける */
-      placeFontText(pos);
-    }
-    /* ORBIT自身の配置フロー（canvas pointerdown→fontDraft→
-       pointerup→buildTextObject）へ、記録位置または中央のタップを
-       再生してテキストオブジェクトを配置する */
-    function placeFontText(pos){
-      var cv = oEl("canvas");
-      if (!cv || !orbitWin) return;
-      /* 設定パネルが開いたままなら通常操作どおり閉じてから配置 */
-      if (orbitDoc.querySelector(".panel.open")) {
-        var ov = oEl("overlay");
-        if (ov) ov.click();
-      }
-      var r = cv.getBoundingClientRect();
-      var cx = pos ? pos.x : r.left + r.width / 2;
-      var cy = pos ? pos.y : r.top + r.height / 2;
-      var pid = 9137;
-      function dispatch(type){
-        var ev = null;
-        try {
-          ev = new orbitWin.PointerEvent(type, { pointerId: pid, clientX: cx, clientY: cy, bubbles: true, cancelable: true, isPrimary: true, pointerType: "mouse", button: 0, buttons: type === "pointerdown" ? 1 : 0 });
-        } catch (e) {
-          try {
-            /* PointerEventコンストラクタが無い環境向け：型名は
-               pointerdown/up のまま MouseEvent で代替し、
-               pointerId / pointerType を付与する */
-            ev = new orbitWin.MouseEvent(type, { clientX: cx, clientY: cy, bubbles: true, cancelable: true, view: orbitWin, button: 0 });
-            Object.defineProperty(ev, "pointerId", { value: pid });
-            Object.defineProperty(ev, "pointerType", { value: "mouse" });
-          } catch (e2) {}
-        }
-        if (ev) {
-          /* リプレイのタグ。横取りリスナーはこのタグと kbReplaying
-             を見て素通りさせ、ORBIT自身の配置フローへ届ける */
-          try { ev.__simKbReplay = true; } catch (e) {}
-          cv.dispatchEvent(ev);
-        }
-      }
-      kbReplaying = true;
-      dispatch("pointerdown");
-      dispatch("pointerup");
-      kbReplaying = false;
-      /* 確定の保険: pointerup が何らかの理由で取りこぼされると
-         fontDraft（半透明表示のゴースト文字）だけが残ってしまう
-         ため、少し置いてもう一度 pointerup を送る。正常に確定
-         済みなら ORBIT 側で無視される無害な再送になる。 */
-      setTimeout(function(){
-        if (!orbitDoc) return;
-        kbReplaying = true;
-        dispatch("pointerup");
-        kbReplaying = false;
-      }, 60);
     }
     function buildKbKeys(){
       kbKeysEl.innerHTML = "";
@@ -1678,31 +1633,19 @@
       btn.addEventListener("pointercancel", clearTimers);
       btn.addEventListener("pointerleave", clearTimers);
     }
-    /* ORBIT側への橋渡し登録：キャンバスタップの横取りと、
-       FONTパネルの Text 欄タップでキーボードを開く */
+    /* ORBIT側への橋渡し登録：FONTパネルの Text 欄タップで
+       キーボードを開く。描画エリアのタップ／ドラッグは横取り
+       せず、ORBIT本来の配置フローへそのまま渡す */
     function setupFontKeyboard(){
       if (!orbitDoc || kbBridgeReady) return;
       kbBridgeReady = true;
-      orbitDoc.addEventListener("pointerdown", function(e){
-        if (kbOpen || kbReplaying || (e && e.__simKbReplay)) return;
-        var cv = orbitDoc.getElementById("canvas");
-        if (!cv || e.target !== cv) return;
-        var fb = orbitDoc.getElementById("font");
-        if (!fb || !fb.classList.contains("active")) return;
-        if (orbitDoc.body && orbitDoc.body.classList.contains("edit-off")) return;
-        var er = orbitDoc.getElementById("eraser");
-        if (er && er.classList.contains("active")) return;
-        e.preventDefault();
-        e.stopPropagation();
-        openKeyboard({ pos: { x: e.clientX, y: e.clientY } });
-      }, true);
       var ft = orbitDoc.getElementById("fontText");
       if (ft) {
         try { ft.setAttribute("readonly", "readonly"); ft.setAttribute("inputmode", "none"); } catch (e) {}
         ft.addEventListener("pointerdown", function(e){
           e.preventDefault();
           e.stopPropagation();
-          openKeyboard({ fromPanel: true });
+          openKeyboard();
         }, true);
         ft.addEventListener("click", function(e){ e.preventDefault(); e.stopPropagation(); }, true);
       }
