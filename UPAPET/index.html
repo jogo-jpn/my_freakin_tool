@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
 <link rel="icon" href="data:,">
 <title>ウーパールーパー育成シミュレーター</title>
@@ -12,9 +12,16 @@
 :root{--bg:#fdf3e7;--panel:#fffaf2;--ink:#3a2b33;--sub:#7a6672;--accent:#e85d8a;--accent2:#2e9db4;--line:#e8d5c4;--btn:#fff;--sat:env(safe-area-inset-top);--sab:env(safe-area-inset-bottom)}
 @media (prefers-color-scheme: dark){:root{--bg:#1d1820;--panel:#2a2230;--ink:#f5e9ee;--sub:#bfaebb;--line:#4a3d4e;--btn:#352b3c}}
 *{box-sizing:border-box}
+/* ページ全体の引っ張り（バウンス）・引っ張って更新を抑止する。
+   通常のスクロール自体は残すので、下のシム専用エリアへは今まで通り移動できる */
+html,body{overscroll-behavior:none}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Maru Gothic ProN","Hiragino Sans","Yu Gothic",sans-serif;-webkit-tap-highlight-color:transparent}
 .wrap{max-width:none;margin:0;padding:0}
-.device{container-type:inline-size;position:relative;width:100%;height:100vh;height:100dvh;background:#20303c;overflow:hidden;user-select:none;-webkit-user-select:none}
+/* ゲーム画面（.device）内ではブラウザのスクロール／ダブルタップ拡大／ピンチ拡大を
+   一切させない（touch-action:none）。操作は全て pointer イベントで受けるので、
+   タップ・スワイプ・擦る操作は今まで通り効く。抑止はゲーム画面の中だけに限定し、
+   画面外（シム専用エリア）のスクロールには影響しない */
+.device{container-type:inline-size;position:relative;width:100%;height:100vh;height:100dvh;background:#20303c;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:none}
 /* 無操作時の現在時刻（水槽の真ん中。5秒タップが無いと自動で大きく出て、
    どこかへのタップで消える。見た目はこの1種に固定で、タップで切り替わったりはしない。
    pointer-events:none なので時計へのタップも下の水槽・画面全体の操作として扱われる） */
@@ -92,7 +99,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Maru G
 #gateScreen .row{margin-top:2.5cqw}
 /* パスワード画面・設定画面（名前の長押しで入る。消灯の暗幕より手前に出す） */
 #passScreen,#settingsScreen{z-index:40}
-#settingsScreen{overflow-y:auto}
+#settingsScreen{overflow-y:auto;touch-action:pan-y}
 .screen select{font-family:inherit;font-size:5.2cqw;padding:2cqw;border:1.5px solid var(--line);border-radius:8px;background:var(--btn);color:var(--ink)}
 .setSec{font-size:5.8cqw;font-weight:800;margin:3.6cqw 0 0;padding-top:2.8cqw;border-top:1px solid var(--line)}
 .setSec.first{margin-top:1cqw;padding-top:0;border-top:0}
@@ -718,6 +725,34 @@ document.addEventListener("pointerdown", ensureAudio, {passive:true});
 document.addEventListener("touchstart", ensureAudio, {passive:true});
 document.addEventListener("touchend", ensureAudio, {passive:true});
 document.addEventListener("click", ensureAudio, {passive:true});
+/* ---------- ブラウザのズーム／スクロール抑止（ゲーム画面内のみ） ----------
+   CSS の touch-action:none / user-scalable=no を無視するブラウザ（主に iOS Safari）
+   向けの保険。対象はゲーム画面（#device）の中だけに限定し、下のシム専用エリアの
+   スクロールには一切触らない。ゲーム操作は pointerdown / pointermove で処理して
+   いるため、touchend / touchmove の preventDefault では止まらない（通常のタップ・
+   スワイプ・擦る操作は今まで通り効く） */
+(function(){
+  const dev = document.getElementById("device"); if(!dev) return;
+  // ピンチ拡大（iOS Safari の独自イベント）
+  dev.addEventListener("gesturestart", (e)=>{ e.preventDefault(); }, {passive:false});
+  dev.addEventListener("gesturechange", (e)=>{ e.preventDefault(); }, {passive:false});
+  // ダブルタップ拡大: 素早い2回目タップの touchend を打ち消す（2回目の click が
+  // 発生しなくなるだけで、ボタン等の通常タップには影響しない）
+  let lastTapEnd = 0;
+  dev.addEventListener("touchend", (e)=>{
+    const now = Date.now();
+    if(now - lastTapEnd <= 320) e.preventDefault();
+    lastTapEnd = now;
+  }, {passive:false});
+  // スクロール／バウンス: ゲーム画面内のドラッグではページを動かさない。
+  // 設定画面（#settingsScreen）の中だけは縦スクロールを今まで通り許可する
+  dev.addEventListener("touchmove", (e)=>{
+    if(e.target && e.target.closest && e.target.closest("#settingsScreen")) return;
+    e.preventDefault();
+  }, {passive:false});
+  // PCブラウザのトラックパッドピンチ／Ctrl+ホイール拡大もゲーム画面内では抑止
+  dev.addEventListener("wheel", (e)=>{ if(e.ctrlKey) e.preventDefault(); }, {passive:false});
+})();
 document.addEventListener("visibilitychange", ()=>{ if(!document.hidden){ ensureAudio(); applyRealDecay(); checkNeglectDeath(); } });
 function blip(freq, dur, type, vol, when){
   if(!voiceOn) return;
