@@ -78,12 +78,17 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Maru G
 #char.flip{scale:-1 1}
 #zzz{position:absolute;z-index:4;font-weight:800;color:#fff;text-shadow:0 1px 2px rgba(0,40,60,.5);font-size:6cqw;pointer-events:none;display:none}
 /* ステータス（水槽に重ねる半透明オーバーレイ） */
-.status{position:absolute;left:0;right:0;bottom:calc(max(60px,15cqw) + env(safe-area-inset-bottom));z-index:8;min-height:max(44px,11.5cqw);display:flex;align-items:center;gap:1.8cqw;padding:.9cqw 2cqw;background:rgba(255,247,236,.9);border-top:1px solid rgba(227,205,180,.7);pointer-events:none}
-.st{flex:1;display:flex;align-items:center;gap:1cqw;font-size:3.5cqw;color:#5d4a55;white-space:nowrap}
+.status{position:absolute;left:0;right:0;bottom:calc(max(60px,15cqw) + env(safe-area-inset-bottom));z-index:8;min-height:max(44px,11.5cqw);display:flex;align-items:center;gap:1.4cqw;padding:.8cqw 1.6cqw;background:rgba(255,247,236,.9);border-top:1px solid rgba(227,205,180,.7);pointer-events:none}
+/* 各項目は2段組（上段=ラベル、下段=ゲージ+数値）。横一列に ラベル+ゲージ+数値を
+   並べると 5項目の最小幅の合計が画面幅を超え、右端の項目（たいちょう等）が
+   見切れてしまうため、この形にして全ラベル・全数値が必ず収まるようにする */
+.st{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:.6cqw;font-size:3.4cqw;color:#5d4a55;white-space:nowrap}
+.stLab{line-height:1.2}
+.stRow{display:flex;align-items:center;gap:.8cqw;min-width:0}
 /* パラメーターのゲージ: 数値と併せて、太めのバーで残量が一目で分かるようにする */
-.st .bar{flex:1;height:2.9cqw;min-height:9px;background:#e7d7c8;border-radius:99px;overflow:hidden;box-shadow:inset 0 1px 3px rgba(90,60,40,.35)}
+.st .bar{flex:1;min-width:0;height:2.9cqw;min-height:9px;background:#e7d7c8;border-radius:99px;overflow:hidden;box-shadow:inset 0 1px 3px rgba(90,60,40,.35)}
 .st .bar i{display:block;height:100%;border-radius:99px;transition:width .4s;box-shadow:inset 0 -2px 3px rgba(0,0,0,.16),inset 0 1px 2px rgba(255,255,255,.5)}
-.st b{font-variant-numeric:tabular-nums;font-weight:700;min-width:5.8cqw;text-align:right}
+.st b{font-variant-numeric:tabular-nums;font-weight:700;line-height:1.2}
 /* ボタン帯（モード切替、水槽に重ねる半透明オーバーレイ） */
 .btnband{position:absolute;left:0;right:0;bottom:0;z-index:9;min-height:calc(max(60px,15cqw) + env(safe-area-inset-bottom));display:flex;gap:1px;background:rgba(217,191,164,.92);padding-bottom:env(safe-area-inset-bottom)}
 .btnband button{flex:1;font-family:inherit;font-size:4.2cqw;font-weight:700;border:0;background:rgba(255,253,248,.94);color:#3a2b33;cursor:pointer;padding:0;white-space:nowrap}
@@ -2339,7 +2344,7 @@ tankEl.addEventListener("pointercancel", endTankPointer);
 const STAT_DEFS = [["belly","おなか","#f59e4c"],["mood","きげん","#e85d8a"],["energy","げんき","#7bc950"],["water","みず","#2e9db4"],["health","たいちょう","#9b7ede"]];
 function renderStats(){
   const box = document.getElementById("status"); if(!S){ box.innerHTML=""; return; }
-  box.innerHTML = STAT_DEFS.map(([k,label,col])=>{ const v=Math.round(S.stats[k]); const low = v<25; return '<div class="st"><span>'+label+'</span><div class="bar"><i style="width:'+v+'%;background:'+(low ? "#e0483e" : col)+'"></i></div><b'+(low ? ' style="color:#d43a2f"' : '')+'>'+v+'</b></div>'; }).join("");
+  box.innerHTML = STAT_DEFS.map(([k,label,col])=>{ const v=Math.round(S.stats[k]); const low = v<25; return '<div class="st"><span class="stLab">'+label+'</span><div class="stRow"><div class="bar"><i style="width:'+v+'%;background:'+(low ? "#e0483e" : col)+'"></i></div><b'+(low ? ' style="color:#d43a2f"' : '')+'>'+v+'</b></div></div>'; }).join("");
   syncMoss(); // 苔の表示も全モードで追従させる（掃除中は syncMoss 側で除外）
 }
 /* 上部バー（名前・種族などのキャラ情報表示）は廃止。情報はセリフ帯の名前表示のみ */
