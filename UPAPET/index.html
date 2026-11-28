@@ -112,6 +112,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Maru G
 /* シミュレーション専用UI（実機画面の外） */
 .simui{margin-top:12px;padding:0 12px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;font-size:18px;color:var(--sub)}
 .simui button,.simui select{font-family:inherit;font-size:18px;min-height:38px;border-radius:9px;border:1.5px solid var(--line);background:var(--btn);color:var(--ink);padding:5px 10px;cursor:pointer}
+.simui input[type="text"]{font-family:inherit;font-size:18px;min-height:38px;border-radius:9px;border:1.5px solid var(--line);background:var(--btn);color:var(--ink);padding:5px 10px;width:11em;max-width:60vw}
 .log{font-size:17px;color:var(--sub);line-height:1.7;max-height:110px;overflow:auto;margin:8px 12px 30px}
 .camBox{display:inline-flex;align-items:center;gap:8px;vertical-align:middle}
 #camVideo{width:96px;height:72px;object-fit:cover;border-radius:9px;background:#20303c;border:1.5px solid var(--line);display:none}
@@ -187,6 +188,13 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Maru G
       <div class="row"><button id="btnLocalOnly" class="primary">この端末だけで はじめる</button></div>
     </div>
   </section>
+  <section class="screen hidden" id="nameScreen">
+    <h2>👋 あなたの なまえ</h2>
+    <div class="line">このスマホを 使う あなたの 名前を 教えてね。ウーパールーパーが、その名前で 呼びかけるよ。名前は このスマホの中だけに 保存されて、家族の 共有データには 入りません。</div>
+    <input id="userNameInput" type="text" placeholder="あなたの名前（10文字まで）" maxlength="10" autocomplete="off">
+    <div class="gateErr" id="nameErr"></div>
+    <div class="row"><button id="btnNameSkip">あとで</button><button id="btnNameSave" class="primary">この名前で はじめる</button></div>
+  </section>
   <div id="sleepShade"></div>
 </div>
 
@@ -207,6 +215,10 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Maru G
   <span id="camState">カメラ：OFF</span>
   <span>リセット <button id="btnReset">リセット（テスト用）</button></span>
   <span>近接センサー（テスト） <button id="btnSensor">人が近づいた</button></span>
+</div>
+<div class="simui" style="margin-top:2px">
+  <span>あなたの名前（この端末） <input id="userNameSetting" type="text" placeholder="未設定" maxlength="10" autocomplete="off"> <button id="btnUserNameSave">変更</button></span>
+  <span id="userNameState">名前：未設定</span>
 </div>
 <div class="simui" style="margin-top:2px">
   <span>※ 近接センサー（テスト）は、人が 近づいたときの 反応を ボタンで 再現する テスト用機能です。</span>
@@ -401,6 +413,12 @@ sulk:["ぷいっ。しらない","…すねてるの、わかる？","ふーん�
 reconcile:["…ほんとは うれしい","なかなおり、しよっか","…ありがとう、ゆるす","こんどは おいてかないでね","…うん、なかなおり","ほんとは まってたんだ","ゆるすけど、こんどは 早く きてね","…ありがとう。もう おこってない"],
 boot:["おはよう！ まってたよ","あ、きた！ うれしい","きょうも よろしくね","まってた まってた！","きてくれて ありがとう","あ、きてくれた！ うれしい","おかえり！ まってたよ","きてくれた！ わーい","まってたんだよ、ほんとに","あえた！ きょうも よろしくね"],
 approach:["あ、だれか きた！","おかえり！","きづいて くれた？","わーい、きた！","ちかくに きた、うれしい","わ、きたきた！","だれか 近づいてる… わーい！","気配が した！ おかえり","ちかづいて くれて うれしい","わーい、こっち こっち！"],
+/* 名前入りの呼びかけセリフ（{user} は端末ごとのユーザー名に置き換わる。
+   名前が未設定の間は選出されず、今まで通りのセリフだけが出る） */
+bootName:["{user}、おかえり！ まってたよ","あ、{user}だ！ うれしい","{user}！ きてくれて ありがとう","おかえり、{user}！ きょうも よろしくね","{user}、まってた まってた！","{user}に あえて うれしい！","おはよう、{user}！ きょうも よろしくね","{user}、きた！ わーい"],
+approachName:["{user}！ おかえり！","あ、{user}だ！ わーい","{user}、ちかくに きた！ うれしい","わ、{user}が きた！","{user}、こっち こっち！","{user}だ！ きづいてたよ"],
+callName:["ねえ {user}、こっち みて","{user}、いっしょに いてくれて ありがとう","{user}の こえが ききたいな","ねえねえ {user}、げんき？","{user}、だいすきだよ","{user}、いつも ありがとう"],
+careName:["{user}、ありがとう！ うれしい","ありがとう、{user}！","{user}の おせわ、だいすき","{user}、やさしくして くれて ありがとう","ありがとう {user}、しあわせだよ"],
 camMotion:["だれかいる？","ん？ いま うごいた！","わっ！ なにか うごいた","あ、だれか？ こっち こっち！","きづいたよ！ うごいたの みえた","びくっ！ …だれか いる？","なになに？ いまの うごき","こっちで うごいた！ きになる","あ！ うごいた うごいた！","だれか きた？ わーい！"],
 dirty:["みずが よごれてる…","すいそう、そうじ してほしいな","みずが にごってて きもちわるい","みず、かえてほしいな…","にごった みずは つらいよ","みずが にごってる… きもちわるい","すいそうの そうじ、おねがい…","みずが くさい きがする…","にごった みず、およぎにくいよ","みず、はやく かえてほしいな"],
 cleaned:["みずが きれい！ きもちいい","ぴかぴか！ ありがとう","きれいな みず、さいこう！","すいすいが はかどる！","そうじ ありがとう","わあ、みずが すんでる！","きれい！ およぎやすい！","ぴっかぴか、ありがとう","きれいな みずは きもちいいなあ","そうじ してくれて ありがとう"],
@@ -440,10 +458,44 @@ let nextIdleAt = 0; // 次に日常の仕草を試してよい時刻（仕草と
 
 function rnd(a){ return a[Math.floor(Math.random()*a.length)]; }
 function clamp(v){ return Math.max(0, Math.min(100, v)); }
-function fillVars(t){ if(!S) return t; return t.replaceAll("@", S.name).replaceAll("#", S.personality.food); }
+function fillVars(t){ if(!S) return t; return t.replaceAll("{user}", userName || "あなた").replaceAll("@", S.name).replaceAll("#", S.personality.food); }
+/* 名前入りの呼びかけセリフを混ぜて選ぶ。名前が未設定なら今まで通り通常プールだけ */
+function pickWithName(normalPool, namePool, chance){
+  if(userName && namePool && Math.random() < chance) return pick(namePool);
+  return pick(normalPool);
+}
 function pick(pool){ return pickFresh(pool); }
 function period(){ if(!S) return "day"; const h=S.hour; if(h>=6&&h<10) return "morning"; if(h>=10&&h<17) return "day"; if(h>=17&&h<21) return "evening"; return "night"; }
 function log(msg){ try{ const el=document.getElementById("log"); const d=document.createElement("div"); d.textContent=msg; el.prepend(d); while(el.children.length>14) el.lastChild.remove(); }catch(e){} }
+
+/* ---------- 端末ごとのユーザー名 ----------
+   家族が各自のスマホで開く前提で、名前は「その端末を使う人」のもの。
+   共有セーブ（Firestore の payloadString）には絶対に入れず、この端末の
+   localStorage にだけ持つ。ペットはこの名前で呼びかける（セリフ側は
+   LINES の *Name プール＋ pickWithName。未設定なら今まで通りのセリフ） */
+const USER_NAME_KEY = "upapet_user_name";
+const USER_NAME_ASKED_KEY = "upapet_name_asked";
+let userName = "", nameAsked = false, pendingBoot = false;
+try{
+  userName = (localStorage.getItem(USER_NAME_KEY) || "").trim().slice(0, 10);
+  nameAsked = localStorage.getItem(USER_NAME_ASKED_KEY) === "1";
+}catch(e){}
+function refreshUserNameUI(){
+  const st = document.getElementById("userNameState");
+  if(st) st.textContent = userName ? "名前：" + userName + "（この端末だけ）" : "名前：未設定";
+  const inp = document.getElementById("userNameSetting");
+  if(inp && document.activeElement !== inp) inp.value = userName;
+}
+function saveUserName(n){
+  userName = (n || "").trim().slice(0, 10);
+  nameAsked = true;
+  try{
+    if(userName) localStorage.setItem(USER_NAME_KEY, userName); else localStorage.removeItem(USER_NAME_KEY);
+    localStorage.setItem(USER_NAME_ASKED_KEY, "1");
+  }catch(e){}
+  refreshUserNameUI();
+}
+function shouldAskName(){ return !userName && !nameAsked; }
 
 /* ---------- 保存 ---------- */
 let storageOK = true;
@@ -709,6 +761,7 @@ function talkNormal(){
   if(S.stats.health < CONFIG.HEALTH.dangerUnder) return say(pick(LINES.danger));
   if(S.stats.water < 35) return say(pick(LINES.dirty));
   if(S.stats.belly < 25) return say(pick(LINES.personality[S.personality.name].concat(["はらぺこ…"])));
+  if(userName && r < 0.16) return say(pick(LINES.callName)); // ときどき名前で呼びかける
   if(per==="morning" && r < 0.30) return say(pick(LINES.morning));
   if(per==="day" && r < 0.22) return say(pick(LINES.day));
   if(per==="evening" && r < 0.30) return say(pick(LINES.evening));
@@ -949,7 +1002,7 @@ function hatch(){
   lastDecayAt = Date.now(); // 誕生の瞬間を おなか・水の実時間減衰の起点にする
   screen="main"; showScreen(); sfx("fanfare"); renderStats();
   setTempAnim("dance", 3400); frontBoostUntil = Date.now()+3400;
-  say("うまれたよ！ " + name + "、" + personality.name + "。種族は " + species.name + "、大きさは " + size.name + "。声は " + vtype.name + "。すきなのは " + personality.food + "。よろしくね！");
+  say("うまれたよ！ " + name + "、" + personality.name + "。種族は " + species.name + "、大きさは " + size.name + "。声は " + vtype.name + "。すきなのは " + personality.food + "。" + (userName ? userName + "、" : "") + "よろしくね！");
   log("🎂 " + name + " が うまれた（" + personality.name + "／種族：" + species.name + "／" + size.name + "／好きな餌：" + personality.food + "／声：" + voiceDesc() + "）");
   save();
 }
@@ -1095,7 +1148,12 @@ function finishAscension(){
 /* ---------- 世話 ---------- */
 function afterCare(){
   neglectHours = 0;
+  const wasSulking = !!S.sulking;
   if(S.sulking){ S.sulking=false; setTimeout(()=>say(pick(LINES.reconcile)), 1700); }
+  // 世話の後: 世話のセリフが終わった頃に、ときどき名前で呼んでお礼を言う
+  if(userName && !wasSulking && S && !S.sleeping && !S.sick && Math.random() < 0.4){
+    setTimeout(()=>{ try{ if(screen==="main" && S && !S.sleeping) say(pick(LINES.careName)); }catch(e){} }, 4300);
+  }
   // 世話をしてもらって満足したら しばらく「喜ぶ」を出す（病気の時は出さない）
   if(S && !S.sick && !S.sleeping) happyUntil = Date.now() + 3000;
   renderStats(); save();
@@ -1525,7 +1583,7 @@ document.getElementById("btnPlay").addEventListener("click", ()=>{
 document.getElementById("btnSensor").addEventListener("click", ()=>{
   ensureAudio(); if(!S) return; touch(); if(wakeTap()) return;
   approachAnim();
-  say(pick(LINES.approach));
+  say(pickWithName(LINES.approach, LINES.approachName, 0.85));
   log("👋 人が近づいたのを感じて 寄ってきた");
 });
 /* ---------- 水槽タッチ（1本指のみ。モードで振る舞いが変わる） ---------- */
@@ -1654,6 +1712,7 @@ function renderStats(){
 function showScreen(){
   document.getElementById("device").classList.toggle("covered", screen!=="main");
   document.getElementById("gateScreen").classList.toggle("hidden", screen!=="gate");
+  document.getElementById("nameScreen").classList.toggle("hidden", screen!=="name");
   document.getElementById("eggScreen").classList.toggle("hidden", screen!=="egg");
   document.getElementById("deadScreen").classList.toggle("hidden", screen!=="dead");
   document.getElementById("char").style.visibility = (screen==="main" && S) ? "visible" : "hidden";
@@ -1690,7 +1749,7 @@ function camReact(){
   const r = Math.random();
   if(r < 0.35){ playAction("motion", 1500); hopChar(); target = {x:160, y:86}; frontBoostUntil = Date.now()+3000; }
   else approachAnim();
-  say(pick(LINES.camMotion));
+  say(pickWithName(LINES.camMotion, LINES.approachName, 0.3));
   log("📷 カメラが動きを検知して 反応した");
 }
 function stopCam(){
@@ -1971,8 +2030,37 @@ document.getElementById("btnLocalOnly").addEventListener("click", ()=>{
   log("📱 共有に つなげなかったため、この端末だけで 遊ぶ");
 });
 
+/* ---------- 端末ごとの名前: 初回に聞く画面と、設定エリアからの変更 ---------- */
+document.getElementById("btnNameSave").addEventListener("click", ()=>{
+  ensureAudio();
+  const v = document.getElementById("userNameInput").value.trim();
+  const err = document.getElementById("nameErr");
+  if(!v){ err.textContent = "名前を 入れてね。決めたくない時は「あとで」を 押してね"; return; }
+  err.textContent = "";
+  saveUserName(v);
+  log("👋 この端末の名前を「" + userName + "」にした");
+  if(pendingBoot){ pendingBoot = false; finishBoot(); }
+});
+document.getElementById("btnNameSkip").addEventListener("click", ()=>{
+  ensureAudio();
+  saveUserName(""); // 名前なしで始める（聞いたことだけ覚える。セリフは今まで通り）
+  if(pendingBoot){ pendingBoot = false; finishBoot(); }
+});
+document.getElementById("btnUserNameSave").addEventListener("click", ()=>{
+  ensureAudio();
+  saveUserName(document.getElementById("userNameSetting").value);
+  log(userName ? "👋 この端末の名前を「" + userName + "」に変更した" : "👋 この端末の名前を 未設定に戻した");
+  if(screen==="main" && S && userName) say(pick(LINES.callName));
+});
+refreshUserNameUI();
+
 /* ---------- 起動 ---------- */
 function finishBoot(){
+  if(shouldAskName()){ // 初回起動: まず端末を使う人の名前を聞いてから水槽へ
+    pendingBoot = true;
+    screen = "name"; showScreen();
+    return;
+  }
   if(S){
     // 旧セーブ互換: 種族が無いデータ／廃止されたモフエラ・尾なしは さくらピンク として読み替える
     if(!S.species || S.species === "fluffy" || S.species === "stubby"){ S.species = "sakura"; S.speciesName = "さくらピンク"; }
@@ -1986,7 +2074,7 @@ function finishBoot(){
     checkNeglectDeath(); // ページを閉じている間に 実時間24時間が経っていたら、星になるフローへ
   } else screen = "egg";
   showScreen();
-  if(screen==="main" && S) setTimeout(()=>{ try{ say(pick(LINES.boot)); }catch(e){} }, 600);
+  if(screen==="main" && S) setTimeout(()=>{ try{ say(pickWithName(LINES.boot, LINES.bootName, 0.85)); }catch(e){} }, 600);
 }
 screen = "gate"; showScreen();
 drawTank();
