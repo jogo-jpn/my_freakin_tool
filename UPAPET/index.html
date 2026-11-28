@@ -73,6 +73,8 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Maru G
 .foodChips button img{width:10.5cqw;height:10.5cqw;max-width:46px;max-height:46px;object-fit:contain;image-rendering:pixelated;pointer-events:none}
 .foodChips button#btnFoodCancel{flex-direction:row;align-self:center;border-radius:99px}
 .foodChips button.foodsel{background:#ffe1a8;border-color:#e8930c;color:#7a4a12}
+/* 餌やりクールダウン表示（食べた後10秒、次の餌を投げられない間だけ出す） */
+.feedCooldown{position:absolute;left:50%;bottom:calc(max(60px,15cqw) + max(38px,10cqw) + env(safe-area-inset-bottom) + 10px);transform:translateX(-50%);z-index:10;background:rgba(30,24,20,.85);color:#ffe9c9;font-size:4.4cqw;font-weight:700;line-height:1.4;text-align:center;padding:1.8cqw 3.6cqw;border-radius:99px;pointer-events:none;white-space:nowrap}
 .hidden{display:none!important}
 .device.covered .speech,.device.covered .tank,.device.covered .status,.device.covered .btnband,.device.covered .foodChips,.device.covered .heldFood{display:none!important}
 /* 320x240内オーバーレイ画面 */
@@ -160,6 +162,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Maru G
   <div class="heldFood hidden" id="heldFood">
     <img id="heldFoodImg" data-asset="assets/food-akamushi.png" alt="" draggable="false">
   </div>
+  <div class="feedCooldown hidden" id="feedCooldown"></div>
 
   <section class="screen hidden" id="eggScreen">
     <h2>🥚 たまご</h2>
@@ -184,14 +187,14 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Maru G
       <div class="line">共有の 水槽に つないでいます…</div>
     </div>
     <div id="gateSetup" class="hidden">
-      <div class="line">家族みんなで 同じ子を 育てるための「合言葉」を 決めてね。ほかの家族は、この合言葉を 入れると 同じ子に 会えます。合言葉は あとから 変えられないので、家族で 覚えやすいものに してね。</div>
+      <div class="line">家族みんなで 同じ子を 育てるための「合言葉」を 決めてね。ほかの家族は、この合言葉を 入れると 同じ子に 会えます。合言葉ごとに 育てる子は 別々です。まだ誰も 使っていない合言葉では、新しい子（卵の状態）から 始まります。設定画面から 合言葉を 変えれば、別の子に 切り替えられます。</div>
       <input id="passNew1" type="password" placeholder="合言葉（4文字以上）" autocomplete="new-password">
       <input id="passNew2" type="password" placeholder="合言葉を もう一度" autocomplete="new-password">
       <div class="gateErr" id="setupErr"></div>
       <div class="row"><button id="btnPassSetup" class="primary">合言葉を決めて 共有をはじめる</button></div>
     </div>
     <div id="gateEnter" class="hidden">
-      <div class="line">家族の 合言葉を 入れると、みんなで 育てている子に 会えるよ。</div>
+      <div class="line">合言葉を 入れると、その合言葉で 育てている子に 会えるよ。合言葉ごとに 子は 別々です。まだ誰も 使っていない合言葉（4文字以上）を 入れると、新しい子（卵の状態）から 始まります。</div>
       <input id="passIn" type="password" placeholder="合言葉" autocomplete="current-password">
       <div class="gateErr" id="enterErr"></div>
       <div class="row"><button id="btnPassEnter" class="primary">ひらく</button></div>
@@ -235,6 +238,12 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Maru G
     <input id="setPassNew2" type="password" placeholder="新しいパスワードを もう一度" autocomplete="new-password">
     <div class="setMsg" id="setPassMsg"></div>
     <div class="setRow"><span class="lab">パスワードは この端末だけに 保存されます。</span><button id="btnSetPass">変更</button></div>
+    <div class="setSec">合言葉（育てる子）</div>
+    <div class="setRow"><span class="lab">合言葉ごとに 別の子を 育てられます。合言葉を 変えると、その合言葉の子に 切り替わります（いまの子は その合言葉のまま 残ります）。</span><button id="btnSetPassphrase">合言葉を変える</button></div>
+    <div id="setPassphraseConfirm" class="hidden">
+      <div class="setMsg">合言葉を 変えますか？ いまの子の データは 消えず、その合言葉で また 会えます。</div>
+      <div class="row"><button id="btnSetPassphraseNo">やめる</button><button id="btnSetPassphraseYes">変える（別の子に切り替え）</button></div>
+    </div>
     <div class="setSec">リセット</div>
     <div class="setRow"><span class="lab">現在の子・セーブデータを 全て消して、新しい卵から 始めます。</span><button id="btnSetReset">リセット</button></div>
     <div id="setResetConfirm" class="hidden">
@@ -329,7 +338,7 @@ DEFAULT_SPEED: "normal",
 DECAY: { belly: 25, water: 25, energyAwake: 7, energySleep: 25, moodCenter: 45, moodNeglectPerHour: 3, neglectAfterHours: 3 }, // belly/water は -25/実時間1時間: 満腹・清潔100から現実の4時間で0になる（実時間ルール。速度設定の影響を受けない）
 HEALTH: { badOne: -10, badMany: -16, good: 8, goodBelly: 40, goodWater: 50, sickUnder: 45, dangerUnder: 15, dieHoursAtZero: 2 },
 CARE: {
-feed: { belly: 45, favBelly: 55, favMood: 15, pt: 2, waterCost: 2, sickHalf: true }, // waterCost: 餌やり1回で清潔度が少し下がる（食べ残し・フンのイメージ）。汚れ（清潔度の低下）の発生源は「餌やり」と「時間経過（実時間減衰）」の2つだけ。それ以外の操作・要因では汚れない
+feed: { belly: 20, favBelly: 20, favMood: 15, pt: 2, waterCost: 2, sickHalf: true }, // belly/favBelly: 満腹の回復は餌1回で一律+20まで。好物でも満腹量は増やさず、満タンまで一気に回復させない（好物の差は きげん favMood のみ） // waterCost: 餌やり1回で清潔度が少し下がる（食べ残し・フンのイメージ）。汚れ（清潔度の低下）の発生源は「餌やり」と「時間経過（実時間減衰）」の2つだけ。それ以外の操作・要因では汚れない
 play: { mood: 12, energyCost: 8, pt: 3, needEnergy: 20 },
 clean: { water: 100, pt: 2 },
 pet: { mood: 6, pt: 1 }
@@ -913,7 +922,7 @@ setInterval(()=>{ // 約7fps
     charEl.style.transform = "translate(-50%,-50%) scaleX(" + flipSign + ")";
     charEl.style.filter = charFilter();
     const g = growth();
-    const base = (CONFIG.CHAR_W[g.key] || 148) * (S.sizeMul||1);
+    const base = (CONFIG.CHAR_W[g.key] || 148) * (S.sizeMul||1) * sizeScale(); // 翌朝に反映された餌の成長分（累計回数×0.1mm）も描画サイズへ
     let w = base * (Date.now() < frontBoostUntil ? 1.12 : 1);
     // 脚長など縦に長い種族は、水槽の高さに収まるよう幅を抑える
     if(im && im.naturalWidth && w * im.naturalHeight / im.naturalWidth > 150) w = 150 * im.naturalWidth / im.naturalHeight;
@@ -1010,7 +1019,27 @@ function charFilter(){
   if(!S) return "";
   return S.sick ? "saturate(.5) brightness(1.08)" : "";
 }
-function displayCm(){ const g = growth(); return Math.max(1, Math.round(g.cm * (S ? (S.sizeMul||1) : 1))); }
+/* ---------- 大きさの成長（餌の累計回数 × 0.1mm、翌朝に反映） ----------
+   餌を食べるたびに S.feedCount（餌をもらった累計回数）が増え、増分は
+   「累計回数 × 0.1mm」。ただし その場では大きさに反映せず、蓄積分
+   （feedCount − growthAppliedFeedCount）× 0.1mm は翌日の朝（ゲーム内
+   6時を迎えた時点）で growthAppliedFeedCount へ移して初めて実際の
+   大きさに反映し、蓄積はリセットされる。feedCount と
+   growthAppliedFeedCount は S の一部として端末内セーブ・共有セーブの
+   両方にそのまま入る（payloadString は S 全体を送るため） */
+function sizeBaseMm(){ const g = growth(); return g.cm * 10 * (S ? (S.sizeMul||1) : 1); }
+function sizeAppliedMm(){ return Math.round(((S && S.growthAppliedFeedCount) || 0) * 0.1 * 10) / 10; }
+function sizeMm(){ return sizeBaseMm() + sizeAppliedMm(); }
+function pendingGrowthMm(){ if(!S) return 0; return Math.round(Math.max(0, ((S.feedCount||0) - (S.growthAppliedFeedCount||0)) * 0.1) * 10) / 10; }
+function sizeScale(){ const b = sizeBaseMm(); return b > 0 ? sizeMm() / b : 1; }
+function applyMorningGrowth(){
+  if(!S) return;
+  const pendingFeed = (S.feedCount||0) - (S.growthAppliedFeedCount||0);
+  if(pendingFeed <= 0) return;
+  S.growthAppliedFeedCount = S.feedCount || 0; // 蓄積分を実際の大きさへ反映し、蓄積をリセット
+  log("🌅 朝を迎えて " + (pendingFeed * 0.1).toFixed(1) + "mm 大きくなった（約" + displayCm() + "cm）");
+}
+function displayCm(){ return Math.max(1, Math.round(sizeMm() * 10) / 100); }
 function voiceDesc(){ const v=S.voice, vt=voiceTypeOf(v); const ep = v.pitch*vt.pitchMul; const pw = ep<420?"低め":ep<560?"ふつう":"高め"; const ec = v.cps*vt.speedMul; const sw = ec<11?"ゆっくり":ec<14?"ふつう":"はやい"; return vt.name+"・"+sw+"（ピッチ"+pw+"）"; }
 
 /* ---------- 卵（ヒビ6段階シートを切り分け、タップ回数＝段階番号で切替） ---------- */
@@ -1041,7 +1070,7 @@ function hatch(){
     species: species.id, speciesName: species.name,
     sizeName: size.name, sizeMul: size.mul,
     stats: { belly:75, mood:75, energy:85, water:90, health:95 },
-    pt:0, days:1, hour:8, careCount:0, sleeping:false, sick:false, sulking:false,
+    pt:0, days:1, hour:8, careCount:0, feedCount:0, growthAppliedFeedCount:0, sleeping:false, sick:false, sulking:false,
     bornNote: new Date().toLocaleDateString("ja-JP") };
   sulkHours=0; zeroHealthHours=0; neglectHours=0; wasSick=false; recentLines=[];
   selectedFood = personality.food; mode = "normal";
@@ -1060,6 +1089,7 @@ function gameHour(){
   if(!S || screen==="dead") return;
   S.hour++;
   if(S.hour>=24){ S.hour=0; S.days++; log("🌅 " + S.days + "日目に なった"); }
+  if(S.hour===6) applyMorningGrowth(); // 翌日の朝: 前日までに蓄積した餌の成長分（累計回数×0.1mm）を実際の大きさへ反映
   const st = S.stats, p = S.personality, per = period();
   applyRealDecay(); // おなか・水は実時間で減る分を先に反映（たいちょう判定は現在値で行う）
   if(S.sleeping){
@@ -1227,6 +1257,22 @@ let mode = "normal"; // normal | clean | feed | play
 let selectedFood = "あかむし";
 let feedPhase = "choose"; // choose=チップで餌を選ぶ | held=手持ちの餌を表示中 | flying=餌が飛んでいる
 let heldFood = null; // いま手に持っている餌（選んだ餌）。投げ終わると null に戻る
+/* ---------- 餌やりクールダウン（10秒） ----------
+   餌を実際に食べた瞬間（doFeed）から10秒間は、次の餌を投げられない。
+   残り時間は #feedCooldown の帯で常時見えるようにし、投げようとした
+   時もヒントで残り秒数を出す。端末ごとの一時状態なのでセーブには入れない */
+const FEED_COOLDOWN_MS = 10*1000;
+let feedCooldownUntil = 0;
+function feedCooldownRemain(){ return Math.max(0, feedCooldownUntil - Date.now()); }
+function updateFeedCooldownUI(){
+  const el = document.getElementById("feedCooldown"); if(!el) return;
+  const remain = feedCooldownRemain();
+  if(remain > 0 && screen === "main"){
+    el.textContent = "🍽 次の 餌まで あと " + Math.ceil(remain/1000) + "秒";
+    el.classList.remove("hidden");
+  } else el.classList.add("hidden");
+}
+setInterval(updateFeedCooldownUI, 250);
 /* ---------- 消灯モード（右上の電気ボタンで ON/OFF） ----------
    旧・寝かしつけモード（タップ回数で入る仕組み）は廃止し、照明ボタンに置き換えた。
    ON の間は水槽全体が薄暗くなり（#sleepShade の暗いオーバーレイ）、ペットが
@@ -1357,7 +1403,7 @@ function charLogicalSize(){
     if(tr.width > 0 && cr.width > 4 && cr.height > 4) return { w: cr.width/tr.width*320, h: cr.height/tr.height*156 };
   }catch(e){}
   const g = growth();
-  const cw = (CONFIG.CHAR_W[g.key] || 148) * (S ? (S.sizeMul||1) : 1);
+  const cw = (CONFIG.CHAR_W[g.key] || 148) * (S ? (S.sizeMul||1) : 1) * (S ? sizeScale() : 1);
   return { w: cw, h: cw * 0.68 };
 }
 /* 画面上下の帯（セリフ帯・ヒント・電気ボタン／ステータス帯・ボタン帯）に
@@ -1555,6 +1601,8 @@ function doFeed(food){
   if(fav) st.mood = clamp(st.mood + c.favMood);
   st.water = clamp(st.water - c.waterCost); // 汚れの発生源その2: 餌やり（食べ残し・フン）。苔の表示量はこの清潔度に連動する
   S.pt += c.pt; S.careCount++;
+  S.feedCount = (S.feedCount||0) + 1; // 餌をもらった累計回数。成長量 = 累計回数×0.1mm（反映は翌朝。applyMorningGrowth 参照）
+  feedCooldownUntil = Date.now() + FEED_COOLDOWN_MS; updateFeedCooldownUI(); // 食べたので10秒クールダウン開始（次の餌は投げられない）
   sfx("feed"); approachAnim(); setTempAnim("eat", 2600); animQueue = [{set:"happy", at:Date.now()+2600, dur:1400}];
   say(fav ? pick(LINES.feedFav) : pick(LINES.feedNormal));
   checkGrowth(); afterCare();
@@ -1564,6 +1612,11 @@ const FOOD_IMG = { "あかむし":"assets/food-akamushi.png", "えび":"assets/f
 let projRAF = null;
 function cancelProj(){ if(projRAF) cancelAnimationFrame(projRAF); projRAF = null; document.getElementById("foodProj").style.display = "none"; }
 function launchFood(sx, sy, strength, reach){
+  if(feedCooldownRemain() > 0){ // クールダウン中は投げられない（手持ちの餌はそのまま保持）
+    flashHint("餌は おやすみ中… あと " + Math.ceil(feedCooldownRemain()/1000) + "秒");
+    updateFeedCooldownUI();
+    return;
+  }
   const food = heldFood || selectedFood;
   feedPhase = "flying"; updateFoodUI(); // 手持ち表示を消して、餌そのものが飛んでいく
   const el = document.getElementById("foodProj"), r = tankEl.getBoundingClientRect();
@@ -1894,11 +1947,17 @@ document.getElementById("deadScreen").addEventListener("pointerdown", ()=>{ star
 
 /* ============================================================
 家族共有（Firebase Firestore）— 家族全員が同じ1匹を共有する。
-セーブ先は Firestore の共有ドキュメント1つ（upapet_shared/main）。
-中身は { passHash, data（セーブ全体のJSON文字列）, updatedAt }。
-- 合言葉: ドキュメントに SHA-256 ハッシュで持たせる。初回（ドキュメント
-  未作成時）は合言葉の設定画面（2回入力）。2回目以降は入力を求め、一致
-  したら開く。通った端末はハッシュを端末側に控え、次回から入力を省略する。
+セーブ先は Firestore の upapet_shared コレクションで、合言葉ごとに
+1ドキュメント。ドキュメントIDは合言葉の SHA-256 ハッシュそのもの
+（合言葉の平文は保存しない）。中身は { passHash, data（セーブ全体の
+JSON文字列）, updatedAt } で、passHash はドキュメントIDと同じ値。
+- 合言葉: 入力した合言葉のハッシュで決まるドキュメントを読み書きする。
+  まだ無い合言葉では新しい子（卵の状態）から始まる。通った端末は
+  ハッシュを端末側に控え、次回から入力を省略する。設定画面の
+  「合言葉を変える」で控えを消し、別の合言葉の子へ切り替えられる。
+- 移行: 旧方式の子は upapet_shared/main に passHash 付きで残っている。
+  入力した合言葉のハッシュが main の passHash と一致したら、その子を
+  その合言葉のドキュメントへ移して引き継ぐ。
 - 同期: onSnapshot で他人の変更をリアルタイム反映。書き込みは世話操作時
   （save 経由・デバウンス）＋30秒ごとの定期保存。競合は updatedAt の
   新しい方を正とする（last-write-wins）。
@@ -1913,7 +1972,7 @@ const FB_CONFIG = {
   messagingSenderId: "900398186329",
   appId: "1:900398186329:web:fdd8dd385df75be1605648"
 };
-const SHARE_COLLECTION = "upapet_shared", SHARE_DOC = "main";
+const SHARE_COLLECTION = "upapet_shared", LEGACY_SHARE_DOC = "main"; // ドキュメントID = 合言葉のハッシュ。main は旧方式の移行元専用
 const PASS_FLAG_KEY = "upapet_pass_hash";
 let shareMode = "booting"; // booting | shared | local
 let fbDb = null, shareDocRef = null, shareUnsub = null;
@@ -1974,6 +2033,7 @@ function refreshFromRemote(){
   if(S){
     if(!S.species || S.species==="fluffy" || S.species==="stubby"){ S.species = "sakura"; S.speciesName = "さくらピンク"; }
     if(S.sizeMul===undefined){ S.sizeMul = 1.0; S.sizeName = "ふつう"; }
+    if(S.feedCount===undefined) S.feedCount = 0; if(S.growthAppliedFeedCount===undefined) S.growthAppliedFeedCount = 0; // 旧セーブ互換: 餌の累計回数と朝反映済み回数
     if(S.voice && !S.voice.type) S.voice.type = "normal";
     if(screen!=="dead"){ screen = "main"; checkGrowth._last = growth().stage; }
     pos = {x:160, y:82}; target = {x:160, y:82};
@@ -2001,6 +2061,58 @@ function subscribeShare(){
     }catch(e){}
   }, ()=>{ setShareState("共有中（接続が 不安定です）"); });
 }
+function shareDocRefFor(hash){ return fbDb.collection(SHARE_COLLECTION).doc(hash); }
+function resetToFreshPet(){
+  // 別の合言葉の子が混ざらないよう、状態をまっさらな卵の状態に戻す
+  S = null; memories = []; eggTaps = 0; lastInteractAt = 0; lastDecayAt = 0; lastPetAt = 0; lastShownBW = "";
+  sulkHours = 0; zeroHealthHours = 0; neglectHours = 0; wasSick = false; recentLines = [];
+  mode = "normal";
+  saveLocal();
+}
+function getWithTimeout(ref){
+  return Promise.race([ ref.get(), new Promise((_, rej)=>setTimeout(()=>rej(new Error("timeout")), 12000)) ]);
+}
+/* 旧方式（upapet_shared/main）からの移行: ハッシュが main の passHash と
+   一致したら、その子を合言葉ごとのドキュメントへ移して返す */
+async function tryMigrateLegacy(hash){
+  try{
+    const mainSnap = await getWithTimeout(fbDb.collection(SHARE_COLLECTION).doc(LEGACY_SHARE_DOC));
+    if(!mainSnap.exists) return null;
+    const md = mainSnap.data() || {};
+    if(!md.passHash || md.passHash !== hash || !md.data) return null;
+    const now = Date.now();
+    const migrated = { passHash: hash, data: md.data, updatedAt: now };
+    await shareDocRefFor(hash).set(migrated);
+    log("🐾 いままでの子を この合言葉の子として 引き継いだ");
+    return migrated;
+  }catch(e){ return null; }
+}
+/* 合言葉のハッシュに対応する子を開く共通処理:
+   既存ドキュメント → その子 / 旧方式と一致 → 移行して引き継ぎ /
+   どちらも無い → 新しい子（卵）用のドキュメントを作る */
+async function openPetForHash(hash){
+  sharePassHash = hash;
+  shareDocRef = shareDocRefFor(hash);
+  const snap = await getWithTimeout(shareDocRef);
+  if(snap.exists){
+    try{ localStorage.setItem(PASS_FLAG_KEY, hash); }catch(e){}
+    acceptShared(snap.data());
+    return;
+  }
+  const migrated = await tryMigrateLegacy(hash);
+  if(migrated){
+    try{ localStorage.setItem(PASS_FLAG_KEY, hash); }catch(e){}
+    acceptShared(migrated);
+    return;
+  }
+  resetToFreshPet(); // 初めて使う合言葉: 新しい子（卵の状態）から
+  const now = Date.now(); sharedUpdatedAt = now;
+  const fresh = { passHash: hash, data: payloadString(), updatedAt: now };
+  await shareDocRef.set(fresh);
+  try{ localStorage.setItem(PASS_FLAG_KEY, hash); }catch(e){}
+  acceptShared(fresh);
+  log("🥚 新しい合言葉で 新しい子（卵）から はじめた");
+}
 function acceptShared(data){
   if(data){
     if(typeof data.updatedAt==="number") sharedUpdatedAt = data.updatedAt;
@@ -2017,21 +2129,14 @@ async function initShare(){
   screen = "gate"; showScreen(); gateShow("gateLoading");
   try{
     if(typeof firebase==="undefined" || !FB_CONFIG) throw new Error("sdk unavailable");
-    firebase.initializeApp(FB_CONFIG);
-    fbDb = firebase.firestore();
-    shareDocRef = fbDb.collection(SHARE_COLLECTION).doc(SHARE_DOC);
-    const snap = await Promise.race([
-      shareDocRef.get(),
-      new Promise((_, rej)=>setTimeout(()=>rej(new Error("timeout")), 12000))
-    ]);
-    if(!snap.exists){ gateShow("gateSetup"); setShareState("合言葉の設定まち"); return; }
-    const data = snap.data() || {};
-    sharePassHash = data.passHash || null;
-    pendingDocData = data;
+    if(!fbDb){
+      if(!firebase.apps || !firebase.apps.length) firebase.initializeApp(FB_CONFIG);
+      fbDb = firebase.firestore();
+    }
     let stored = null;
     try{ stored = localStorage.getItem(PASS_FLAG_KEY); }catch(e){}
-    if(sharePassHash && stored && stored === sharePassHash){
-      acceptShared(data); // 合言葉が通った端末: 入力を省略して そのまま開く
+    if(stored){
+      await openPetForHash(stored); // 合言葉が通った端末: 入力を省略して その合言葉の子を開く
     } else {
       gateShow("gateEnter"); setShareState("合言葉まち");
     }
@@ -2049,12 +2154,7 @@ document.getElementById("btnPassSetup").addEventListener("click", async ()=>{
   if(p1 !== p2){ err.textContent = "2つの 合言葉が ちがいます"; return; }
   err.textContent = "";
   try{
-    sharePassHash = await hashPass(p1);
-    load(); // いま この端末で育てている子を 共有の子にする（いなければ卵の状態から）
-    const now = Date.now(); sharedUpdatedAt = now;
-    await shareDocRef.set({ passHash: sharePassHash, data: payloadString(), updatedAt: now });
-    try{ localStorage.setItem(PASS_FLAG_KEY, sharePassHash); }catch(e){}
-    acceptShared({ passHash: sharePassHash, data: payloadString(), updatedAt: now });
+    await openPetForHash(await hashPass(p1)); // 既に使われている合言葉なら その子が開き、新しい合言葉なら卵から始まる
     log("🐾 合言葉を決めて 家族共有を はじめた");
   }catch(e){
     err.textContent = "共有を はじめられませんでした。接続を 確認して もう一度 試してね";
@@ -2064,12 +2164,13 @@ document.getElementById("btnPassEnter").addEventListener("click", async ()=>{
   const err = document.getElementById("enterErr");
   const p = document.getElementById("passIn").value;
   if(!p){ err.textContent = "合言葉を 入れてね"; return; }
-  const h = await hashPass(p);
-  if(sharePassHash && h === sharePassHash){
-    try{ localStorage.setItem(PASS_FLAG_KEY, h); }catch(e){}
-    acceptShared(pendingDocData);
-  } else {
-    err.textContent = "合言葉が ちがいます";
+  if(p.length < 4){ err.textContent = "合言葉は 4文字以上に してね"; return; }
+  err.textContent = "";
+  try{
+    await openPetForHash(await hashPass(p)); // 合言葉ごとに別の子: その合言葉の子が開く（初めてなら卵から）
+    document.getElementById("passIn").value = "";
+  }catch(e){
+    err.textContent = "共有に つなげませんでした。接続を 確認して もう一度 試してね";
   }
 });
 document.getElementById("btnLocalOnly").addEventListener("click", ()=>{
@@ -2174,6 +2275,7 @@ function syncSettingsUI(){
   const ss = document.getElementById("setSpeedSel"), ms = document.getElementById("speedSel");
   if(ss && ms) ss.value = ms.value;
   document.getElementById("setResetConfirm").classList.add("hidden");
+  const pc = document.getElementById("setPassphraseConfirm"); if(pc) pc.classList.add("hidden");
   const pm = document.getElementById("setPassMsg"); pm.textContent = ""; pm.classList.remove("ok");
   document.getElementById("setPassNew").value = "";
   document.getElementById("setPassNew2").value = "";
@@ -2222,6 +2324,33 @@ document.getElementById("btnSetResetNo").addEventListener("click", ()=>{
 document.getElementById("btnSetResetYes").addEventListener("click", ()=>{
   document.getElementById("btnResetYes").click(); // 既存のリセット処理を共用（画面は卵へ移る）
 });
+/* ---------- 合言葉を変える（別の子に切り替え） ----------
+   いまの子は その合言葉のドキュメントに残したまま、端末に控えた
+   合言葉（ハッシュ）だけを消して合言葉入力からやり直す。別の合言葉を
+   入れれば その合言葉の子に切り替わり、初めての合言葉なら卵から始まる */
+document.getElementById("btnSetPassphrase").addEventListener("click", ()=>{
+  document.getElementById("setPassphraseConfirm").classList.remove("hidden");
+});
+document.getElementById("btnSetPassphraseNo").addEventListener("click", ()=>{
+  document.getElementById("setPassphraseConfirm").classList.add("hidden");
+});
+document.getElementById("btnSetPassphraseYes").addEventListener("click", ()=>{
+  ensureAudio();
+  try{ if(shareDirty) flushShareSave(); }catch(e){} // いまの子の最新状態を その合言葉の置き場へ送ってから離れる
+  if(shareSaveTimer){ clearTimeout(shareSaveTimer); shareSaveTimer = null; }
+  if(shareUnsub){ try{ shareUnsub(); }catch(e){} shareUnsub = null; }
+  try{ localStorage.removeItem(PASS_FLAG_KEY); }catch(e){} // 端末に控えた合言葉を消す（合言葉の平文は元々保存していない）
+  shareMode = "booting"; sharePassHash = null; shareDocRef = null; pendingDocData = null; sharedUpdatedAt = 0; shareDirty = false;
+  resetToFreshPet(); // 前の子が画面に残らないよう卵の状態に戻してから入力画面へ
+  document.getElementById("passIn").value = "";
+  document.getElementById("enterErr").textContent = "";
+  if(fbDb){
+    screen = "gate"; showScreen(); gateShow("gateEnter"); setShareState("合言葉まち");
+  } else {
+    initShare(); // 共有に接続できていなかった場合は接続からやり直す
+  }
+  log("🐾 合言葉を変える: 合言葉の入力から やり直す（別の子に切り替え）");
+});
 
 /* ---------- 起動 ---------- */
 function finishBoot(){
@@ -2234,6 +2363,7 @@ function finishBoot(){
     // 旧セーブ互換: 種族が無いデータ／廃止されたモフエラ・尾なしは さくらピンク として読み替える
     if(!S.species || S.species === "fluffy" || S.species === "stubby"){ S.species = "sakura"; S.speciesName = "さくらピンク"; }
     if(S.sizeMul===undefined){ S.sizeMul = 1.0; S.sizeName = "ふつう"; }
+    if(S.feedCount===undefined) S.feedCount = 0; if(S.growthAppliedFeedCount===undefined) S.growthAppliedFeedCount = 0; // 旧セーブ互換: 餌の累計回数と朝反映済み回数
     if(S.voice && !S.voice.type) S.voice.type = "normal"; // 旧セーブの声は「ふつう」として読み替える
     if(!lastInteractAt) lastInteractAt = Date.now(); // 最終操作時刻が無い旧セーブは 読み込み時刻を起点にする（即死させない）
     if(!lastDecayAt) lastDecayAt = Date.now(); // 減衰の起点が無い旧セーブは 読み込み時刻を起点にする（遡って減らさない）
