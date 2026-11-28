@@ -347,6 +347,7 @@ GROWTH: [ {stage:"あかちゃん", key:"baby", pt:0, cm:6}, {stage:"こども",
 SLEEP: { autoUnderDay: 10, autoUnderNight: 35, wakeAt: 100 },
 SULK_MOOD_UNDER: 25, SULK_DEEP_MOOD: 10, SULK_DEEP_HOURS: 6,
 EGG_TAPS_TO_HATCH: 6,
+POOP: { delayMinMs: 60000, delayMaxMs: 180000, max: 10, waterPerHour: 3, cleanWater: 6 }, // うんち: 餌を食べてから実時間1〜3分後に1個（キャラの現在位置の底）。残っている間は1個につき清潔度が追加で -3/実時間1時間。掃除で消すと1個につき清潔度 +6
 NEGLECT_DEATH_MS: 24*60*60*1000, // 実時間ルール: 最後の操作から24時間（現実の時計）放置したら死亡。ゲーム内速度設定には依存しない
 SAVE_KEY: "uparupa_save_v1"
 };
@@ -479,6 +480,7 @@ careName:["{user}、ありがとう！ うれしい","ありがとう、{user}�
 camMotion:["だれかいる？","ん？ いま うごいた！","わっ！ なにか うごいた","あ、だれか？ こっち こっち！","きづいたよ！ うごいたの みえた","びくっ！ …だれか いる？","なになに？ いまの うごき","こっちで うごいた！ きになる","あ！ うごいた うごいた！","だれか きた？ わーい！"],
 dirty:["みずが よごれてる…","すいそう、そうじ してほしいな","みずが にごってて きもちわるい","みず、かえてほしいな…","にごった みずは つらいよ","みずが にごってる… きもちわるい","すいそうの そうじ、おねがい…","みずが くさい きがする…","にごった みず、およぎにくいよ","みず、はやく かえてほしいな"],
 cleaned:["みずが きれい！ きもちいい","ぴかぴか！ ありがとう","きれいな みず、さいこう！","すいすいが はかどる！","そうじ ありがとう","わあ、みずが すんでる！","きれい！ およぎやすい！","ぴっかぴか、ありがとう","きれいな みずは きもちいいなあ","そうじ してくれて ありがとう"],
+poop:["うんち でちゃった…","すっきり！","ぷりっと うんち！","うんち しちゃった、えへ","もようしてきた… あ、でた"],
 sick:["ぐあい わるい…","からだが おもい…","へいき、へいき… たぶん","あたまが ぼーっと する…","はやく よくなりたいな","からだが だるい…","エラが いたい きがする…","げんきが でない…","ぼーっと しちゃう…","はやく 元気に なりたい…"],
 recover:["すこし よくなった","もう だいじょうぶそう","げんきが もどってきた！","なおって よかった…","げんきに なってきた！","からだが かるくなった","もう 大丈夫、ありがとう","よくなって うれしい"],
 danger:["たすけて… このままだと…","がんばってるけど、つらい","だれか… たすけて…","もう がまん できないかも…","もう がんばれないかも…","つらい… たすけて…","からだが… うごかない…","そばに いて…"],
@@ -581,7 +583,8 @@ function applyRealDecay(){
   if(elapsedH <= 0) return;
   lastDecayAt = now;
   S.stats.belly = clamp(S.stats.belly - CONFIG.DECAY.belly * elapsedH);
-  S.stats.water = clamp(S.stats.water - CONFIG.DECAY.water * elapsedH); // 汚れの発生源その1: 時間経過。その2は餌やり（doFeed の waterCost）のみ
+  const poopN = (S.poops && S.poops.length) || 0;
+  S.stats.water = clamp(S.stats.water - (CONFIG.DECAY.water + poopN * CONFIG.POOP.waterPerHour) * elapsedH); // 汚れの発生源その1: 時間経過。その2は餌やり（doFeed の waterCost）。その3は残っている うんち（1個につき追加で -waterPerHour/実時間1時間）
   const bw = Math.round(S.stats.belly) + "/" + Math.round(S.stats.water);
   if(bw !== lastShownBW){ lastShownBW = bw; renderStats(); syncMoss(); }
 }
@@ -989,6 +992,7 @@ function drawTank(){
       }
     }
   }
+  drawPoops(); // うんちは水槽の底に残る（キャラより奥の層に描く）
   // 移動（時間帯で速さが変わる。あそぶモード中はダッシュで動き回る）
   const speedF = per==="morning"?1.35 : per==="day"?1 : per==="evening"?0.6 : 0.4;
   const playing = (typeof mode!=="undefined" && mode==="play" && !S.sleeping);
@@ -1069,10 +1073,12 @@ function hatch(){
   S = { name, personality, voice,
     species: species.id, speciesName: species.name,
     sizeName: size.name, sizeMul: size.mul,
-    stats: { belly:75, mood:75, energy:85, water:90, health:95 },
+    stats: { belly:75, mood:75, energy:85, water:100, health:95 }, // 誕生時は水槽を綺麗に: 清潔度は満タン（100）から始める
     pt:0, days:1, hour:8, careCount:0, feedCount:0, growthAppliedFeedCount:0, sleeping:false, sick:false, sulking:false,
+    poops: [], poopDue: [], // うんち: poops=底に残っている うんち（{x} の配列）、poopDue=出る予定の時刻（ms）の配列。どちらも S 内なのでローカル／共有セーブにそのまま保存される
     bornNote: new Date().toLocaleDateString("ja-JP") };
   sulkHours=0; zeroHealthHours=0; neglectHours=0; wasSick=false; recentLines=[];
+  dispDirt = 0; // 前の子の汚れ表示を引き継がない（誕生直後から水槽は綺麗に見える）
   selectedFood = personality.food; mode = "normal";
   pos={x:160,y:82}; target={x:160,y:82}; faceDir=1;
   lastInteractAt = Date.now(); // 誕生の瞬間を 実時間24時間ルールの起点にする
@@ -1138,6 +1144,7 @@ setInterval(()=>{
   const now = Date.now();
   if(screen==="main" && S){
     applyRealDecay(); // おなか・水の実時間減衰（速度設定に依存せず、現実の時計で進む）
+    processPoopDue(); // 餌を食べてから時間が経った うんちを出す
     hourAcc += now - lastTick;
     const per = CONFIG.SPEED_MS[document.getElementById("speedSel").value] || CONFIG.SPEED_MS.normal;
     while(hourAcc>=per){ hourAcc-=per; gameHour(); if(screen!=="main") break; }
@@ -1577,6 +1584,75 @@ function renderMoss(dirtVal){
     mossX.restore();
   }
 }
+/* ---------- うんち ----------
+   餌を食べると少し経ってから（実時間1〜3分後）キャラが うんちをし、水槽の底に残る。
+   表示サイズはキャラの表示幅の1/3。残っている間は水が少しずつ汚れ（applyRealDecay で
+   清潔度に追加の減衰）、掃除モードで擦ると苔と同じ扱いで消える（applyPoopErase）。
+   有無・個数・出る予定は S.poops / S.poopDue に入るので、ローカル／共有セーブに保存される。 */
+const POOP_IMG = assetImg("assets/poop.webp");
+function poopSize(){ // 表示幅はキャラの実表示幅（成長・個体差・餌の成長分に追随）の1/3
+  const g = growth();
+  const cw = (CONFIG.CHAR_W[g.key] || 148) * (S.sizeMul||1) * sizeScale();
+  const w = cw/3;
+  const h = POOP_IMG.naturalWidth ? w * POOP_IMG.naturalHeight / POOP_IMG.naturalWidth : w;
+  return { w:w, h:h };
+}
+function drawPoops(){
+  if(!S || !S.poops || !S.poops.length || !POOP_IMG.naturalWidth) return;
+  const s = poopSize();
+  for(const p of S.poops) tctx.drawImage(POOP_IMG, p.x - s.w/2, 156 - s.h + 2, s.w, s.h); // 底に少し沈めて置く
+}
+function spawnPoop(){
+  if(!S) return;
+  if(!Array.isArray(S.poops)) S.poops = [];
+  if(S.poops.length >= CONFIG.POOP.max) return;
+  const s = poopSize();
+  const x = Math.max(s.w/2 + 2, Math.min(320 - s.w/2 - 2, pos.x + (Math.random()*30 - 15))); // キャラの今いる場所の底に出る
+  S.poops.push({ x: Math.round(x) });
+  log("💩 うんちをした（底に " + S.poops.length + "個）");
+  if(!S.sleeping && Math.random() < 0.7) say(pick(LINES.poop));
+}
+function processPoopDue(){ // 予定時刻を過ぎた うんちを出す（アプリを閉じている間に過ぎた分も、次回チェック時にまとめて出る）
+  if(!S || !Array.isArray(S.poopDue) || !S.poopDue.length) return;
+  const now = Date.now();
+  const before = S.poopDue.length;
+  S.poopDue = S.poopDue.filter(t => t > now);
+  const due = before - S.poopDue.length;
+  if(due <= 0) return;
+  for(let i=0;i<due;i++) spawnPoop();
+  save();
+}
+function erasePoop(x0,y0,x1,y1){ // 掃除のストローク（区間）が当たった うんちを消す。消えた個数を返す
+  if(!S || !S.poops || !S.poops.length) return 0;
+  const s = poopSize();
+  const cy = 156 - s.h/2 + 2, r = s.w/2 + 14; // ブラシ幅30に合わせて少し広めに判定
+  const dx = x1-x0, dy = y1-y0, len2 = dx*dx + dy*dy;
+  let erased = 0;
+  S.poops = S.poops.filter(p=>{
+    let t = 0;
+    if(len2 > 0) t = Math.max(0, Math.min(1, ((p.x-x0)*dx + (cy-y0)*dy)/len2));
+    const cx = x0 + t*dx, cyy = y0 + t*dy;
+    const hit = (p.x-cx)*(p.x-cx) + (cy-cyy)*(cy-cyy) <= r*r;
+    if(hit) erased++;
+    return !hit;
+  });
+  return erased;
+}
+function applyPoopErase(x0,y0,x1,y1){ // うんちを消した分の清潔度回復・報酬・保存（苔掃除と同じ流れ）
+  const n = erasePoop(x0,y0,x1,y1);
+  if(n <= 0) return;
+  sfx("clean");
+  if(!cleanLineSaid){ cleanLineSaid = true; say(pick(LINES.cleaned)); }
+  const gain = n * CONFIG.POOP.cleanWater;
+  cleanGain += gain;
+  S.stats.water = clamp(S.stats.water + gain);
+  const wi = Math.round(S.stats.water);
+  if(wi !== lastCleanInt){ lastCleanInt = wi; renderStats(); }
+  if(cleanGain >= 12 && !cleanRewarded) rewardClean();
+  if(S.stats.water >= 100 && cleanGain >= 4 && !cleanRewarded) rewardClean();
+  log("🧹 うんちを かたづけた（残り " + S.poops.length + "個）");
+  save();
+}
 function eraseMoss(x0,y0,x1,y1){
   mossX.globalCompositeOperation = "destination-out";
   mossX.strokeStyle = "rgba(0,0,0,1)"; mossX.lineWidth = 30; mossX.lineCap = "round"; mossX.lineJoin = "round";
@@ -1602,6 +1678,9 @@ function doFeed(food){
   st.water = clamp(st.water - c.waterCost); // 汚れの発生源その2: 餌やり（食べ残し・フン）。苔の表示量はこの清潔度に連動する
   S.pt += c.pt; S.careCount++;
   S.feedCount = (S.feedCount||0) + 1; // 餌をもらった累計回数。成長量 = 累計回数×0.1mm（反映は翌朝。applyMorningGrowth 参照）
+  // 食べたら少し経ってから うんちが出る（予定時刻を S に保存。processPoopDue が実際の出現を担当）
+  if(!Array.isArray(S.poopDue)) S.poopDue = [];
+  if(S.poopDue.length < CONFIG.POOP.max) S.poopDue.push(Date.now() + CONFIG.POOP.delayMinMs + Math.random()*(CONFIG.POOP.delayMaxMs - CONFIG.POOP.delayMinMs));
   feedCooldownUntil = Date.now() + FEED_COOLDOWN_MS; updateFeedCooldownUI(); // 食べたので10秒クールダウン開始（次の餌は投げられない）
   sfx("feed"); approachAnim(); setTempAnim("eat", 2600); animQueue = [{set:"happy", at:Date.now()+2600, dur:1400}];
   say(fav ? pick(LINES.feedFav) : pick(LINES.feedNormal));
@@ -1712,7 +1791,7 @@ tankEl.addEventListener("pointerdown", (e)=>{
       else flashHint("下の 餌を つかんで、上へ スワイプしてね");
     }
   }
-  else if(mode==="clean"){ maybeSayCleanLine(p.lx, p.ly, p.lx, p.ly); eraseMoss(p.lx, p.ly, p.lx, p.ly); }
+  else if(mode==="clean"){ maybeSayCleanLine(p.lx, p.ly, p.lx, p.ly); eraseMoss(p.lx, p.ly, p.lx, p.ly); applyPoopErase(p.lx, p.ly, p.lx, p.ly); }
   else if(mode==="play"){
     const cr = charEl.getBoundingClientRect();
     if(playKind==="hide"){
@@ -1744,6 +1823,7 @@ tankEl.addEventListener("pointermove", (e)=>{
   if(mode==="clean"){
     maybeSayCleanLine(lastPt.lx, lastPt.ly, p.lx, p.ly);
     eraseMoss(lastPt.lx, lastPt.ly, p.lx, p.ly);
+    applyPoopErase(lastPt.lx, lastPt.ly, p.lx, p.ly); // うんちも擦れば消える（苔と同じ扱い）
     const seg = Math.hypot(p.lx-lastPt.lx, p.ly-lastPt.ly);
     if(seg > 0){
       const gain = seg * 0.09; // 擦った分だけ清潔度が回復する
@@ -2041,6 +2121,7 @@ function refreshFromRemote(){
     if(!S.species || S.species==="fluffy" || S.species==="stubby"){ S.species = "sakura"; S.speciesName = "さくらピンク"; }
     if(S.sizeMul===undefined){ S.sizeMul = 1.0; S.sizeName = "ふつう"; }
     if(S.feedCount===undefined) S.feedCount = 0; if(S.growthAppliedFeedCount===undefined) S.growthAppliedFeedCount = 0; // 旧セーブ互換: 餌の累計回数と朝反映済み回数
+    if(!Array.isArray(S.poops)) S.poops = []; if(!Array.isArray(S.poopDue)) S.poopDue = []; // 旧セーブ互換: うんち
     if(S.voice && !S.voice.type) S.voice.type = "normal";
     if(screen!=="dead"){ screen = "main"; checkGrowth._last = growth().stage; }
     pos = {x:160, y:82}; target = {x:160, y:82};
@@ -2383,11 +2464,13 @@ function finishBoot(){
     if(!S.species || S.species === "fluffy" || S.species === "stubby"){ S.species = "sakura"; S.speciesName = "さくらピンク"; }
     if(S.sizeMul===undefined){ S.sizeMul = 1.0; S.sizeName = "ふつう"; }
     if(S.feedCount===undefined) S.feedCount = 0; if(S.growthAppliedFeedCount===undefined) S.growthAppliedFeedCount = 0; // 旧セーブ互換: 餌の累計回数と朝反映済み回数
+    if(!Array.isArray(S.poops)) S.poops = []; if(!Array.isArray(S.poopDue)) S.poopDue = []; // 旧セーブ互換: うんち
     if(S.voice && !S.voice.type) S.voice.type = "normal"; // 旧セーブの声は「ふつう」として読み替える
     if(!lastInteractAt) lastInteractAt = Date.now(); // 最終操作時刻が無い旧セーブは 読み込み時刻を起点にする（即死させない）
     if(!lastDecayAt) lastDecayAt = Date.now(); // 減衰の起点が無い旧セーブは 読み込み時刻を起点にする（遡って減らさない）
     screen = "main"; checkGrowth._last = growth().stage;
     applyRealDecay(); // ページを閉じている間に進んだ おなか・水の実時間減衰を反映する
+    processPoopDue(); // 閉じている間に予定時刻を過ぎた うんちも出す
     renderStats();
     checkNeglectDeath(); // ページを閉じている間に 実時間24時間が経っていたら、星になるフローへ
   } else screen = "egg";
