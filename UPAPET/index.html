@@ -141,6 +141,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Maru G
 .setRow .lab{flex:1;line-height:1.45}
 .setRow button{flex:0 0 auto;font-family:inherit;font-size:5.1cqw;font-weight:700;border:1.5px solid var(--line);background:var(--btn);color:var(--ink);border-radius:8px;padding:1.8cqw 3.6cqw;cursor:pointer;min-width:26cqw}
 .setNote{font-size:4.6cqw;color:var(--sub);line-height:1.5;margin-top:1.2cqw}
+.setGone{display:none !important}
 .setMsg{font-size:4.9cqw;font-weight:700;min-height:5.5cqw;margin-top:1.5cqw;line-height:1.45}
 .setMsg.ok{color:#2e8b57}
 .memorial{align-items:center;text-align:center}
@@ -261,12 +262,12 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Maru G
     <div class="setSec first">あなたの名前（この端末）</div>
     <input id="setUserName" type="text" placeholder="あなたの名前（10文字まで）" maxlength="10" autocomplete="off">
     <div class="setRow"><span class="lab">ウーパールーパーが この名前で 呼びかけます。名前は この端末だけに 保存されます。</span><button id="btnSetUserName">変更</button></div>
-    <div class="setSec">音とカメラ</div>
-    <div class="setRow"><span class="lab">声</span><button id="btnSetVoice">ON</button></div>
-    <div class="setRow"><span class="lab">カメラ（動き検知）</span><button id="btnSetCam">OFF</button></div>
-    <div class="setNote">カメラは 動き検知専用です。映像は 保存・録画しません。</div>
-    <div class="setSec">ゲームの速さ</div>
-    <div class="setRow"><span class="lab">速度</span><select id="setSpeedSel">
+    <div class="setSec setGone">音とカメラ</div>
+    <div class="setRow setGone"><span class="lab">声</span><button id="btnSetVoice">ON</button></div>
+    <div class="setRow setGone"><span class="lab">カメラ（動き検知）</span><button id="btnSetCam">OFF</button></div>
+    <div class="setNote setGone">カメラは 動き検知専用です。映像は 保存・録画しません。</div>
+    <div class="setSec setGone">ゲームの速さ</div>
+    <div class="setRow setGone"><span class="lab">速度</span><select id="setSpeedSel">
       <option value="normal">ふつう（1時間／30秒）</option>
       <option value="fast">早回し・テスト用（1時間／5秒）</option>
       <option value="super">超早回し・テスト用（1時間／1秒）</option>
