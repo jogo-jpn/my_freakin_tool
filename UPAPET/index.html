@@ -187,15 +187,15 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Maru G
       <div class="line">共有の 水槽に つないでいます…</div>
     </div>
     <div id="gateSetup" class="hidden">
-      <div class="line">家族みんなで 同じ子を 育てるための「合言葉」を 決めてね。ほかの家族は、この合言葉を 入れると 同じ子に 会えます。合言葉ごとに 育てる子は 別々です。まだ誰も 使っていない合言葉では、新しい子（卵の状態）から 始まります。設定画面から 合言葉を 変えれば、別の子に 切り替えられます。</div>
-      <input id="passNew1" type="password" placeholder="合言葉（4文字以上）" autocomplete="new-password">
-      <input id="passNew2" type="password" placeholder="合言葉を もう一度" autocomplete="new-password">
+      <div class="line">家族みんなで 同じ子を 育てるための「合言葉」を 決めてね。ほかの家族は、この合言葉を 入れると 同じ子に 会えます。合言葉ごとに 育てる子は 別々です。まだ誰も 使っていない合言葉では、新しい子（卵の状態）から 始まります。設定画面から 合言葉を 変えれば、別の子に 切り替えられます。合言葉は 日本語（ひらがな・カタカナ・漢字）でも 英数字でも 使えます。</div>
+      <input id="passNew1" type="text" placeholder="合言葉（4文字以上・日本語もOK）" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" lang="ja">
+      <input id="passNew2" type="text" placeholder="合言葉を もう一度" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" lang="ja">
       <div class="gateErr" id="setupErr"></div>
       <div class="row"><button id="btnPassSetup" class="primary">合言葉を決めて 共有をはじめる</button></div>
     </div>
     <div id="gateEnter" class="hidden">
-      <div class="line">合言葉を 入れると、その合言葉で 育てている子に 会えるよ。合言葉ごとに 子は 別々です。まだ誰も 使っていない合言葉（4文字以上）を 入れると、新しい子（卵の状態）から 始まります。</div>
-      <input id="passIn" type="password" placeholder="合言葉" autocomplete="current-password">
+      <div class="line">合言葉を 入れると、その合言葉で 育てている子に 会えるよ。合言葉ごとに 子は 別々です。まだ誰も 使っていない合言葉（4文字以上）を 入れると、新しい子（卵の状態）から 始まります。合言葉は 日本語（ひらがな・カタカナ・漢字）でも 英数字でも 使えます。</div>
+      <input id="passIn" type="text" placeholder="合言葉（日本語もOK）" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" lang="ja">
       <div class="gateErr" id="enterErr"></div>
       <div class="row"><button id="btnPassEnter" class="primary">ひらく</button></div>
     </div>
@@ -1986,17 +1986,24 @@ function gateShow(which){
   });
 }
 async function hashPass(str){
+  // 日本語（ひらがな・カタカナ・漢字）でもそのまま使えるよう、文字列を
+  // NFC で正規化してから UTF-8 でハッシュする。端末やIMEによって
+  // 「が」が1文字になったり「か＋゛」になったりしても同じ合言葉として
+  // 一致させるため。英数字だけの合言葉は NFC で変化しないので、
+  // 今までの合言葉のハッシュは変わらず、そのまま開ける。
+  const norm = String(str == null ? "" : str).normalize("NFC");
   try{
     if(window.crypto && crypto.subtle && window.TextEncoder){
-      const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("upapet:" + str));
+      const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("upapet:" + norm));
       return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
     }
   }catch(e){}
   // SHA-256 が使えない環境向けの予備（簡易ハッシュ）
-  let h = 0x811c9dc5; const s = "upapet:" + str;
+  let h = 0x811c9dc5; const s = "upapet:" + norm;
   for(let i=0;i<s.length;i++){ h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
   return "fnv" + h.toString(16);
 }
+function passLen(str){ return [...String(str == null ? "" : str).normalize("NFC")].length; } // 文字数（サロゲートペアも1文字として数える）
 function payloadString(){ return JSON.stringify({S, memories, eggTaps, lastInteractAt, lastDecayAt, lastPetAt}); }
 function applyPayloadString(str){
   try{
@@ -2150,8 +2157,8 @@ async function initShare(){
 document.getElementById("btnPassSetup").addEventListener("click", async ()=>{
   const err = document.getElementById("setupErr");
   const p1 = document.getElementById("passNew1").value, p2 = document.getElementById("passNew2").value;
-  if(!p1 || p1.length < 4){ err.textContent = "合言葉は 4文字以上に してね"; return; }
-  if(p1 !== p2){ err.textContent = "2つの 合言葉が ちがいます"; return; }
+  if(!p1 || passLen(p1) < 4){ err.textContent = "合言葉は 4文字以上に してね"; return; }
+  if(p1.normalize("NFC") !== p2.normalize("NFC")){ err.textContent = "2つの 合言葉が ちがいます"; return; }
   err.textContent = "";
   try{
     await openPetForHash(await hashPass(p1)); // 既に使われている合言葉なら その子が開き、新しい合言葉なら卵から始まる
@@ -2164,7 +2171,7 @@ document.getElementById("btnPassEnter").addEventListener("click", async ()=>{
   const err = document.getElementById("enterErr");
   const p = document.getElementById("passIn").value;
   if(!p){ err.textContent = "合言葉を 入れてね"; return; }
-  if(p.length < 4){ err.textContent = "合言葉は 4文字以上に してね"; return; }
+  if(passLen(p) < 4){ err.textContent = "合言葉は 4文字以上に してね"; return; }
   err.textContent = "";
   try{
     await openPetForHash(await hashPass(p)); // 合言葉ごとに別の子: その合言葉の子が開く（初めてなら卵から）
@@ -2172,6 +2179,18 @@ document.getElementById("btnPassEnter").addEventListener("click", async ()=>{
   }catch(e){
     err.textContent = "共有に つなげませんでした。接続を 確認して もう一度 試してね";
   }
+});
+/* 合言葉欄の Enter キー: 日本語入力（IME）の変換確定の Enter では
+   送信せず、変換が終わった後の Enter だけをボタン押下として扱う */
+[["passIn","btnPassEnter"],["passNew1","btnPassSetup"],["passNew2","btnPassSetup"]].forEach(([inputId, btnId])=>{
+  const inp = document.getElementById(inputId);
+  if(!inp) return;
+  inp.addEventListener("keydown", (e)=>{
+    if(e.key !== "Enter") return;
+    if(e.isComposing || e.keyCode === 229) return; // IME変換中・変換確定の Enter は無視
+    e.preventDefault();
+    document.getElementById(btnId).click();
+  });
 });
 document.getElementById("btnLocalOnly").addEventListener("click", ()=>{
   shareMode = "local";
