@@ -1,0 +1,1997 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="data:,">
+<title>ウーパールーパー育成シミュレーター</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<style>
+:root{--bg:#fdf3e7;--panel:#fffaf2;--ink:#3a2b33;--sub:#7a6672;--accent:#e85d8a;--accent2:#2e9db4;--line:#e8d5c4;--btn:#fff;--sat:env(safe-area-inset-top);--sab:env(safe-area-inset-bottom)}
+@media (prefers-color-scheme: dark){:root{--bg:#1d1820;--panel:#2a2230;--ink:#f5e9ee;--sub:#bfaebb;--line:#4a3d4e;--btn:#352b3c}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Maru Gothic ProN","Hiragino Sans","Yu Gothic",sans-serif;-webkit-tap-highlight-color:transparent}
+.wrap{max-width:none;margin:0;padding:0}
+.device{container-type:inline-size;position:relative;width:100%;height:100vh;height:100dvh;background:#20303c;overflow:hidden;user-select:none;-webkit-user-select:none}
+/* 無操作時の現在時刻（水槽の真ん中。5秒タップが無いと自動で大きく出て、
+   どこかへのタップで消える。見た目はこの1種に固定で、タップで切り替わったりはしない。
+   pointer-events:none なので時計へのタップも下の水槽・画面全体の操作として扱われる） */
+#idleClock{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:12;font-size:16cqw;font-weight:800;letter-spacing:.04em;color:#fff;background:rgba(30,24,20,.55);padding:.6cqw 4.5cqw;border-radius:3.5cqw;pointer-events:none;opacity:0;transition:opacity .6s ease;font-variant-numeric:tabular-nums;line-height:1.2;text-align:center;white-space:nowrap}
+#idleClock.show{opacity:1;pointer-events:auto;cursor:grab;touch-action:none}
+/* セリフ帯（1行スクロール、水槽に重ねる半透明オーバーレイ） */
+.speech{position:absolute;left:0;right:0;top:var(--sat);z-index:8;min-height:max(40px,10.5cqw);display:flex;align-items:center;gap:1.6cqw;padding:.6cqw 2cqw;background:rgba(43,33,24,.82);color:#ffe9c9;pointer-events:none}
+.speech .nm{flex:0 0 auto;font-size:4.2cqw;color:#ffb7cd;font-weight:700;white-space:nowrap;max-width:26%;overflow:hidden;text-overflow:ellipsis;padding-right:1.4cqw;border-right:1px solid rgba(255,233,201,.28)}
+.speechView{flex:1 1 auto;min-width:0;overflow:hidden;white-space:nowrap;mask-image:linear-gradient(90deg,#000 0,#000 95%,transparent 100%);-webkit-mask-image:linear-gradient(90deg,#000 0,#000 95%,transparent 100%)}
+#speechText{display:inline-block;font-size:4.8cqw;letter-spacing:.02em;transition:transform .1s linear,opacity .5s;will-change:transform}
+/* 水槽（画面いっぱい） */
+.tank{position:absolute;inset:0;overflow:hidden;cursor:pointer;touch-action:none}
+.tank canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated;image-rendering:crisp-edges}
+#mossCanvas{z-index:3;pointer-events:none}
+#char{position:absolute;z-index:2;width:46%;transform:translate(-50%,-50%);image-rendering:pixelated;pointer-events:none;transition:filter .4s}
+/* モード中の操作ヒント */
+.modeHint{position:absolute;left:50%;top:calc(var(--sat) + max(40px,10.5cqw) + 10px);transform:translateX(-50%);z-index:7;max-width:92%;background:rgba(30,24,20,.78);color:#ffe9c9;font-size:4.4cqw;font-weight:700;line-height:1.45;text-align:center;padding:1.8cqw 3.4cqw;border-radius:99px;pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* 餌やり: 飛んでいく餌（選んだ餌のイラスト） */
+#foodProj{position:absolute;z-index:6;display:none;pointer-events:none;width:15cqw;max-width:64px;height:auto;image-rendering:pixelated;filter:drop-shadow(0 3px 5px rgba(40,20,0,.35));transform:translate(-50%,-50%)}
+/* 撫でる: ハート */
+.heartFx{position:absolute;z-index:6;pointer-events:none;color:#ff5d8f;font-weight:900;text-shadow:0 1px 3px rgba(255,255,255,.7);animation:heartFloat 1.05s ease-out forwards}
+@keyframes heartFloat{0%{opacity:0;transform:translate(-50%,-50%) scale(.6)}18%{opacity:1}100%{opacity:0;transform:translate(-50%,-190%) scale(1.25)}}
+/* 消灯モード: 右上の電気ボタンで ON にすると水槽全体が薄暗くなる。
+   暗さは lightsOff に応じて JS が opacity を切り替える（transition で滑らかに） */
+#sleepShade{position:absolute;inset:0;z-index:30;pointer-events:none;background:#05081a;opacity:0;transition:opacity .8s ease}
+/* 電気（照明）ボタン: 画面右上。タップで消灯モード ON/OFF */
+#btnLight{position:absolute;top:calc(var(--sat) + max(40px,10.5cqw) + 8px);right:2.5cqw;z-index:11;width:11cqw;height:11cqw;max-width:52px;max-height:52px;border-radius:50%;border:1.5px solid rgba(255,255,255,.35);background:rgba(30,24,20,.55);color:#ffe9a8;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
+#btnLight svg{width:58%;height:58%}
+#btnLight.lightsOn{background:rgba(16,18,38,.85);color:#8fa3c8}
+#btnLight:active{transform:scale(.94)}
+.device.covered #btnLight{display:none!important}
+#char.sick{filter:saturate(.45) brightness(1.1)}
+#char.flip{scale:-1 1}
+#zzz{position:absolute;z-index:4;font-weight:800;color:#fff;text-shadow:0 1px 2px rgba(0,40,60,.5);font-size:6cqw;pointer-events:none;display:none}
+/* ステータス（水槽に重ねる半透明オーバーレイ） */
+.status{position:absolute;left:0;right:0;bottom:calc(max(60px,15cqw) + env(safe-area-inset-bottom));z-index:8;min-height:max(38px,10cqw);display:flex;align-items:center;gap:1.8cqw;padding:.8cqw 2cqw;background:rgba(255,247,236,.88);border-top:1px solid rgba(227,205,180,.7);pointer-events:none}
+.st{flex:1;display:flex;align-items:center;gap:1cqw;font-size:3.5cqw;color:#5d4a55;white-space:nowrap}
+.st .bar{flex:1;height:1.6cqw;min-height:3px;background:#eadfd6;border-radius:99px;overflow:hidden}
+.st .bar i{display:block;height:100%;border-radius:99px;transition:width .4s}
+.st b{font-variant-numeric:tabular-nums;font-weight:700;min-width:5.8cqw;text-align:right}
+/* ボタン帯（モード切替、水槽に重ねる半透明オーバーレイ） */
+.btnband{position:absolute;left:0;right:0;bottom:0;z-index:9;min-height:calc(max(60px,15cqw) + env(safe-area-inset-bottom));display:flex;gap:1px;background:rgba(217,191,164,.92);padding-bottom:env(safe-area-inset-bottom)}
+.btnband button{flex:1;font-family:inherit;font-size:4.2cqw;font-weight:700;border:0;background:rgba(255,253,248,.94);color:#3a2b33;cursor:pointer;padding:0;white-space:nowrap}
+.btnband button:active{background:#ffe3ec}
+.btnband button.modeOn{background:#e85d8a;color:#fff;box-shadow:inset 0 0 0 2px rgba(255,255,255,.55)}
+/* 餌チップ（餌やりモード中だけ、ステータスの上に浮かぶ） */
+.foodChips{position:absolute;left:0;right:0;bottom:calc(max(60px,15cqw) + max(38px,10cqw) + env(safe-area-inset-bottom) + 8px);z-index:9;display:flex;flex-wrap:wrap;gap:8px;justify-content:center;padding:0 10px;background:none;min-height:0;transition:transform .38s ease,opacity .38s ease}
+.foodChips.chipsAway{transform:translateY(190%);opacity:0;pointer-events:none}
+/* 手持ちの餌（餌を選んだ後に画面下へ出る。ここからスワイプで投げる） */
+/* 餌を選んだ後の表示は、選んだ餌の画像だけ（カード枠・名前・説明文は出さない） */
+.heldFood{position:absolute;left:50%;bottom:calc(max(60px,15cqw) + max(38px,10cqw) + env(safe-area-inset-bottom) + 10px);transform:translateX(-50%);z-index:9;pointer-events:none;transition:transform .22s ease,opacity .22s ease}
+.heldFood.dragging{transition:none}
+.heldFood img{width:19cqw;height:19cqw;max-width:84px;max-height:84px;object-fit:contain;image-rendering:pixelated;pointer-events:none;filter:drop-shadow(0 3px 6px rgba(40,20,0,.35));display:block}
+.foodChips button{flex:0 1 auto;display:flex;flex-direction:column;align-items:center;gap:.6cqw;font-family:inherit;font-size:4.8cqw;font-weight:700;border:2px solid rgba(217,160,90,.85);background:rgba(255,253,248,.95);color:#3a2b33;border-radius:14px;padding:1.8cqw 3.4cqw;cursor:pointer;box-shadow:0 2px 8px rgba(40,20,0,.22)}
+.foodChips button img{width:10.5cqw;height:10.5cqw;max-width:46px;max-height:46px;object-fit:contain;image-rendering:pixelated;pointer-events:none}
+.foodChips button#btnFoodCancel{flex-direction:row;align-self:center;border-radius:99px}
+.foodChips button.foodsel{background:#ffe1a8;border-color:#e8930c;color:#7a4a12}
+.hidden{display:none!important}
+.device.covered .speech,.device.covered .tank,.device.covered .status,.device.covered .btnband,.device.covered .foodChips,.device.covered .heldFood{display:none!important}
+/* 320x240内オーバーレイ画面 */
+.screen{position:absolute;inset:0;background:var(--panel);color:var(--ink);display:flex;flex-direction:column;padding:calc(3cqw + var(--sat)) 3cqw calc(3cqw + var(--sab));z-index:5}
+.screen h2{font-size:6.2cqw;margin:0 0 1.5cqw}
+.screen .line{font-size:5.2cqw;line-height:1.55}
+.eggWrap{flex:1;display:flex;align-items:center;justify-content:center;cursor:pointer}
+#eggImg{height:36cqw;max-width:60cqw;object-fit:contain;image-rendering:pixelated;image-rendering:crisp-edges}
+.screen .row{display:flex;gap:2cqw;margin-top:auto}
+.screen .row button{flex:1;font-family:inherit;font-size:5.1cqw;font-weight:700;border:1.5px solid var(--line);background:var(--btn);color:var(--ink);border-radius:8px;padding:2cqw;cursor:pointer}
+.screen .row button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+/* 合言葉ゲート画面の入力欄 */
+.screen input[type="password"],.screen input[type="text"]{font-family:inherit;font-size:5.2cqw;padding:2.2cqw;border:1.5px solid var(--line);border-radius:8px;background:var(--btn);color:var(--ink);width:100%;margin-top:2cqw}
+.gateErr{color:#c0392b;font-size:4.7cqw;font-weight:700;min-height:5.5cqw;margin-top:1.5cqw;line-height:1.45}
+#gateScreen .row{margin-top:2.5cqw}
+.memorial{align-items:center;text-align:center}
+.memorial img{width:44%;image-rendering:pixelated;filter:saturate(.25) brightness(1.05);margin-top:2cqw}
+.memorial .mname{font-size:8.4cqw;font-weight:800;margin:1cqw 0}
+.memorial p{font-size:5.1cqw;line-height:1.6;color:var(--sub);margin:.5cqw 0}
+/* お見送り（昇天）演出 */
+.heavenLight{position:absolute;left:50%;top:0;width:72cqw;height:100%;transform:translateX(-50%);background:linear-gradient(180deg,rgba(255,246,205,.95),rgba(255,246,205,.28) 55%,rgba(255,246,205,0));opacity:0;transition:opacity 1.4s ease;pointer-events:none}
+.memorial.rising .heavenLight{opacity:1}
+#deadImgWrap{position:relative;z-index:1;width:100%;text-align:center;margin-top:1cqw;transition:transform 4.8s ease-in,opacity 4.8s ease-in,filter 4.8s ease-in}
+.memorial.rising #deadImgWrap{transform:translateY(-54cqw) scale(.75);opacity:0;filter:brightness(1.3) drop-shadow(0 0 14px rgba(255,240,190,.95))}
+.memorial .mname,.memorial #deadInfo{position:relative;z-index:1;transition:opacity 1.2s}
+.memorial.rising .mname,.memorial.rising #deadInfo{opacity:.25}
+#farewellText{position:relative;z-index:1;font-size:5.6cqw;font-weight:700;color:var(--ink);line-height:1.55;min-height:11.5cqw;margin:.8cqw 0;transition:opacity .32s}
+.memorial p.ascendHint{font-size:4.9cqw;color:var(--accent);font-weight:700;position:relative;z-index:1}
+.memorial .row{transition:opacity .6s}
+.memorial.ascending .row{opacity:0;pointer-events:none}
+.spark{position:absolute;z-index:2;width:1.8cqw;height:1.8cqw;border-radius:50%;background:#ffdf8a;box-shadow:0 0 6px 2px rgba(255,220,130,.8);opacity:0;pointer-events:none;animation:sparkRise 3.4s ease-in forwards}
+@keyframes sparkRise{0%{opacity:0;transform:translateY(0)}15%{opacity:1}100%{opacity:0;transform:translateY(-34cqw)}}
+/* 星になる: 昇天の最後に光が集まって星形になり、瞬く */
+#starForm{position:absolute;left:50%;top:13%;width:10cqw;height:10cqw;transform:translateX(-50%) scale(.3);background:#ffe98a;clip-path:polygon(50% 0,62% 38%,100% 50%,62% 62%,50% 100%,38% 62%,0 50%,38% 38%);opacity:0;filter:drop-shadow(0 0 10px rgba(255,230,140,.95));z-index:3;pointer-events:none}
+.memorial.starred #starForm{opacity:1;transform:translateX(-50%) scale(1);transition:opacity 1.2s ease,transform 1.2s ease;animation:starTwinkle 1.1s ease-in-out 1.2s infinite alternate}
+@keyframes starTwinkle{from{filter:drop-shadow(0 0 6px rgba(255,230,140,.65)) brightness(1)}to{filter:drop-shadow(0 0 17px rgba(255,240,170,1)) brightness(1.3)}}
+@media (prefers-reduced-motion: reduce){#deadImgWrap{transition-duration:.9s}.spark{animation-duration:1.2s}}
+/* シミュレーション専用UI（実機画面の外） */
+.simui{margin-top:12px;padding:0 12px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;font-size:18px;color:var(--sub)}
+.simui button,.simui select{font-family:inherit;font-size:18px;min-height:38px;border-radius:9px;border:1.5px solid var(--line);background:var(--btn);color:var(--ink);padding:5px 10px;cursor:pointer}
+.log{font-size:17px;color:var(--sub);line-height:1.7;max-height:110px;overflow:auto;margin:8px 12px 30px}
+.camBox{display:inline-flex;align-items:center;gap:8px;vertical-align:middle}
+#camVideo{width:96px;height:72px;object-fit:cover;border-radius:9px;background:#20303c;border:1.5px solid var(--line);display:none}
+#camVideo.on{display:block}
+.camDot{width:14px;height:14px;border-radius:50%;background:#cbbcb2;flex:0 0 auto;transition:background .15s,box-shadow .15s}
+.camDot.hot{background:#ff5d5d;box-shadow:0 0 0 4px rgba(255,93,93,.25)}
+.camMeter{display:inline-block;width:92px;height:10px;background:#eadfd6;border-radius:99px;overflow:hidden;vertical-align:middle}
+.camMeter i{display:block;height:100%;width:0%;background:#2e9db4;transition:width .08s linear}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="device" id="device">
+  <div id="idleClock">00:00</div>
+  <button id="btnLight" aria-label="電気（消灯モードの切り替え）" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4.9 12c.6.5 1 1.2 1.1 2h7.6c.1-.8.5-1.5 1.1-2A7 7 0 0 0 12 2z"/></svg></button>
+  <div class="speech"><span class="nm" id="speechName"></span><div class="speechView" id="speechView"><span id="speechText"></span></div></div>
+  <div class="tank" id="tank">
+    <canvas id="tankCanvas" width="320" height="156"></canvas>
+    <img id="char" alt="ウーパールーパー" draggable="false">
+    <canvas id="mossCanvas" width="320" height="156"></canvas>
+    <div id="zzz">Z z</div>
+    <div class="modeHint hidden" id="modeHint"></div>
+    <img id="foodProj" data-asset="assets/food-akamushi.png" alt="" draggable="false">
+  </div>
+  <div class="status" id="status"></div>
+  <div class="btnband" id="btnBand">
+    <button id="btnFeed">ごはん</button><button id="btnClean">そうじ</button><button id="btnPlay">あそぶ</button>
+  </div>
+  <div class="foodChips hidden" id="foodBand">
+    <button data-food="あかむし"><img data-asset="assets/food-akamushi.png" alt="" draggable="false">あかむし</button><button data-food="えび"><img data-asset="assets/food-ebi.png" alt="" draggable="false">えび</button><button data-food="ペレット"><img data-asset="assets/food-pellet.png" alt="" draggable="false">ペレット</button><button id="btnFoodCancel">やめる</button>
+  </div>
+  <div class="heldFood hidden" id="heldFood">
+    <img id="heldFoodImg" data-asset="assets/food-akamushi.png" alt="" draggable="false">
+  </div>
+
+  <section class="screen hidden" id="eggScreen">
+    <h2>🥚 たまご</h2>
+    <div class="line" id="eggLine">なかで もぞもぞ している… タップして ふかを 手伝ってあげて</div>
+    <div class="eggWrap" id="eggWrap"><img id="eggImg" data-asset="assets/egg-0.webp" alt="ウーパールーパーの たまご" draggable="false"></div>
+    <div class="line" id="eggCount">あと 6回</div>
+  </section>
+
+  <section class="screen memorial hidden" id="deadScreen">
+    <div class="heavenLight"></div>
+    <div id="starForm"></div>
+    <div id="deadImgWrap"><img id="deadImg" data-asset="assets/sprites/sleep-0.webp" alt="眠るウーパールーパー"></div>
+    <div class="mname" id="deadName">—</div>
+    <p id="deadInfo">—</p>
+    <p id="farewellText">いっしょに いてくれて ありがとう。</p>
+    <p class="ascendHint" id="ascendHint">画面を タップすると お見送りできます</p>
+    <div class="row" style="width:100%"><button id="btnFarewell" class="primary">お見送りする</button></div>
+  </section>
+  <section class="screen hidden" id="gateScreen">
+    <h2>🐾 みんなで おせわ</h2>
+    <div id="gateLoading">
+      <div class="line">共有の 水槽に つないでいます…</div>
+    </div>
+    <div id="gateSetup" class="hidden">
+      <div class="line">家族みんなで 同じ子を 育てるための「合言葉」を 決めてね。ほかの家族は、この合言葉を 入れると 同じ子に 会えます。合言葉は あとから 変えられないので、家族で 覚えやすいものに してね。</div>
+      <input id="passNew1" type="password" placeholder="合言葉（4文字以上）" autocomplete="new-password">
+      <input id="passNew2" type="password" placeholder="合言葉を もう一度" autocomplete="new-password">
+      <div class="gateErr" id="setupErr"></div>
+      <div class="row"><button id="btnPassSetup" class="primary">合言葉を決めて 共有をはじめる</button></div>
+    </div>
+    <div id="gateEnter" class="hidden">
+      <div class="line">家族の 合言葉を 入れると、みんなで 育てている子に 会えるよ。</div>
+      <input id="passIn" type="password" placeholder="合言葉" autocomplete="current-password">
+      <div class="gateErr" id="enterErr"></div>
+      <div class="row"><button id="btnPassEnter" class="primary">ひらく</button></div>
+    </div>
+    <div id="gateOffline" class="hidden">
+      <div class="line" id="offlineMsg">共有の 水槽に つなげませんでした。</div>
+      <div class="row"><button id="btnLocalOnly" class="primary">この端末だけで はじめる</button></div>
+    </div>
+  </section>
+  <div id="sleepShade"></div>
+</div>
+
+<div class="simui">
+  <span>シミュレーション専用：</span>
+  <span>共有 <span id="shareState">接続中…</span></span>
+  <label>速度 <select id="speedSel">
+    <option value="normal">ふつう（1時間／30秒）</option>
+    <option value="fast">早回し・テスト用（1時間／5秒）</option>
+    <option value="super">超早回し・テスト用（1時間／1秒）</option>
+  </select></label>
+  <span>声 <button id="btnVoice">ON</button></span>
+  <span>音テスト <button id="btnSoundTest">♪ 鳴らす</button></span>
+  <span id="audioState">音声：未初期化（最初のタップで開始）</span>
+  <span>カメラ <button id="btnCam">OFF</button></span>
+  <span class="camBox"><video id="camVideo" muted playsinline autoplay></video><span class="camDot" id="camDot" title="動き検知インジケーター"></span><span class="camMeter"><i id="camBar"></i></span></span>
+  <canvas id="camCanvas" width="64" height="48" style="display:none"></canvas>
+  <span id="camState">カメラ：OFF</span>
+  <span>リセット <button id="btnReset">リセット（テスト用）</button></span>
+  <span>近接センサー（テスト） <button id="btnSensor">人が近づいた</button></span>
+</div>
+<div class="simui" style="margin-top:2px">
+  <span>※ 近接センサー（テスト）は、人が 近づいたときの 反応を ボタンで 再現する テスト用機能です。</span>
+</div>
+<div class="simui" style="margin-top:2px">
+  <span>※ カメラは動き検知専用です。映像は保存・録画しません。動きを検知すると赤い丸が光り、キャラが気づいて寄ってきます。</span>
+</div>
+<div class="simui hidden" id="resetConfirm">
+  <span style="color:#c0392b;font-weight:700">現在の子・セーブデータ・おもいで記録を 全て消して、新しい卵から 始めます。よろしいですか？</span>
+  <button id="btnResetYes">消去して リセット</button>
+  <button id="btnResetNo">やめる</button>
+</div>
+<div class="log" id="log"></div>
+</div>
+
+<script>
+"use strict";
+/* ============================================================
+画像アセットの読み込み（JSONバンドル方式）
+GitHub Pages へテキストファイルだけで配布するため、スプライト・卵・餌の
+画像は全て Base64 データURI化して JSON バンドル（assets/bundle-*.json、
+1ファイル2.5MB以下）に格納し、起動時に fetch して ASSET_URLS
+（"assets/..." のパス → データURI）へ展開する。相対パスでの画像読み込みはしない。
+コード内では従来どおり "assets/..." のパスをキーとして参照し、実際に img へ
+設定する直前に assetUrl() / assetImg() でデータURIへ解決する。
+バンドル到着前に作られた Image は ASSET_PENDING に控えておき、到着後に
+まとめて src を設定する（HTML内の静的な img は data-asset 属性で指定）。
+============================================================ */
+const ASSET_BUNDLES = ["assets/bundle-1.json", "assets/bundle-2.json", "assets/bundle-3.json", "assets/bundle-4.json"];
+const ASSET_URLS = {};
+const ASSET_PENDING = [];
+let ASSETS_LOADED = false;
+function assetUrl(path){ return ASSET_URLS[path] || path; }
+function assetImg(path){
+  const im = new Image();
+  im._apath = path;
+  if(ASSETS_LOADED) im.src = assetUrl(path);
+  else ASSET_PENDING.push(im);
+  return im;
+}
+function applyAssetUrls(){
+  ASSETS_LOADED = true;
+  for(const im of ASSET_PENDING) im.src = assetUrl(im._apath);
+  ASSET_PENDING.length = 0;
+  document.querySelectorAll("img[data-asset]").forEach(el=>{ el.src = assetUrl(el.getAttribute("data-asset")); });
+  try{ if(screen === "egg") drawEggStage(); }catch(e){}
+  try{ log("🖼 画像バンドルを読み込んだ（" + Object.keys(ASSET_URLS).length + "枚）"); }catch(e){}
+}
+Promise.all(ASSET_BUNDLES.map(u=>fetch(u).then(r=>{ if(!r.ok) throw new Error(u); return r.json(); }).then(j=>{ for(const k in j) ASSET_URLS[k] = j[k]; }).catch(()=>{}))).then(applyAssetUrls);
+
+/* ============================================================
+CONFIG — 調整値はここに集約。表示は iPhone フルスクリーン（100dvh）前提で、
+水槽ロジカル座標は 320×156 を画面いっぱいに引き伸ばして使う。
+============================================================ */
+const CONFIG = {
+LOGICAL_W: 320, LOGICAL_H: 240, TANK_H: 156,
+CHAR_W: { baby: 104, child: 128, adult: 148 }, // 水槽内表示幅(px)。おとなで画面幅の半分弱
+SPEED_MS: { normal: 30000, fast: 5000, super: 1000 },
+DEFAULT_SPEED: "normal",
+DECAY: { belly: 25, water: 25, energyAwake: 7, energySleep: 25, moodCenter: 45, moodNeglectPerHour: 3, neglectAfterHours: 3 }, // belly/water は -25/実時間1時間: 満腹・清潔100から現実の4時間で0になる（実時間ルール。速度設定の影響を受けない）
+HEALTH: { badOne: -10, badMany: -16, good: 8, goodBelly: 40, goodWater: 50, sickUnder: 45, dangerUnder: 15, dieHoursAtZero: 2 },
+CARE: {
+feed: { belly: 45, favBelly: 55, favMood: 15, pt: 2, waterCost: 2, sickHalf: true }, // waterCost: 餌やり1回で清潔度が少し下がる（食べ残し・フンのイメージ）。汚れ（清潔度の低下）の発生源は「餌やり」と「時間経過（実時間減衰）」の2つだけ。それ以外の操作・要因では汚れない
+play: { mood: 12, energyCost: 8, pt: 3, needEnergy: 20 },
+clean: { water: 100, pt: 2 },
+pet: { mood: 6, pt: 1 }
+},
+GROWTH: [ {stage:"あかちゃん", key:"baby", pt:0, cm:6}, {stage:"こども", key:"child", pt:40, cm:14}, {stage:"おとな", key:"adult", pt:140, minDays:2, cm:24} ],
+SLEEP: { autoUnderDay: 10, autoUnderNight: 35, wakeAt: 100 },
+SULK_MOOD_UNDER: 25, SULK_DEEP_MOOD: 10, SULK_DEEP_HOURS: 6,
+EGG_TAPS_TO_HATCH: 6,
+NEGLECT_DEATH_MS: 24*60*60*1000, // 実時間ルール: 最後の操作から24時間（現実の時計）放置したら死亡。ゲーム内速度設定には依存しない
+SAVE_KEY: "uparupa_save_v1"
+};
+
+/* ============================================================
+アクション登録テーブル（ACTION_DEFS）— 仕草・リアクションの定義はここに集約。
+新しいアクション（新しい仕草・リアクション）を追加する手順:
+  1. 画像を用意する。さくら種は assets/sprites/<set>-0.webp 〜 <set>-(コマ数-1).webp、
+     他の種族は assets/sprites/<種族id>/<set>-<番号>.webp のパスで参照する（透過WebP）。
+     実画像は配布用に Base64 化して JSON バンドル（assets/bundle-*.json）へ格納する
+     方式なので、新しい画像を足す時はバンドルにも同じパスをキーに登録すること。
+  2. 下の ACTION_DEFS に1行追加する。書くのは次の項目だけ:
+       id      : アクション名（コードから呼ぶ名前。他と重複させない）
+       set     : 画像セット名（ファイル名の <set> 部分）
+       frames  : コマ数（画像の枚数）
+       fps     : 再生速度（1秒あたりのコマ数。省略時は 7）
+       loop    : true=ループ再生 / false=最終コマで止まる（省略時は true）
+       flip    : true=泳ぐ向きに合わせて左右反転する（省略時は false）
+       kind    : "state"=状況に連動して自動で出る / "temp"=イベントで一時的に出す
+       priority: kind:"state" の優先度（大きいほど優先。sleep=100 は一時アクションより上）
+       when    : kind:"state" の表示条件。true を返したら候補になる関数
+                 例: when: () => S.stats.belly < 20
+  3. kind:"temp" のアクションは、出したい場所で playAction("id", ミリ秒) を呼ぶだけ。
+     kind:"state" のアクションは when を書けば自動で出る。
+  → エンジン本体（currentAnimSet・描画ループ・画像読み込み）はテーブルを参照する
+     だけなので、新アクション追加時に書き換える必要はない。
+============================================================ */
+const ACTION_DEFS = [
+  { id:"sleep",    set:"sleep",    frames:4, loop:true,  kind:"state", priority:100, when:()=>!!(S && S.sleeping) },
+  { id:"angry",    set:"angry",    frames:4, loop:true,  kind:"state", priority:80,  when:()=>!!(S && S.sulking && (sulkHours >= CONFIG.SULK_DEEP_HOURS || S.stats.mood < CONFIG.SULK_DEEP_MOOD)) },
+  { id:"sulk",     set:"sulk",     frames:4, loop:true,  kind:"state", priority:70,  when:()=>!!(S && S.sulking) },
+  /* 泣くのは体調が悪い時（病気の状態 S.sick）だけ。それ以外（空腹・きげん低下・
+     たいちょう数値が低いだけ等）では泣かず、wantplay など他のセットで代用する */
+  { id:"cry",      set:"cry",      frames:4, loop:true,  kind:"state", priority:60,  when:()=>!!(S && S.sick) },
+  /* 遊んでほしい: お誘い中（inviteUntil）に加え、空腹や かまってほしい時の
+     アピール窓（wantplayUntil。日常スケジューラが状況に応じて開く）でも出る。
+     空腹のアピールは泣くのではなく このセットで代用する */
+  { id:"wantplay", set:"wantplay", frames:4, loop:true,  kind:"state", priority:50,  when:()=>!!(S && !S.sleeping && (Date.now() < inviteUntil || Date.now() < wantplayUntil)) },
+  /* 喜ぶ: 満足窓（happyUntil。満腹・世話の後・機嫌が良い時にスケジューラ／世話が開く） */
+  { id:"happy",    set:"happy",    frames:4, loop:true,  kind:"state", priority:40,  when:()=>!!(S && !S.sleeping && Date.now() < happyUntil) },
+  /* 踊る: ごきげん窓（danceUntil。きげんが良い時にスケジューラが時々開く） */
+  { id:"dance",    set:"dance",    frames:4, loop:true,  kind:"state", priority:35,  when:()=>!!(S && !S.sleeping && Date.now() < danceUntil) },
+  /* 興味津々: きょろきょろ窓（curiousUntil。日中などにスケジューラが時々開く） */
+  { id:"curious",  set:"curious",  frames:4, loop:true,  kind:"state", priority:30,  when:()=>!!(S && !S.sleeping && Date.now() < curiousUntil) },
+  { id:"swim",     set:"swim",     frames:4, loop:true,  kind:"state", priority:0,   flip:true, when:()=>true },
+  { id:"motion",   set:"curious",  frames:4, loop:true,  kind:"temp" }, /* カメラの動き検知で気づく反応（既存の curious セットを流用。playAction("motion", ms) で出す） */
+  { id:"eat",      set:"eat",      frames:4, loop:true,  kind:"temp" }
+];
+const ACTION_BY_ID = {};
+ACTION_DEFS.forEach(a=>{ ACTION_BY_ID[a.id] = a; });
+/* 画像読み込み対象のセット一覧（登録テーブルから自動生成。従来の ANIM_SETS 互換） */
+const ANIM_SETS = ACTION_DEFS.map(a=>a.set);
+/* ---------- 種族（孵化時に確率で抽選され、その子の見た目は一生その種族のシートで固定） ---------- */
+const SPECIES = [
+ {id:"sakura", name:"さくらピンク", w:41},
+ {id:"white", name:"まっしろ", w:18},
+ {id:"gold", name:"きんいろ", w:14},
+ {id:"charcoal", name:"すみくろ", w:10},
+ {id:"calico", name:"まだら", w:9},
+ {id:"tall", name:"脚長", w:7},
+ {id:"rainbow", name:"にじいろ", w:1}
+];
+function rollSpecies(){ let r = Math.random()*100; for(const s of SPECIES){ r -= s.w; if(r < 0) return s; } return SPECIES[0]; }
+function frameSrc(speciesId, set, i){ return speciesId==="sakura" ? "assets/sprites/"+set+"-"+i+".webp" : "assets/sprites/"+speciesId+"/"+set+"-"+i+".webp"; }
+const FRAMES = {}; // speciesId -> set -> [Image xコマ数]（表示に必要な種族だけ読み込む。コマ数は登録テーブルに従う）
+function framesFor(speciesId){
+  if(!FRAMES[speciesId]){
+    const o = {};
+    ACTION_DEFS.forEach(a=>{ const n = a.frames || 4; o[a.set] = Array.from({length:n}, (_,i)=>assetImg(frameSrc(speciesId, a.set, i))); });
+    FRAMES[speciesId] = o;
+  }
+  return FRAMES[speciesId];
+}
+framesFor("sakura");
+
+/* ---------- 性格 ---------- */
+const PERSONALITIES = [
+{name:"のんびりや", desc:"いつも ゆったり", cue:"まあまあ", food:"ペレット", bellyRate:80, moodRate:100},
+{name:"あまえんぼう", desc:"かまって ほしい", cue:"ねえねえ", food:"えび", bellyRate:100, moodRate:130},
+{name:"くいしんぼう", desc:"たべるのが いちばん", cue:"はらぺこ", food:"あかむし", bellyRate:140, moodRate:100},
+{name:"さびしがりや", desc:"ひとりは さみしい", cue:"まってた", food:"えび", bellyRate:110, moodRate:150},
+{name:"わんぱく", desc:"げんき いっぱい", cue:"やっほー", food:"あかむし", bellyRate:120, moodRate:100},
+{name:"おっとり", desc:"やさしくて おだやか", cue:"あらあら", food:"ペレット", bellyRate:90, moodRate:90},
+{name:"きまぐれ", desc:"きぶん しだい", cue:"きまぐれ", food:"えび", bellyRate:100, moodRate:110},
+{name:"ゆめみがち", desc:"よく そらを みてる", cue:"ほわほわ", food:"あかむし", bellyRate:90, moodRate:100}
+];
+const NAME_PRE = ["うぱ","るぱ","ぽよ","もち","ぷに","とと","むに","ゆき"];
+const NAME_SUF = ["た","こ","まる","すけ","りん","もち","ぽん","み"];
+
+/* ---------- 固定セリフプール（全て書き下ろし。直近の重複回避つき） ---------- */
+const LINES = {
+personality: {
+"のんびりや":["まあまあ、ゆっくり いこう","みずの ながれ、きもちいい","あわてない あわてない","のんびりが いちばん だよね","あわを みてると ねむくなる","きょうも マイペースで いこう","ゆっくり およぐと きもちいい","いそがないのが @の いいところ","じかんは ゆっくり ながれてる","ぼーっと するのも だいじ","あせらなくて いいんだよ","みずの おと、きいてる？","きょうも のんびり いこうね","いそぐ りゆうなんて ないよね","ゆっくりが @の ペース","おひるねの じかん まだかな"],
+"あまえんぼう":["ねえねえ、こっち みて","かまってくれると うれしい","ぎゅって したい きぶん","ねえ、もっと そばに いて","ほめられると のびる タイプだよ","かまって かまってー","てのひら、あたたかいね","@は かまってちゃんなの","ねえねえ、みてみて","かまって くれたら とろけちゃう","ずっと いっしょに いたいな","そばに いるのが いちばん","ほめて ほめてー","かまわれると げんき 百倍","さみしいと エラが しぼんじゃう","ねえ、@の こと みててね"],
+"くいしんぼう":["はらぺこ… なにか ちょうだい","ごはんの じかん まだ？","#の ゆめを みた","おなかの むしが ないてる","たべることなら まかせて","ごはんの ことしか かんがえられない","#、もういちど たべたいな","たべたら ねむくなるのが しあわせ","おなか グーって なった","ごはんの においが する… きがする","たべる ためなら およぐよ","おかわり、まだかな","#は 世界一 おいしい","ゆめでも たべてた","おなかが すくと ちからが でない","ごはんの じかんが いちばん すき"],
+"さびしがりや":["まってた… ずっと まってた","ひとりは さみしいな","そばに いてくれて ありがとう","いかないで、もっと いっしょに いて","こえが きこえると あんしんする","@は ひとりだと しょんぼり しちゃう","まちぼうけは さみしいよ","きてくれるだけで げんきが でる","ひとりぼっちは やだな","こえを かけられると あんしん","ずっと ここで まってるよ","いっしょに いてくれて うれしい","さみしいときは エラが さがるの","きてくれて ありがとう、ほんとに","そばに いるだけで いいの","まってる じかんも しあわせだよ"],
+"わんぱく":["やっほー！ げんき？","およぐの しょうぶ しよう","じっとしてるの むりー","いくよー、ダッシュ！","みずを かきまぜるの たのしい","@は エネルギー まんたん！","つぎは なにして あそぶ？","まわりを ぐるぐる およぎたい","きょうも とばしていくよ！","およぎ まわりたい きぶん！","じっと してると むずむず する","ダッシュ！ …つかれた","あわを おいかけるの たのしい","げんきが あまってる！","すいそうの はしから はしまで！","つぎは もっと はやく およぐ！"],
+"おっとり":["あらあら、いい てんき","きょうも やさしい ひだね","ほわっと するねえ","あら、かわいい あわ","おちゃの じかん みたいに ゆっくり","みんな なかよしが いいね","ふわふわ、いい きぶん","やさしい こえって すてきだね","あらあら、まあまあ","ゆっくり おはなし しようね","ほんわか した ひだねえ","あら、いい かぜ… じゃなくて みずだね","みんな げんきで なにより","ふんわり くらすのが すき","あらあら、うれしいなあ","のんびり おちゃでも… みずだけどね"],
+"きまぐれ":["きょうは およぐ きぶん","…やっぱり ねる きぶん","きまぐれ で ごめんね","いまは ぼーっと したいの","あ、やっぱり あそびたい","きぶんは おてんきと いっしょ","@のことは @にも わからない","つぎに なにが したいかは ヒミツ","いまの きぶんは… ひみつ","およぎたい ような、ねたい ような","きぶんが コロコロ かわるの","あ、いいこと おもいついた… わすれた","きょうは さかさまに およぎたい","…やっぱ ちがうかも","きまぐれは @の チャームポイント","つぎの きぶんは おたのしみ"],
+"ゆめみがち":["ほわほわ… そらの ゆめ","くもに のって みたいな","ゆめの なかで あおうね","そらの むこうは どうなってるのかな","おほしさまに おねがい したい","ゆめの なかでは とべるんだよ","ぼーっと そらを みるのが すき","@の あたまは ゆめで いっぱい","くもの 上は どうなってるのかな","ゆめで とんだら たのしいだろうな","おほしさま、キラキラ してる","そらを みてると おちつく","ゆめの つづきが きになる","にじの むこうに いってみたい","ほわほわ、ゆめの なかみたい","つきの ひかりは やさしいね"]
+},
+generic:["みずの そこって あかるい？","エラが ゆれると くすぐったい","きょうの みずは おいしい","しっぽ、じょうずに ふれた","…すいそうの そと、きになる","@は げんき だよ","あわが ぷかぷか、きれいだね","すいすい およぐの たのしい","みずくさ、ゆらゆら してる","かくれがに もぐるの すき","きょうは いい きぶん","ほわほわ してきた","おひさまの ひかり、きらきら","こえが きこえたら うれしいな","かまって もらうと うれしい","いい ゆめを みたよ","みずが つめたくて きもちいい","ゆっくり するのが すき","しっぽの さきまで げんき","@は まってるよ、いつでも","エラを ふりふり してみた","みずの なかは しずかだね","しっぽが ピンと のびてる","きょうは 調子が いいかも","あわを つくって みたよ","みずくさの かげで ひとやすみ","おなかの そこは ひんやり","ゆらゆら ただようの すき","ガラスごしに みえる せかい","きょうも いちにち たのしかった","エラが ほわほわ してる","みずの ながれに のってみた","たまには さかさまも いいね","すいそうの すみっこが おちつく","ぷかぷか うかぶの たのしい","きょうの みずは すんでる","おひさまの ひかりが ゆれる","しっぽで バイバイ できる？","ゆっくり およぐと たのしい","@は きょうも マイペース"],
+
+pet:["えへへ、くすぐったい","もっと もっと","てが あたたかいね","なでなで、だいすき","うっとり しちゃう","なでられると しあわせ","えへ、もっと なでて","しあわせが あふれちゃう","なでなで さいこう","とろーんって しちゃう","てのひら、やわらかいね","なでられると 元気が でる"],
+feedFav:["だいすき！ これ だいすき！","#！ まってた！","しあわせ… ありがとう","#! #が いちばん!","もぐもぐ… しあわせすぎる","うわあ #！ だいこうぶつ！","#の あじ、さいこう！","待ってました！ #！","もぐもぐ… #は 神の あじ","#、やっぱり いちばん！"],
+feedNormal:["もぐもぐ… おいしい","ごちそうさま","もぐもぐ、うまうま","おいしい！ ありがとう","ぱくぱく、とまらない","もぐもぐ、おいしいね","ありがとう、いただきます","ぱくっ。うん、おいしい","もぐもぐ… まんぞく","おいしく いただいたよ"],
+feedFull:["おなか いっぱい… むり","もう はいらないよお","ぱんぱん… うごけない","また あとで たべるね","おなか ぱんぱんで うごけない","もう おなか いっぱいだよ","たべすぎちゃった…","ごちそうさま、もう むり"],
+play:["たのしい！ もっと！","きゃっきゃ","およぐの たのしいね","やったー！ たのしい！","もっと はやく およげるよ","わーい！ たのしい！","もっと もっと！","きゃはは、たのしいね","およぐの って さいこう","やった！ もういちど！"],
+playInvite:["ねえねえ、あそぼ？","およぐの しょうぶ、まってるよ","いっしょに あそびたいな","あそんで くれる？ まってるよ","ひまひまー、あそぼうよ","ねえ、あそぼうよー","ひまー、かまってー","いっしょに およごう？","あそぶ じゅんび できてるよ","ねえねえ、こっち こっち"],
+playTired:["つかれてる… ごめん","ねむいから また あとで","はあはあ… ちょっと やすみたい","げんきが たまったら あそぼ","はあ… ちょっと つかれた","やすんでから あそぼ","ねむくなってきちゃった","げんき チャージ中…"],
+sleep:["おやすみ… いい ゆめ みる","ねむねむ…","おやすみなさい…","すやすや…","おやすみ… すやすや","ねむい… おやすみなさい","いい ゆめ みられますように…","おふとん… じゃなくて みずの なかで ねるね"],
+sleepTalk:["ん… あかむし…","すいすい…","まって… おいてかないで…","えへへ…","んん… えび…","ん… だいすき…","ん… もぐもぐ…","すいすい… たのしい…","ん… ありがとう…","んん… あわ…","もっと… およぐ…","しあわせ… えへへ…"],
+wake:["おはよう。いい ゆめ みた","よく ねたー","んー、のびーっ","おはよう！ あさだね","おはよう！ よく ねむれた","んー、よく ねた","おはよう。きょうも よろしく","あさだ！ のびーっ"],
+wakeNight:["んん… まだ よる…？","ねむい… もう すこし ねかせて…","まっくら… ねむねむ…","…まだ ねむいよお","ん… まだ まっくら…","ねむい… もう ひとねむり…","よるの 途中で 目が さめた…","まだ ねむいよ… すやすや"],
+morning:["おはよう！ いい あさだね","あさの みず、きもちいい","おはよう！ きょうも よろしくね","あさごはん、まだかな","あさは げんき いっぱい！","おひさま、おはよう","あさの ひかり、まぶしい","おはよう！ あさごはん たのしみ","あさは エラが げんき","いい あさだね","あさの みずは すっきり する","きょうは どんな ひに なるかな"],
+day:["おひるの みずは あったかい","ひるまは よく およげるね","おひさま きらきら、いい きぶん","ひるごはんの あとは ねむいな","まっひるまって あかるいね","きょうの ひるは のんびりだね","おひるは のんびり およごう","ひるの ひかりは あったかいね","まっひるま、げんき いっぱい","おひさま パワー すごい","ひるごはん、おいしかったな","ひるまの みずは キラキラ"],
+evening:["ゆうがたって おちつくね","そらが オレンジに なってきた","きょうも たのしかったなあ","ゆうひが みずに ゆれてる","そろそろ おちつく じかんだね","きょうの しめくくりは ゆったり","ゆうやけ、きれいだね","きょうも おつかれさま","ゆうがたは おちつく じかん","そらが ゆっくり くらくなる","ゆうごはんの じかん まだかな","きょうの おもいで、たくさん"],
+night:["よるは しずかで すき","ほしが みえるかな","ねむい…","よるの みずは ひんやり するね","まっくらって おちつくね","おやすみなさい、また あした","よるの しずけさ、すきだな","おほしさまに おやすみ","よるは ゆめの じゅんび","まっくらでも こわくないよ","よるの みずは しーんと してる","そろそろ ねむく なってきた"],
+lonely:["さみしい… かまって","おいてかないで ほしいな","…げんき ないの","ずっと まってたんだよ","さみしくて ないちゃいそう","さみしいな… だれか いて","まちぼうけ、さみしい…","こえが ききたいな…","ひとりは つまんない…","さみしくて エラが しぼむ…"],
+sulk:["ぷいっ。しらない","…すねてるの、わかる？","ふーん、どうせ @なんて","もう しらない… ほんとは さみしいけど","ぷいっ。…ちょっとだけ こっち みてる","ふん、しらないもん","…こっち みないで","すねてるんだからね","ぷいっ。…でも さみしい","もう かまって くれないと おもった"],
+reconcile:["…ほんとは うれしい","なかなおり、しよっか","…ありがとう、ゆるす","こんどは おいてかないでね","…うん、なかなおり","ほんとは まってたんだ","ゆるすけど、こんどは 早く きてね","…ありがとう。もう おこってない"],
+boot:["おはよう！ まってたよ","あ、きた！ うれしい","きょうも よろしくね","まってた まってた！","きてくれて ありがとう","あ、きてくれた！ うれしい","おかえり！ まってたよ","きてくれた！ わーい","まってたんだよ、ほんとに","あえた！ きょうも よろしくね"],
+approach:["あ、だれか きた！","おかえり！","きづいて くれた？","わーい、きた！","ちかくに きた、うれしい","わ、きたきた！","だれか 近づいてる… わーい！","気配が した！ おかえり","ちかづいて くれて うれしい","わーい、こっち こっち！"],
+camMotion:["だれかいる？","ん？ いま うごいた！","わっ！ なにか うごいた","あ、だれか？ こっち こっち！","きづいたよ！ うごいたの みえた","びくっ！ …だれか いる？","なになに？ いまの うごき","こっちで うごいた！ きになる","あ！ うごいた うごいた！","だれか きた？ わーい！"],
+dirty:["みずが よごれてる…","すいそう、そうじ してほしいな","みずが にごってて きもちわるい","みず、かえてほしいな…","にごった みずは つらいよ","みずが にごってる… きもちわるい","すいそうの そうじ、おねがい…","みずが くさい きがする…","にごった みず、およぎにくいよ","みず、はやく かえてほしいな"],
+cleaned:["みずが きれい！ きもちいい","ぴかぴか！ ありがとう","きれいな みず、さいこう！","すいすいが はかどる！","そうじ ありがとう","わあ、みずが すんでる！","きれい！ およぎやすい！","ぴっかぴか、ありがとう","きれいな みずは きもちいいなあ","そうじ してくれて ありがとう"],
+sick:["ぐあい わるい…","からだが おもい…","へいき、へいき… たぶん","あたまが ぼーっと する…","はやく よくなりたいな","からだが だるい…","エラが いたい きがする…","げんきが でない…","ぼーっと しちゃう…","はやく 元気に なりたい…"],
+recover:["すこし よくなった","もう だいじょうぶそう","げんきが もどってきた！","なおって よかった…","げんきに なってきた！","からだが かるくなった","もう 大丈夫、ありがとう","よくなって うれしい"],
+danger:["たすけて… このままだと…","がんばってるけど、つらい","だれか… たすけて…","もう がまん できないかも…","もう がんばれないかも…","つらい… たすけて…","からだが… うごかない…","そばに いて…"],
+grow:["からだが おおきく なった きがする！","せいちょう したよ、みてみて","おおきく なった！ みて みて！","せが のびた きがする","おおきく なった でしょ！","せいちょう期 かな？ ぐんぐん！","からだが ひとまわり 大きく！","みて、こんなに 大きく なった"]
+};
+/* 直近に出たセリフの重複回避 */
+let recentLines = [];
+function pickFresh(pool){
+  const fresh = pool.filter(t=>!recentLines.includes(t));
+  const t = rnd(fresh.length ? fresh : pool);
+  recentLines.push(t); if(recentLines.length>10) recentLines.shift();
+  return fillVars(t);
+}
+
+/* ---------- 状態 ---------- */
+let S = null, memories = [], eggTaps = 0;
+let lastPetAt = 0; // 最後に撫でる反応が起きた実時間（Date.now()）。撫でるクールダウン（現実時間15秒）の起点として保存する
+const PET_COOLDOWN_MS = 15*1000;
+let lastInteractAt = 0; // 最後にユーザーが操作した実時間（Date.now()）。24時間ルールの起点
+let lastDecayAt = 0; // おなか・水の実時間減衰を最後に適用した実時間（Date.now()）。閉じている間の減衰も次回起動時に差分で反映する
+let screen = "egg"; // egg | main | dead
+let voiceOn = true;
+let lastTick = Date.now(), hourAcc = 0;
+let sulkHours = 0, zeroHealthHours = 0, neglectHours = 0, wasSick = false;
+let pos = {x:160, y:82}, target = {x:160, y:82}, frontBoostUntil = 0;
+let faceDir = 1; // 泳ぐ向き（1=右向き／-1=左向き）。止まっている間は最後の向きを保つ
+let tempAnim = null, tempAnimUntil = 0, animQueue = [];
+let inviteUntil = 0;
+/* 日常の仕草の表示窓（ACTION_DEFS の when が参照する）。
+   日常スケジューラ（idleVarietyTick）と世話の直後が、状況に応じて
+   この時刻まで各仕草を出す。窓が閉じている間は泳ぐ（swim）が基本になる */
+let danceUntil = 0, happyUntil = 0, curiousUntil = 0, wantplayUntil = 0;
+let nextIdleAt = 0; // 次に日常の仕草を試してよい時刻（仕草と仕草の間は泳ぐ）
+
+function rnd(a){ return a[Math.floor(Math.random()*a.length)]; }
+function clamp(v){ return Math.max(0, Math.min(100, v)); }
+function fillVars(t){ if(!S) return t; return t.replaceAll("@", S.name).replaceAll("#", S.personality.food); }
+function pick(pool){ return pickFresh(pool); }
+function period(){ if(!S) return "day"; const h=S.hour; if(h>=6&&h<10) return "morning"; if(h>=10&&h<17) return "day"; if(h>=17&&h<21) return "evening"; return "night"; }
+function log(msg){ try{ const el=document.getElementById("log"); const d=document.createElement("div"); d.textContent=msg; el.prepend(d); while(el.children.length>14) el.lastChild.remove(); }catch(e){} }
+
+/* ---------- 保存 ---------- */
+let storageOK = true;
+function saveLocal(){ if(!storageOK) return; try{ localStorage.setItem(CONFIG.SAVE_KEY, JSON.stringify({S, memories, eggTaps, lastInteractAt, lastDecayAt, lastPetAt})); }catch(e){ storageOK=false; } }
+/* 保存は2段構え: まず端末内（ローカル）に書き、共有モードなら Firestore への
+   送信も予約する（デバウンス。実装は下の「家族共有」セクション） */
+function save(){ saveLocal(); if(shareMode==="shared" && !applyingRemote) scheduleShareSave(); }
+function load(){ try{ const raw=localStorage.getItem(CONFIG.SAVE_KEY); if(!raw) return false; const d=JSON.parse(raw); S=d.S; memories=d.memories||[]; eggTaps=d.eggTaps||0; lastInteractAt=d.lastInteractAt||0; lastDecayAt=d.lastDecayAt||0; lastPetAt=d.lastPetAt||0; return true; }catch(e){ storageOK=false; return false; } }
+/* ユーザーの操作があったことを記録する（実時間24時間ルールの起点を更新） */
+function touch(){ lastInteractAt = Date.now(); if(S) save(); }
+/* 実時間チェック: 孵化後の生存中のみ。最後の操作から24時間経っていたら死亡 */
+function checkNeglectDeath(){
+  if(screen!=="main" || !S) return false;
+  if(lastInteractAt && Date.now() - lastInteractAt >= CONFIG.NEGLECT_DEATH_MS){ die("neglect"); return true; }
+  return false;
+}
+/* おなか・水の減衰は実時間（現実の時計）: 満タン100から現実の4時間で0（-25/実時間1時間）。
+   速度セレクタの影響を受けない。ページを閉じている間も進むよう、実時間タイムスタンプ
+   （lastDecayAt）との差分で適用する。昼夜・げんき・成長など他はゲーム内時間のまま。 */
+let lastShownBW = "";
+function applyRealDecay(){
+  if(!S) return;
+  const now = Date.now();
+  if(!lastDecayAt){ lastDecayAt = now; return; }
+  const elapsedH = (now - lastDecayAt) / 3600000; // 実時間（時間単位）
+  if(elapsedH <= 0) return;
+  lastDecayAt = now;
+  S.stats.belly = clamp(S.stats.belly - CONFIG.DECAY.belly * elapsedH);
+  S.stats.water = clamp(S.stats.water - CONFIG.DECAY.water * elapsedH); // 汚れの発生源その1: 時間経過。その2は餌やり（doFeed の waterCost）のみ
+  const bw = Math.round(S.stats.belly) + "/" + Math.round(S.stats.water);
+  if(bw !== lastShownBW){ lastShownBW = bw; renderStats(); syncMoss(); }
+}
+
+/* ============================================================
+声タイプ — 誕生時にランダム抽選され、その子の声は一生そのタイプ。
+全てオシレーター合成のみ（実機再現可能な範囲）。個体の基本ピッチ
+（280〜720Hz）・速度（9〜16文字/秒）とタイプの倍率を合成して発声する。
+jitter=1文字ごとのピッチ変化量（±割合）／vib=ビブラート／
+fifth=基音に5度上を薄く重ねる割合／kasure=時々音量が落ちる確率／
+quantize=音程を階段状のステップに固定（ロボ）
+============================================================ */
+const VOICE_TYPES = [
+ {id:"normal",   name:"ふつう",   wave:"sine",     pitchMul:1.00, speedMul:1.00, jitter:0.10, vibDepth:0,    vibRate:0,   fifth:0,    kasure:0,    vol:1.00, lenMul:1.00},
+ {id:"chiro",    name:"チロチロ", wave:"sine",     pitchMul:1.32, speedMul:1.15, jitter:0.32, vibDepth:0,    vibRate:0,   fifth:0,    kasure:0,    vol:1.00, lenMul:0.85},
+ {id:"boso",     name:"ボソボソ", wave:"sine",     pitchMul:0.60, speedMul:0.90, jitter:0.03, vibDepth:0,    vibRate:0,   fifth:0,    kasure:0,    vol:0.82, lenMul:1.00},
+ {id:"hayakuchi",name:"はやくち", wave:"triangle", pitchMul:1.18, speedMul:1.70, jitter:0.12, vibDepth:0,    vibRate:0,   fifth:0,    kasure:0,    vol:1.00, lenMul:0.80},
+ {id:"nonbiri",  name:"のんびり", wave:"sine",     pitchMul:0.90, speedMul:0.60, jitter:0.20, vibDepth:0.05, vibRate:2.0, fifth:0,    kasure:0,    vol:1.00, lenMul:1.15},
+ {id:"robo",     name:"ロボ",     wave:"square",   pitchMul:1.00, speedMul:1.00, jitter:0,    vibDepth:0,    vibRate:0,   fifth:0,    kasure:0,    vol:0.72, lenMul:0.90, quantize:true},
+ {id:"hanagoe",  name:"はなごえ", wave:"triangle", pitchMul:1.05, speedMul:1.00, jitter:0.08, vibDepth:0.07, vibRate:5.5, fifth:0.30, kasure:0,    vol:1.00, lenMul:1.00},
+ {id:"sasayaki", name:"ささやき", wave:"sine",     pitchMul:1.12, speedMul:1.30, jitter:0.35, vibDepth:0,    vibRate:0,   fifth:0,    kasure:0,    vol:0.40, lenMul:0.80},
+ {id:"ojii",     name:"おじい",   wave:"sine",     pitchMul:0.55, speedMul:0.60, jitter:0.25, vibDepth:0.10, vibRate:2.8, fifth:0,    kasure:0.35, vol:1.00, lenMul:1.20},
+ {id:"baby",     name:"あかちゃん",wave:"sine",    pitchMul:1.55, speedMul:1.10, jitter:0.28, vibDepth:0.04, vibRate:6.0, fifth:0,    kasure:0,    vol:1.00, lenMul:0.55}
+];
+function voiceTypeOf(v){ if(!v) return VOICE_TYPES[0]; for(const t of VOICE_TYPES){ if(t.id===v.type) return t; } return VOICE_TYPES[0]; }
+
+/* ============================================================
+音声 — iOS Safari対策:
+AudioContextは「最初のユーザー操作（タップ/クリック）」で生成・resumeする。
+以降の全ての発声（自動の独り言・寝言含む）はその context を再利用し、
+毎回の操作でも resume を試みる。全て例外ガード付き（失敗しても画面は止まらない）。
+============================================================ */
+let AC = null, masterGain = null;
+function ensureAudio(){
+  try{
+    if(!voiceOn) return;
+    // iOS 17+: オーディオセッションを再生用にして サイレントスイッチの影響を避ける
+    if(window.navigator && navigator.audioSession){ try{ navigator.audioSession.type = "playback"; }catch(e){} }
+    if(!AC){
+      const Ctor = window.AudioContext || window.webkitAudioContext; if(!Ctor) return;
+      AC = new Ctor();
+      masterGain = AC.createGain(); masterGain.gain.value = 0.9; masterGain.connect(AC.destination);
+    }
+    if(AC.state !== "running"){ const p = AC.resume(); if(p && p.catch) p.catch(function(){}); }
+    // iOS Safariの解放: 無音バッファを1回鳴らして context を確実に動かす
+    try{
+      const buf = AC.createBuffer(1, 1, AC.sampleRate);
+      const src = AC.createBufferSource(); src.buffer = buf; src.connect(masterGain); src.start(0);
+    }catch(e){}
+    if(AC.state === "running"){ const el=document.getElementById("audioState"); if(el) el.textContent = "音声：準備OK"; }
+  }catch(e){ /* 音が出なくても育成は続ける */ }
+}
+/* ---------- 無操作時の現在時刻表示（水槽の真ん中） ----------
+   常時表示ではない: タップ（操作）が5秒間無いと実際の現在時刻を水槽の真ん中に
+   大きく自動表示し、どこかへのタップで消える。消えた後も5秒無操作で再表示する。
+   見た目は1種に固定（タップで切り替わったりしない）。 */
+let idleClockTimer = null, idleClockTick = null;
+function fmtClock(){
+  const d = new Date();
+  return String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0");
+}
+function startClockTick(){
+  const el = document.getElementById("idleClock"); if(!el) return;
+  if(idleClockTick) clearInterval(idleClockTick);
+  idleClockTick = setInterval(()=>{ el.textContent = fmtClock(); }, 1000); // 毎秒チェックして分の切り替わりに追従
+}
+function hideIdleClock(){
+  const el = document.getElementById("idleClock"); if(el) el.classList.remove("show");
+  if(idleClockTick){ clearInterval(idleClockTick); idleClockTick = null; }
+}
+function showIdleClock(){
+  const el = document.getElementById("idleClock"); if(!el) return;
+  el.textContent = fmtClock(); el.classList.add("show");
+  startClockTick();
+}
+function armIdleClock(){
+  hideIdleClock();
+  if(idleClockTimer) clearTimeout(idleClockTimer);
+  idleClockTimer = setTimeout(showIdleClock, 5000);
+}
+/* 時計へのタップは時計自身のハンドラが扱う（タップ=消える／ドラッグ=移動。
+   下の「時計のドラッグ移動」セクション参照） */
+document.addEventListener("pointerdown", armIdleClock, {passive:true});
+document.addEventListener("pointermove", (e)=>{ if(e.buttons > 0 && !(e.target && e.target.id==="idleClock")) armIdleClock(); }, {passive:true}); // ドラッグ操作中も「操作あり」として数える（時計自体のドラッグは除く）
+armIdleClock();
+/* ---------- 時計のドラッグ移動 ----------
+   表示中の時計はドラッグで好きな位置へ動かせる。位置は画面に対する割合で
+   端末に覚える（次回も同じ場所に出る。端末ごとの表示設定なので共有データには
+   含めない）。ドラッグは「タップ」として扱わない: 時計への pointerdown は
+   document 側のハンドラ（タップで時計を消す等）へ伝えない。ドラッグせず
+   普通にタップした時だけ、今まで通り時計が消える */
+const CLOCK_POS_KEY = "upapet_clock_pos";
+let clockPos = null;
+try{ const rawC = localStorage.getItem(CLOCK_POS_KEY); if(rawC){ const pc = JSON.parse(rawC); if(pc && isFinite(pc.x) && isFinite(pc.y)) clockPos = {x:pc.x, y:pc.y}; } }catch(e){}
+(function(){
+  const el = document.getElementById("idleClock"); if(!el) return;
+  if(clockPos){ el.style.left = (clockPos.x*100) + "%"; el.style.top = (clockPos.y*100) + "%"; }
+  let drag = null;
+  function hideClockLater(){ if(idleClockTimer) clearTimeout(idleClockTimer); idleClockTimer = setTimeout(hideIdleClock, 5000); }
+  el.addEventListener("pointerdown", (e)=>{
+    if(!el.classList.contains("show")) return;
+    e.stopPropagation(); // タップ扱いにしない（document の armIdleClock 等へ伝えない）
+    ensureAudio();
+    drag = { id: e.pointerId, sx: e.clientX, sy: e.clientY, moved: false };
+    try{ el.setPointerCapture(e.pointerId); }catch(err){}
+  });
+  el.addEventListener("pointermove", (e)=>{
+    if(!drag || e.pointerId !== drag.id) return;
+    if(Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) > 6) drag.moved = true;
+    if(!drag.moved) return;
+    const dev = document.getElementById("device").getBoundingClientRect();
+    const x = Math.max(0.08, Math.min(0.92, (e.clientX - dev.left) / Math.max(1, dev.width)));
+    const y = Math.max(0.06, Math.min(0.94, (e.clientY - dev.top) / Math.max(1, dev.height)));
+    clockPos = {x:x, y:y};
+    el.style.left = (x*100) + "%"; el.style.top = (y*100) + "%";
+  });
+  const endDrag = (e)=>{
+    if(!drag || e.pointerId !== drag.id) return;
+    const wasDrag = drag.moved; drag = null;
+    if(wasDrag){ // ドラッグで動かした: 位置を覚え、時計は出したまま 5秒後に消す
+      try{ localStorage.setItem(CLOCK_POS_KEY, JSON.stringify(clockPos)); }catch(err){}
+      hideClockLater();
+    } else {
+      armIdleClock(); // 普通のタップ: 今まで通り時計が消える（5秒無操作で再表示）
+    }
+  };
+  el.addEventListener("pointerup", endDrag);
+  el.addEventListener("pointercancel", endDrag);
+})();
+document.addEventListener("pointerdown", ensureAudio, {passive:true});
+document.addEventListener("touchstart", ensureAudio, {passive:true});
+document.addEventListener("touchend", ensureAudio, {passive:true});
+document.addEventListener("click", ensureAudio, {passive:true});
+document.addEventListener("visibilitychange", ()=>{ if(!document.hidden){ ensureAudio(); applyRealDecay(); checkNeglectDeath(); } });
+function blip(freq, dur, type, vol, when){
+  if(!voiceOn) return;
+  try{
+    if(!AC || AC.state !== "running") return; // 未初期化時は無音（例外にしない）
+    const t = AC.currentTime + (when||0);
+    const o = AC.createOscillator(), g = AC.createGain();
+    o.type = type||"sine"; o.frequency.value = freq;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(vol||0.16, t+0.012);
+    g.gain.exponentialRampToValueAtTime(0.001, t+dur);
+    o.connect(g); g.connect(masterGain || AC.destination); o.start(t); o.stop(t+dur+0.05);
+  }catch(e){}
+}
+/* 声専用の発声: 声タイプのビブラートと「はなごえ」の5度重ねに対応 */
+function voiceBlip(freq, dur, vt, vol){
+  if(!voiceOn) return;
+  try{
+    if(!AC || AC.state !== "running") return;
+    const t = AC.currentTime, dest = masterGain || AC.destination;
+    const g = AC.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(vol, t+0.012);
+    g.gain.exponentialRampToValueAtTime(0.001, t+dur);
+    g.connect(dest);
+    const o = AC.createOscillator();
+    o.type = vt.wave; o.frequency.value = freq;
+    o.connect(g); o.start(t); o.stop(t+dur+0.05);
+    if(vt.vibDepth > 0 && vt.vibRate > 0){ // ビブラート（LFOで周波数を揺らす）
+      const lfo = AC.createOscillator(), lg = AC.createGain();
+      lfo.frequency.value = vt.vibRate; lg.gain.value = freq * vt.vibDepth;
+      lfo.connect(lg); lg.connect(o.frequency);
+      lfo.start(t); lfo.stop(t+dur+0.05);
+    }
+    if(vt.fifth > 0){ // 基音＋5度上を薄く重ねる（鼻にかかった二重音程）
+      const o2 = AC.createOscillator(), g2 = AC.createGain();
+      o2.type = vt.wave; o2.frequency.value = freq*1.5;
+      g2.gain.setValueAtTime(0.0001, t);
+      g2.gain.linearRampToValueAtTime(vol*vt.fifth, t+0.012);
+      g2.gain.exponentialRampToValueAtTime(0.001, t+dur);
+      o2.connect(g2); g2.connect(dest); o2.start(t); o2.stop(t+dur+0.05);
+    }
+  }catch(e){}
+}
+function sfx(kind){
+  try{
+    if(kind==="pet"){ blip(660,.09,"sine",.14,0); blip(880,.12,"sine",.14,.09); }
+    else if(kind==="feed"){ blip(180,.12,"triangle",.22,0); blip(150,.12,"triangle",.22,.14); blip(200,.1,"triangle",.2,.28); }
+    else if(kind==="clean"){ [880,1100,1320,1760].forEach((f,i)=>blip(f,.1,"sine",.12,i*.07)); }
+    else if(kind==="fanfare"){ [523,659,784,1046].forEach((f,i)=>blip(f,.16,"triangle",.18,i*.11)); }
+    else if(kind==="bad"){ blip(420,.25,"sine",.16,0); blip(300,.35,"sine",.16,.22); }
+    else if(kind==="play"){ blip(740,.08,"square",.06,0); blip(990,.08,"square",.06,.08); blip(740,.08,"square",.06,.16); }
+    else if(kind==="heaven"){ [784,988,1175,1568].forEach((f,i)=>blip(f,.9,"sine",.16,i*.22)); blip(392,1.6,"sine",.07,0); blip(523,1.6,"sine",.07,.1); }
+  }catch(e){}
+}
+
+/* ---------- セリフ: 1行タイプライター＋横スクロール（声と同期） ---------- */
+let typeTimer = null, clearTimer = null;
+function say(text, opts){
+  opts = opts||{};
+  const view = document.getElementById("speechView"), el = document.getElementById("speechText");
+  document.getElementById("speechName").textContent = S ? S.name : "たまご";
+  if(typeTimer) clearInterval(typeTimer);
+  if(clearTimer) clearTimeout(clearTimer);
+  const sleepy = !!opts.sleepy;
+  const vt = (S && S.voice) ? voiceTypeOf(S.voice) : VOICE_TYPES[0];
+  const baseCps = (S && S.voice) ? S.voice.cps * vt.speedMul : 10;
+  const cps = sleepy ? Math.max(3, baseCps*0.5) : baseCps;
+  const stepMs = 1000/cps;
+  let i = 0; el.textContent = ""; el.style.opacity = 1; el.style.transform = "translateX(0px)";
+  typeTimer = setInterval(()=>{
+    try{
+      if(i >= text.length){
+        clearInterval(typeTimer); typeTimer = null;
+        clearTimer = setTimeout(()=>{ el.style.opacity = 0; setTimeout(()=>{ el.textContent=""; }, 500); }, 3800); // 言い終わりは数秒留まる
+        return;
+      }
+      const ch = text[i]; i++;
+      el.textContent = text.slice(0, i);
+      // 今喋っている文字が見える位置へスクロール
+      const overflow = el.scrollWidth - view.clientWidth;
+      el.style.transform = overflow > 0 ? "translateX(" + (-overflow) + "px)" : "translateX(0px)";
+      if(ch===" "||ch==="　"||!S || !S.voice) return;
+      let mul;
+      if(vt.quantize){ const steps=[0.84,1,1.19,1.41]; mul = steps[Math.floor(Math.random()*steps.length)]; } // ロボ: 音程は階段状
+      else mul = 1 + (Math.random()*2-1) * vt.jitter; // 1文字ごとのピッチ変化（タイプで幅が違う）
+      const f = S.voice.pitch * vt.pitchMul * mul * (sleepy?0.8:1);
+      let vol = (sleepy?0.10:0.22) * vt.vol;
+      if(vt.kasure && Math.random() < vt.kasure) vol *= 0.3; // おじいの かすれ（時々 音量が落ちる）
+      voiceBlip(f, Math.min(0.11, stepMs/1000*1.4) * vt.lenMul, vt, vol);
+    }catch(e){ clearInterval(typeTimer); typeTimer=null; }
+  }, stepMs);
+}
+
+/* ---------- セリフ選択（固定プールから抽選、時間帯で傾向付け） ---------- */
+/* 特定の相手向け／相手を褒めるセリフ群（旧 LINES.praise）は完全廃止済み:
+   プール自体を削除し、選出対象から外した。今後一切出ない */
+function talkNormal(){
+  const r = Math.random(), per = period();
+  if(S.sick) return say(pick(LINES.sick));
+  if(S.stats.health < CONFIG.HEALTH.dangerUnder) return say(pick(LINES.danger));
+  if(S.stats.water < 35) return say(pick(LINES.dirty));
+  if(S.stats.belly < 25) return say(pick(LINES.personality[S.personality.name].concat(["はらぺこ…"])));
+  if(per==="morning" && r < 0.30) return say(pick(LINES.morning));
+  if(per==="day" && r < 0.22) return say(pick(LINES.day));
+  if(per==="evening" && r < 0.30) return say(pick(LINES.evening));
+  if(per==="night" && r < 0.38) return say(pick(LINES.night));
+  if(r < 0.24) return say(pick(LINES.personality[S.personality.name]));
+  return say(pick(LINES.generic));
+}
+
+/* ---------- アニメーション状態（エンジン本体: 登録テーブル ACTION_DEFS を参照する） ---------- */
+/* 一時アクションの再生。新しい仕草を出す時は playAction("アクションid", ミリ秒) を呼ぶだけ */
+function playAction(id, durMs){
+  const a = ACTION_BY_ID[id];
+  if(!a) return; // 未登録のidは何もしない（追加は ACTION_DEFS への登録だけでよい）
+  tempAnim = a.set; tempAnimUntil = Date.now() + durMs;
+}
+function setTempAnim(set, durMs){ playAction(set, durMs); } // 従来名の互換（id=set名で登録済み）
+function approachAnim(){ // 寄ってくる: 興味津々 → 喜ぶ
+  setTempAnim("curious", 1100);
+  animQueue = [{set:"happy", at:Date.now()+1100, dur:1900}];
+  target = {x:160, y:86}; frontBoostUntil = Date.now()+3000;
+}
+/* 状況連動アクションのうち、条件を満たす最も優先度の高いものを返す */
+function bestStateAction(){
+  let best = null;
+  for(const a of ACTION_DEFS){
+    if(a.kind!=="state" || !a.when) continue;
+    let ok = false;
+    try{ ok = !!a.when(); }catch(e){}
+    if(ok && (!best || (a.priority||0) > (best.priority||0))) best = a;
+  }
+  return best;
+}
+function currentAnimSet(){
+  const now = Date.now();
+  if(animQueue.length && now >= animQueue[0].at){ const q = animQueue.shift(); tempAnim = q.set; tempAnimUntil = now + q.dur; }
+  if(!S) return "swim";
+  const st = bestStateAction();
+  if(st && (st.priority||0) >= 100) return st.set; // 睡眠は一時アクションより優先（従来通り）
+  if(tempAnim && now < tempAnimUntil) return tempAnim;
+  return st ? st.set : "swim";
+}
+/* ---------- 日常の仕草スケジューラ ----------
+   泳ぐだけにならないよう、普段の様子に合わせて数秒〜十数秒おきに
+   短い仕草の窓（〜Until）を開く。表示の振り分け自体は ACTION_DEFS の
+   when／priority が担うので、ここは「いまの状況なら どの仕草が自然か」を
+   選んで窓を開けるだけ。寝ている・拗ねている・病気の時は出さない
+   （その間は sleep／sulk／angry／cry が優先度で勝つ） */
+function idleVarietyTick(){
+  try{
+    if(screen!=="main" || !S || S.sleeping || S.sulking || S.sick) return;
+    if(typeof mode!=="undefined" && mode==="play") return;
+    const now = Date.now();
+    if(tempAnim && now < tempAnimUntil) return; // イベント反応（食べる・寄ってくる等）の最中は邪魔しない
+    if(now < Math.max(danceUntil, happyUntil, curiousUntil, wantplayUntil, inviteUntil)) return; // 仕草の表示中
+    if(!nextIdleAt) nextIdleAt = now + 3500; // 開いて少ししたら最初の仕草が出る
+    if(now < nextIdleAt) return;
+    const st = S.stats, per = period();
+    // 夜は落ち着かせる（仕草の頻度を下げる）。それ以外は高めの確率で何かする
+    const chance = per==="night" ? 0.35 : per==="evening" ? 0.55 : 0.78;
+    if(Math.random() > chance){ nextIdleAt = now + 3000 + Math.random()*3000; return; }
+    let wDance = 0, wHappy = 0, wCurious = 0, wWant = 0;
+    if(st.mood >= 75 && st.energy >= 35){ wDance = 34; wHappy = 26; } // きげんが良い時は時々踊る・喜ぶ
+    else if(st.mood >= 60){ wDance = 12; wHappy = 22; }
+    else if(st.mood >= 45){ wHappy = 10; }
+    if(st.belly >= 70 && st.mood >= 50) wHappy += 26; // 満腹で満足したら喜ぶ
+    if(st.belly < 35){ wWant += 30; wCurious += 8; } // 空腹のアピールは泣かず「遊んでほしい」で代用
+    if(st.mood < 55) wWant += 18; // かまってほしい時も「遊んでほしい」
+    if(per==="morning" || per==="day") wCurious += 26; // 日中は何かに興味津々になりやすい
+    else if(per==="evening"){ wCurious += 12; wHappy += 8; }
+    else wCurious += 8;
+    if(st.energy < 30){ wDance = 0; wHappy = Math.min(wHappy, 8); } // 疲れている時は踊らない
+    if(wDance + wHappy + wCurious + wWant <= 0) wCurious = 20;
+    let r = Math.random() * (wDance + wHappy + wCurious + wWant), dur = 2800;
+    if((r -= wDance) < 0){ dur = 3200; danceUntil = now + dur; }
+    else if((r -= wHappy) < 0){ dur = 2800; happyUntil = now + dur; }
+    else if((r -= wWant) < 0){ dur = 3200; wantplayUntil = now + dur; }
+    else { dur = 2800; curiousUntil = now + dur; }
+    nextIdleAt = now + dur + 5000 + Math.random()*7000; // 仕草の合間は泳いで過ごす
+  }catch(e){}
+}
+setInterval(idleVarietyTick, 1000);
+let frameIdx = 0, animTick = 0, hopUntil = 0;
+function hopChar(){ hopUntil = Date.now() + 550; } // 小さく1回跳ねる（びっくり反応用）
+const charEl = document.getElementById("char");
+setInterval(()=>{ // 約7fps
+  try{
+    if(screen!=="main" || !S) return;
+    animTick++;
+    const set = currentAnimSet();
+    const aDef = ACTION_BY_ID[set]; // 登録テーブル参照: コマ数・速度・ループは定義に従う
+    const nF = aDef ? (aDef.frames || 4) : 4;
+    const fpsStep = aDef && aDef.fps ? Math.max(1, Math.round(7 / aDef.fps)) : 1;
+    if(animTick % fpsStep === 0){
+      frameIdx = (aDef && aDef.loop === false) ? Math.min(frameIdx+1, nF-1) : (frameIdx+1) % nF;
+    }
+    const setFrames = framesFor(S.species||"sakura")[set];
+    const im = setFrames ? setFrames[frameIdx % nF] : null;
+    if(im && im.src && charEl.getAttribute("src") !== im.src) charEl.src = im.src;
+    // 拗ねている時は後ろ向き。flip:true のアクションは移動方向（faceDir）に合わせて左右反転する
+    const flipSign = (S.sulking ? -1 : 1) * ((aDef && aDef.flip) ? faceDir : 1);
+    charEl.style.transform = "translate(-50%,-50%) scaleX(" + flipSign + ")";
+    charEl.style.filter = charFilter();
+    const g = growth();
+    const base = (CONFIG.CHAR_W[g.key] || 148) * (S.sizeMul||1);
+    let w = base * (Date.now() < frontBoostUntil ? 1.12 : 1);
+    // 脚長など縦に長い種族は、水槽の高さに収まるよう幅を抑える
+    if(im && im.naturalWidth && w * im.naturalHeight / im.naturalWidth > 150) w = 150 * im.naturalWidth / im.naturalHeight;
+    charEl.style.width = (w/320*100) + "%";
+    charEl.style.left = (pos.x/320*100) + "%";
+    // びっくり反応などの小さな跳ね（hopUntil までの間だけ上に跳ぶ）
+    let hopOff = 0;
+    if(hopUntil && Date.now() < hopUntil){ const hp = 1 - (hopUntil - Date.now())/550; hopOff = -Math.sin(hp*Math.PI)*15; }
+    charEl.style.top = ((pos.y + hopOff)/156*100) + "%";
+    const z = document.getElementById("zzz");
+    z.style.display = S.sleeping ? "block" : "none";
+    if(S.sleeping){ z.style.left = ((pos.x+52)/320*100)+"%"; z.style.top = ((pos.y-52)/156*100)+"%"; }
+  }catch(e){}
+}, 143);
+
+/* ============================================================
+水槽の背景 — 画像は使わず、水色のベタ塗り（単色）のみ。
+岩穴・水草などの背景要素は描かない。
+時間帯の表現は色味のオーバーレイ、水の汚れも茶色オーバーレイで表す。
+============================================================ */
+const tc = document.getElementById("tankCanvas"), tctx = tc.getContext("2d");
+const BG_TINT = { morning:"rgba(255,216,150,.10)", day:null, evening:"rgba(255,116,44,.20)", night:"rgba(8,18,58,.48)" };
+let frame = 0;
+function drawTank(){
+  requestAnimationFrame(drawTank);
+  frame++;
+  if(screen!=="main" || !S) return;
+  const per = period();
+  // ベタ塗り（単色の水色）
+  tctx.fillStyle = "#74c9de"; tctx.fillRect(0, 0, 320, 156);
+  // 時間帯の色味（色をのせるだけ）
+  const tint = BG_TINT[per];
+  if(tint){ tctx.fillStyle = tint; tctx.fillRect(0, 0, 320, 156); }
+  // 水の汚れ（清潔度に応じて段階的に強く濁らせる：茶→緑がかった濁り＋浮遊ゴミ）
+  // 表示用の汚れ具合 dispDirt は実値（1-water/100）へ毎フレーム少しずつ追随するので、
+  // 時間経過で清潔度が下がれば汚れは徐々に増え、掃除で上がれば徐々に減る（増減とも滑らか）。
+  const targetDirt = 1 - S.stats.water/100; // 0=澄んでいる … 1=真っ汚れ
+  if(dispDirt < 0) dispDirt = targetDirt;
+  dispDirt += (targetDirt - dispDirt) * 0.045;
+  if(Math.abs(targetDirt - dispDirt) < 0.0008) dispDirt = targetDirt;
+  const dirt = dispDirt;
+  // 苔キャンバスも表示用汚れに追随させる（掃除モード中だけは擦った跡を守るため再描画しない）
+  if((typeof mode==="undefined" || mode!=="clean")){
+    const wantBlobs = dirt <= 0.03 ? 0 : Math.round(dirt * 240);
+    if(wantBlobs !== lastMossBlobs) renderMoss(dirt);
+  }
+  if(dirt > 0.2){
+    const murk = Math.min(1, (dirt-0.2)/0.8); // 濁りの進み具合 0..1
+    const mR = Math.round(120 - 38*murk), mG = Math.round(98 - 6*murk), mB = Math.round(40 - 16*murk);
+    tctx.fillStyle = "rgba(" + mR + "," + mG + "," + mB + "," + (0.10 + murk*0.40).toFixed(3) + ")";
+    tctx.fillRect(0, 0, 320, 156);
+    if(murk > 0.35){ // かなり汚れたら緑がかった濁りを重ねる
+      tctx.fillStyle = "rgba(72,96,42," + ((murk-0.35)*0.32).toFixed(3) + ")";
+      tctx.fillRect(0, 0, 320, 156);
+    }
+    if(dirt > 0.55){ // 浮遊するゴミの粒（小さな矩形ドットがゆっくり漂う。量も表示用汚れに連動）
+      const n = Math.round((dirt - 0.55) * 90); // 汚れるほど多い（最大約40粒）
+      tctx.fillStyle = "rgba(66,54,26,.55)";
+      for(let i=0;i<n;i++){
+        const px = ((i*67 + Math.sin(frame/90 + i*1.7)*10) % 320 + 320) % 320;
+        const py = (i*37 + frame*0.12*(1 + (i%3)*0.35)) % 156;
+        const sz = (i%3===0) ? 3 : 2;
+        tctx.fillRect(px, py, sz, sz);
+      }
+    }
+  }
+  // 移動（時間帯で速さが変わる。あそぶモード中はダッシュで動き回る）
+  const speedF = per==="morning"?1.35 : per==="day"?1 : per==="evening"?0.6 : 0.4;
+  const playing = (typeof mode!=="undefined" && mode==="play" && !S.sleeping);
+  const hiding = playing && (typeof playKind!=="undefined" && playKind==="hide"); // かくれんぼ中は隠れ場所から動かない
+  if(hiding && typeof hideSpot!=="undefined" && hideSpot){
+    // かくれんぼ: 場所は固定し、「出す／隠れる」の切り替えだけを ゆっくり繰り返す。
+    // 出している時間は長めにして、タッチできるタイミングをしっかり作る
+    if(peekTimer > 0) peekTimer--;
+    if(peekTimer <= 0){
+      peekGoal = peekGoal > 0.5 ? 0 : 1;
+      peekTimer = peekGoal > 0.5 ? 110 + Math.random()*80 : 75 + Math.random()*65;
+    }
+    peekCur += (peekGoal - peekCur) * 0.045;
+    target = hideTargetPos();
+  }
+  const lerpF = (playing ? 0.085 : 0.028*speedF);
+  // 泳ぐ向き：目標が右にあれば右向き、左にあれば左向き。ほぼ到着したら今の向きを維持
+  if(target.x-pos.x > 6) faceDir = 1; else if(target.x-pos.x < -6) faceDir = -1;
+  pos.x += (target.x-pos.x)*lerpF + Math.sin(frame/40)*0.08*(playing?0.3:1);
+  pos.y += (target.y-pos.y)*lerpF + Math.sin(frame/46)*0.12*(S.sleeping?0.2:1);
+  if(playing && !hiding && Math.hypot(target.x-pos.x, target.y-pos.y) < 14){ target.x = 56+Math.random()*208; target.y = 52+Math.random()*64; }
+  if(!hiding && Math.random()<(playing?0.02:0.004*speedF) && Date.now()>=frontBoostUntil && !S.sleeping){ target.x = 70+Math.random()*180; target.y = 62+Math.random()*56; }
+}
+function growth(){ const days=S?S.days:1; let g=CONFIG.GROWTH[0]; for(const c of CONFIG.GROWTH){ if(S.pt>=c.pt && (!c.minDays||days>=c.minDays)) g=c; } return g; }
+/* ---------- 見た目の個体差（大きさのみ。色・形は種族シートで決まる） ---------- */
+function rollSize(){ const r = Math.random(); if(r < 0.25) return {name:"ちいさめ", mul:0.85}; if(r < 0.75) return {name:"ふつう", mul:1.0}; return {name:"おおきめ", mul:1.15}; }
+function charFilter(){
+  if(!S) return "";
+  return S.sick ? "saturate(.5) brightness(1.08)" : "";
+}
+function displayCm(){ const g = growth(); return Math.max(1, Math.round(g.cm * (S ? (S.sizeMul||1) : 1))); }
+function voiceDesc(){ const v=S.voice, vt=voiceTypeOf(v); const ep = v.pitch*vt.pitchMul; const pw = ep<420?"低め":ep<560?"ふつう":"高め"; const ec = v.cps*vt.speedMul; const sw = ec<11?"ゆっくり":ec<14?"ふつう":"はやい"; return vt.name+"・"+sw+"（ピッチ"+pw+"）"; }
+
+/* ---------- 卵（ヒビ6段階シートを切り分け、タップ回数＝段階番号で切替） ---------- */
+const EGG_IMGS = [0,1,2,3,4,5].map(i=>assetImg("assets/egg-"+i+".webp"));
+function drawEggStage(){
+  const stage = Math.min(eggTaps, 5); // 0=無傷 … 5=殻が開いてエラが覗く
+  document.getElementById("eggImg").src = EGG_IMGS[stage].src;
+  document.getElementById("eggCount").textContent = eggTaps>0 ? "あと " + (CONFIG.EGG_TAPS_TO_HATCH-eggTaps) + "回" : "あと " + CONFIG.EGG_TAPS_TO_HATCH + "回";
+  if(eggTaps>=5) document.getElementById("eggLine").textContent = "殻が 開いて エラが 見えた！ あと ひと押し…";
+  else if(eggTaps>0) document.getElementById("eggLine").textContent = "ひびが 入った！ もう少し…";
+}
+document.getElementById("eggWrap").addEventListener("pointerdown", ()=>{
+  if(screen!=="egg") return;
+  ensureAudio();
+  eggTaps++; const ef = 300+eggTaps*60; setTimeout(()=>blip(ef,.08,"triangle",.18,0), 60);
+  drawEggStage();
+  if(eggTaps >= CONFIG.EGG_TAPS_TO_HATCH) hatch(); else save();
+});
+
+/* ---------- 誕生 ---------- */
+function hatch(){
+  let name; do{ name = rnd(NAME_PRE)+rnd(NAME_SUF); }while(name==="もちもち");
+  const personality = rnd(PERSONALITIES);
+  const vtype = rnd(VOICE_TYPES);
+  const voice = { pitch: Math.round(280+Math.random()*440), cps: Math.round(9+Math.random()*7), wave: vtype.wave, type: vtype.id };
+  const species = rollSpecies(), size = rollSize();
+  S = { name, personality, voice,
+    species: species.id, speciesName: species.name,
+    sizeName: size.name, sizeMul: size.mul,
+    stats: { belly:75, mood:75, energy:85, water:90, health:95 },
+    pt:0, days:1, hour:8, careCount:0, sleeping:false, sick:false, sulking:false,
+    bornNote: new Date().toLocaleDateString("ja-JP") };
+  sulkHours=0; zeroHealthHours=0; neglectHours=0; wasSick=false; recentLines=[];
+  selectedFood = personality.food; mode = "normal";
+  pos={x:160,y:82}; target={x:160,y:82}; faceDir=1;
+  lastInteractAt = Date.now(); // 誕生の瞬間を 実時間24時間ルールの起点にする
+  lastDecayAt = Date.now(); // 誕生の瞬間を おなか・水の実時間減衰の起点にする
+  screen="main"; showScreen(); sfx("fanfare"); renderStats();
+  setTempAnim("dance", 3400); frontBoostUntil = Date.now()+3400;
+  say("うまれたよ！ " + name + "、" + personality.name + "。種族は " + species.name + "、大きさは " + size.name + "。声は " + vtype.name + "。すきなのは " + personality.food + "。よろしくね！");
+  log("🎂 " + name + " が うまれた（" + personality.name + "／種族：" + species.name + "／" + size.name + "／好きな餌：" + personality.food + "／声：" + voiceDesc() + "）");
+  save();
+}
+
+/* ---------- ゲーム内時間 ---------- */
+function gameHour(){
+  if(!S || screen==="dead") return;
+  S.hour++;
+  if(S.hour>=24){ S.hour=0; S.days++; log("🌅 " + S.days + "日目に なった"); }
+  const st = S.stats, p = S.personality, per = period();
+  applyRealDecay(); // おなか・水は実時間で減る分を先に反映（たいちょう判定は現在値で行う）
+  if(S.sleeping){
+    st.energy = clamp(st.energy + CONFIG.DECAY.energySleep);
+    if(st.energy >= CONFIG.SLEEP.wakeAt){ S.sleeping=false; say(pick(per==="night"?LINES.wakeNight:LINES.wake)); log("☀️ 目を覚ました"); }
+    else if(Math.random()<0.3) say(pick(LINES.sleepTalk), {sleepy:true});
+  } else {
+    const decay = CONFIG.DECAY.energyAwake * (per==="night" ? 1.8 : 1); // 夜は げんきの減りが速い
+    st.energy = clamp(st.energy - decay);
+    const threshold = per==="night" ? CONFIG.SLEEP.autoUnderNight : CONFIG.SLEEP.autoUnderDay; // 夜は早めに寝る
+    if(st.energy <= threshold){ S.sleeping=true; target={x:84,y:104}; say(pick(LINES.sleep)); log("💤 眠ってしまった"); }
+  }
+  // ※ おなか（belly）と水（water）の減衰はここでは行わない。実時間ルール（applyRealDecay）で別管理
+  st.mood += (CONFIG.DECAY.moodCenter - st.mood)*0.12;
+  neglectHours++;
+  if(neglectHours > CONFIG.DECAY.neglectAfterHours) st.mood = clamp(st.mood - CONFIG.DECAY.moodNeglectPerHour * p.moodRate/100);
+  st.mood = clamp(st.mood);
+  let bad = 0;
+  if(st.belly<=0) bad++;
+  if(st.water<25) bad++;
+  if(st.energy<=0 && !S.sleeping) bad++;
+  if(bad===1) st.health = clamp(st.health + CONFIG.HEALTH.badOne);
+  else if(bad>=2) st.health = clamp(st.health + CONFIG.HEALTH.badMany);
+  else if(st.belly>CONFIG.HEALTH.goodBelly && st.water>CONFIG.HEALTH.goodWater) st.health = clamp(st.health + CONFIG.HEALTH.good);
+  st.health = clamp(st.health);
+  const nowSick = st.health < CONFIG.HEALTH.sickUnder;
+  if(nowSick && !wasSick){ sfx("bad"); say(pick(LINES.sick)); log("🤒 病気になってしまった…"); }
+  if(!nowSick && wasSick){ say(pick(LINES.recover)); log("🌿 回復した"); }
+  S.sick = nowSick; wasSick = nowSick;
+  if(st.health<=0){ zeroHealthHours++; if(zeroHealthHours>=CONFIG.HEALTH.dieHoursAtZero) return die(); }
+  else zeroHealthHours = 0;
+  if(st.mood < CONFIG.SULK_MOOD_UNDER){ sulkHours++; if(sulkHours>=2 && !S.sulking){ S.sulking=true; say(pick(LINES.sulk)); log("😤 拗ねてしまった（世話で仲直り）"); } }
+  else sulkHours = 0;
+  // 遊びのお誘い（昼に出やすい、きげん中程度）
+  if(!S.sleeping && !S.sulking && st.mood>=35 && st.mood<=72){
+    const chance = per==="day" ? 0.26 : per==="morning" ? 0.14 : 0.05;
+    if(Math.random() < chance){ inviteUntil = Date.now()+6000; say(pick(LINES.playInvite)); }
+  }
+  if(!S.sleeping && Math.random()<0.30) talkNormal();
+  // きげんが良い時は ときどき踊る／満足気なら喜ぶ（窓を開く。表示は ACTION_DEFS 側）
+  if(!S.sleeping && !S.sulking && !S.sick && st.mood>75 && Math.random()<0.30) danceUntil = Date.now() + 3200;
+  else if(!S.sleeping && !S.sulking && !S.sick && st.belly>=70 && st.mood>=55 && Math.random()<0.25) happyUntil = Date.now() + 2800;
+  renderStats(); save();
+}
+setInterval(()=>{
+  const now = Date.now();
+  if(screen==="main" && S){
+    applyRealDecay(); // おなか・水の実時間減衰（速度設定に依存せず、現実の時計で進む）
+    hourAcc += now - lastTick;
+    const per = CONFIG.SPEED_MS[document.getElementById("speedSel").value] || CONFIG.SPEED_MS.normal;
+    while(hourAcc>=per){ hourAcc-=per; gameHour(); if(screen!=="main") break; }
+  }
+  lastTick = now;
+}, 200);
+setInterval(()=>{ checkNeglectDeath(); }, 60000); // 実時間24時間ルール: 開いている間も1分ごとに判定（閉じている間は次回起動時に保存時刻との差分で判定）
+
+/* ---------- お見送り（昇天） ---------- */
+let ascending = false, ascendTimers = [], lastDeadName = "";
+function die(reason){
+  sfx("bad");
+  if(reason==="neglect") log("😢 1日、だれも こなかった…");
+  const g = growth();
+  lastDeadName = S.name;
+  memories.unshift({ name:S.name, personality:S.personality.name, stage:g.stage, cm:displayCm(), days:S.days, care:S.careCount, species:S.speciesName||"さくらピンク" });
+  document.getElementById("deadName").textContent = S.name;
+  document.getElementById("deadInfo").innerHTML =
+    "性格：" + S.personality.name + "（" + S.personality.desc + "）<br>" +
+    "種族：" + (S.speciesName||"さくらピンク") + "<br>" +
+    "大きさ：" + g.stage + "・約" + displayCm() + "cm（" + (S.sizeName||"ふつう") + "）<br>" +
+    "いっしょに 過ごした日数：" + S.days + "日<br>世話回数：" + S.careCount + "回";
+  const di = document.getElementById("deadImg");
+  di.src = assetUrl(frameSrc(S.species||"sakura", "sleep", 0)); // その子の種族の寝顔で見送る
+  di.style.filter = "";
+  // お見送り演出の状態を初期化（前回の昇天が残っていたら戻す）
+  ascending = false; ascendTimers.forEach(clearTimeout); ascendTimers = [];
+  const ds = document.getElementById("deadScreen");
+  ds.classList.remove("ascending"); ds.classList.remove("rising"); ds.classList.remove("starred");
+  ds.querySelectorAll(".spark").forEach(e=>e.remove());
+  document.getElementById("farewellText").textContent = "いっしょに いてくれて ありがとう。";
+  document.getElementById("ascendHint").style.display = "";
+  mode = "normal"; cancelProj();
+  if(playTimer){ clearTimeout(playTimer); playTimer = null; } playCatches = 0;
+  screen="dead"; S=null; eggTaps=0; showScreen(); save();
+}
+function startAscension(){
+  if(screen!=="dead" || ascending) return;
+  ascending = true;
+  ensureAudio();
+  const scr = document.getElementById("deadScreen");
+  scr.classList.add("ascending");
+  document.getElementById("ascendHint").style.display = "none";
+  setTimeout(()=>{ try{ sfx("heaven"); }catch(e){} }, 90); // 鐘のような音で見送る
+  for(let i=0;i<14;i++){ // 光の粒
+    const sp = document.createElement("span"); sp.className = "spark";
+    sp.style.left = (12+Math.random()*76) + "%";
+    sp.style.top = (30+Math.random()*45) + "%";
+    sp.style.animationDelay = (0.5+Math.random()*2.6) + "s";
+    scr.appendChild(sp);
+  }
+  ascendTimers.push(setTimeout(()=>{ scr.classList.add("rising"); }, 650)); // ゆっくり昇っていく
+  const nm = lastDeadName || "ともだち";
+  const lines = [
+    nm + "、いままで 本当に ありがとう",
+    "あなたと 過ごした 日々は、かけがえのない 宝物です",
+    "これからは 夜空の 星になって、みんなを 見守ってね",
+    "ずっと 忘れないよ。ありがとう、" + nm
+  ];
+  const ft = document.getElementById("farewellText");
+  lines.forEach((t,i)=>{
+    ascendTimers.push(setTimeout(()=>{
+      ft.style.opacity = 0;
+      setTimeout(()=>{ ft.textContent = t; ft.style.opacity = 1; }, 320);
+    }, 500 + i*1700));
+  });
+  // 締めくくり: 昇っていった光が集まって 星になり、瞬く
+  ascendTimers.push(setTimeout(()=>{
+    scr.classList.add("starred");
+    ft.style.opacity = 0;
+    setTimeout(()=>{ ft.textContent = nm + " は 星になった"; ft.style.opacity = 1; }, 320);
+  }, 500 + lines.length*1700 + 600));
+  ascendTimers.push(setTimeout(finishAscension, 500 + lines.length*1700 + 3600)); // 星が瞬くのを見届けてから卵へ
+}
+function finishAscension(){
+  ascendTimers.forEach(clearTimeout); ascendTimers = [];
+  const scr = document.getElementById("deadScreen");
+  scr.classList.remove("ascending"); scr.classList.remove("rising"); scr.classList.remove("starred");
+  scr.querySelectorAll(".spark").forEach(e=>e.remove());
+  ascending = false;
+  eggTaps = 0;
+  screen = "egg"; showScreen(); save();
+  log("⭐ " + (lastDeadName||"") + " は 星になった");
+}
+
+/* ---------- 世話 ---------- */
+function afterCare(){
+  neglectHours = 0;
+  if(S.sulking){ S.sulking=false; setTimeout(()=>say(pick(LINES.reconcile)), 1700); }
+  // 世話をしてもらって満足したら しばらく「喜ぶ」を出す（病気の時は出さない）
+  if(S && !S.sick && !S.sleeping) happyUntil = Date.now() + 3000;
+  renderStats(); save();
+}
+function wakeTap(){
+  if(S && S.sleeping){ S.sleeping=false; S.stats.energy = Math.max(S.stats.energy, 30); say(pick(period()==="night"?LINES.wakeNight:LINES.wake)); renderStats(); return true; }
+  return false;
+}
+function checkGrowth(){
+  const g = growth();
+  if(checkGrowth._last && checkGrowth._last!==g.stage){ setTempAnim("dance", 3000); say(pick(LINES.grow)); sfx("fanfare"); log("🌱 " + g.stage + "に 成長した（約" + displayCm() + "cm）"); }
+  checkGrowth._last = g.stage;
+}
+/* ============================================================
+モード制 — 下部ボタンはモード切替（もう一度押すと通常モードへ）。
+通常: タップで寄ってきてセリフを1つ話す。キャラの体を擦る（なぞる）と
+「なでる」が発動する（旧・なでるモードボタンは廃止。通常モードに統合） ／
+掃除: 擦って苔を落とす（通常モードの擦りとは別で、苔落とし専用） ／
+餌やり: チップで餌を選び、下から上へスワイプで投げる。
+タッチは1本指のみ対象。
+============================================================ */
+let mode = "normal"; // normal | clean | feed | play
+let selectedFood = "あかむし";
+let feedPhase = "choose"; // choose=チップで餌を選ぶ | held=手持ちの餌を表示中 | flying=餌が飛んでいる
+let heldFood = null; // いま手に持っている餌（選んだ餌）。投げ終わると null に戻る
+/* ---------- 消灯モード（右上の電気ボタンで ON/OFF） ----------
+   旧・寝かしつけモード（タップ回数で入る仕組み）は廃止し、照明ボタンに置き換えた。
+   ON の間は水槽全体が薄暗くなり（#sleepShade の暗いオーバーレイ）、ペットが
+   眠りやすくなる: 定期判定（5秒ごと）で 80% の確率で既存の睡眠状態に入る
+   （眠れば通常通り回復する）。OFF にすると明るさが戻る。
+   睡眠・覚醒の他のルール（自動睡眠・回復・タップで起きる等）は従来通り。
+   消灯の ON/OFF は端末ごとの表示設定なので、セーブ（共有データ）には含めない */
+let lightsOff = false;
+const LIGHTS_DIM = 0.45; // 消灯時の暗さ（オーバーレイの不透明度）
+function applyLights(){
+  const sh = document.getElementById("sleepShade");
+  if(sh) sh.style.opacity = lightsOff ? String(LIGHTS_DIM) : "0";
+  const b = document.getElementById("btnLight");
+  if(b){ b.classList.toggle("lightsOn", lightsOff); b.setAttribute("aria-pressed", lightsOff ? "true" : "false"); }
+}
+document.getElementById("btnLight").addEventListener("click", ()=>{
+  ensureAudio();
+  lightsOff = !lightsOff; applyLights();
+  log(lightsOff ? "💡 消灯した（眠りやすくなる）" : "💡 点灯した");
+});
+setInterval(()=>{ // 消灯中の定期判定: 眠っていない子が 80% の確率で眠る（既存の睡眠状態へ）
+  try{
+    if(!lightsOff || screen!=="main" || !S || S.sleeping) return;
+    if(Math.random() < 0.8){
+      S.sleeping = true; target = {x:84, y:104}; // 既存の睡眠と同じ姿勢・回復仕様に入る
+      say(pick(LINES.sleep));
+      log("💤 消灯して 眠ってしまった");
+      renderStats(); save();
+    }
+  }catch(e){}
+}, 5000);
+const MODE_HINTS = {
+  clean: "画面を 擦って、ガラスの 苔を 落とそう",
+  feed: "あげる 餌を 選んでね",
+  play: "ダッシュで 逃げるよ。タッチで つかまえて！（0/5）"
+};
+let hintFlashTimer = null;
+function flashHint(text){
+  const h = document.getElementById("modeHint");
+  h.textContent = text; h.classList.remove("hidden");
+  if(hintFlashTimer) clearTimeout(hintFlashTimer);
+  hintFlashTimer = setTimeout(()=>{ applyModeUI(); }, 1700);
+}
+function applyModeUI(){
+  document.getElementById("btnFeed").classList.toggle("modeOn", mode==="feed");
+  document.getElementById("btnClean").classList.toggle("modeOn", mode==="clean");
+  document.getElementById("btnPlay").classList.toggle("modeOn", mode==="play");
+  updateFoodUI();
+  const h = document.getElementById("modeHint");
+  if(mode!=="normal" && screen==="main" && !(mode==="feed" && feedPhase!=="choose")){ h.textContent = (mode==="play") ? playHintText() : MODE_HINTS[mode]; h.classList.remove("hidden"); }
+  else h.classList.add("hidden"); // 餌を持っている間（held/flying）は餌の画像だけを出す（ヒント帯も出さない）
+  refreshFoodChips();
+}
+/* 餌やりUIの出し分け: 選ぶ前はチップ群、選んだ後はチップが下へスライドして消え、
+   代わりに「手持ちの餌」が画面下に出る。投げ終わるとチップ群がスライドで戻る */
+function updateFoodUI(){
+  const band = document.getElementById("foodBand"), held = document.getElementById("heldFood");
+  if(!band || !held) return;
+  if(mode!=="feed"){ band.classList.add("hidden"); band.classList.remove("chipsAway"); held.classList.add("hidden"); return; }
+  if(feedPhase==="choose"){
+    const wasHidden = band.classList.contains("hidden");
+    band.classList.remove("hidden");
+    if(wasHidden){ // いったん下に置いてからスライドで上げる
+      band.classList.add("chipsAway");
+      requestAnimationFrame(()=>{ requestAnimationFrame(()=>{ band.classList.remove("chipsAway"); }); });
+    } else band.classList.remove("chipsAway");
+    held.classList.add("hidden");
+  } else { // held / flying: チップは下へスライドして非表示
+    band.classList.remove("hidden"); band.classList.add("chipsAway");
+    if(feedPhase==="held" && heldFood){
+      document.getElementById("heldFoodImg").src = assetUrl(FOOD_IMG[heldFood] || FOOD_IMG["あかむし"]);
+      held.style.transform = "";
+      held.classList.remove("hidden");
+    } else held.classList.add("hidden");
+  }
+}
+function setMode(next){
+  if(mode===next){ // 同じボタンの再押しで通常モードへ戻る
+    if(mode==="play") finishPlay(false);
+    else {
+      if(mode==="clean" && S && cleanGain>=12 && !cleanRewarded) rewardClean();
+      if(mode==="feed"){ cancelProj(); feedPhase = "choose"; heldFood = null; }
+      mode = "normal";
+    }
+    renderMoss(); // 通常モードに戻っても苔は清潔度に応じて表示し続ける
+    applyModeUI();
+    return;
+  }
+  if(mode==="play") finishPlay(false);
+  else if(mode==="clean" && S && cleanGain>=12 && !cleanRewarded) rewardClean();
+  if(mode==="feed"){ cancelProj(); feedPhase = "choose"; heldFood = null; }
+  mode = next;
+  if(mode==="clean"){ beginCleanSession(); }
+  if(mode==="feed"){ feedPhase = "choose"; heldFood = null; }
+  renderMoss(); // 苔は全モードで常時表示: モードが変わっても清潔度に応じた量を描く
+  if(mode==="play") startPlay();
+  applyModeUI();
+}
+/* 掃除セッション開始時の状態を記録する（beginCleanSession は苔セクションで定義） */
+/* ---------- あそぶモード: 「追いかけっこ」と「かくれんぼ」をランダムで選ぶ ----------
+   追いかけっこ: ダッシュで逃げるキャラをタッチで捕まえる（従来通り）。
+   かくれんぼ: キャラが画面の端から少しだけ体を出して隠れ、タッチされるのを待つ。
+   タッチできたら「みつけた」で数え、別の場所に隠れ直す。どちらも 5回で終了し、
+   ご褒美・パラメータ効果は共通（finishPlay） */
+let playCatches = 0, playTimer = null;
+let playKind = "chase"; // chase | hide（あそぶモードに入るたびランダムで決まる）
+let lastHideSide = -1;
+function playHintText(){
+  return playKind==="hide"
+    ? "かくれんぼ中！ 端っこで 体を 出したり 隠したり してるよ。タッチで みつけて！（" + playCatches + "/5）"
+    : "ダッシュで 逃げるよ。タッチで つかまえて！（" + playCatches + "/5）";
+}
+/* かくれんぼの隠れ場所と「体の出し具合」。
+   以前の実装は、見える量を固定の小さな値（34〜56px）＋高さの近似値（幅×0.68）で
+   計算していたため、実際の絵より体が見えなくなりがちだった。さらに上端・下端では
+   見えている部分が画面いちばん上のセリフ帯／いちばん下のステータス帯・ボタン帯の
+   裏側に入り、「見えない・タッチできない場所に隠れた」状態になっていた。
+   対策として:
+   ・キャラの実際の表示サイズは charEl の実寸から測る（種族・成長・個体差に追随）
+   ・見える部分は必ず「帯にかぶらない範囲（hideSafeBand）」の中に入れる
+   ・隠れっぱなしにせず、同じ端で「しっかり隠れる⇔大きく体を出す」を
+     ゆっくり繰り返す（peekCur が出し具合 0..1。drawTank が毎フレーム進める） */
+let hideSpot = null; // {side: 0=左 1=右 2=上 3=下, along: 端に沿った位置 0..1}
+let peekCur = 0, peekGoal = 0, peekTimer = 0; // 出し具合（現在値／目標／切替までのフレーム数）
+function charLogicalSize(){
+  try{
+    const tr = tankEl.getBoundingClientRect(), cr = charEl.getBoundingClientRect();
+    if(tr.width > 0 && cr.width > 4 && cr.height > 4) return { w: cr.width/tr.width*320, h: cr.height/tr.height*156 };
+  }catch(e){}
+  const g = growth();
+  const cw = (CONFIG.CHAR_W[g.key] || 148) * (S ? (S.sizeMul||1) : 1);
+  return { w: cw, h: cw * 0.68 };
+}
+/* 画面上下の帯（セリフ帯・ヒント・電気ボタン／ステータス帯・ボタン帯）に
+   かぶらない論理y範囲。隠れた時に「見える部分」は必ずこの中に入れるので、
+   帯の裏に隠れてタッチできない、ということが起きない */
+function hideSafeBand(){
+  const tr = tankEl.getBoundingClientRect();
+  const toY = (cy)=> (cy - tr.top) / tr.height * 156;
+  let top = 2, bottom = 154;
+  const els = [document.querySelector(".speech"), document.getElementById("btnLight"), document.getElementById("modeHint")];
+  for(const el of els){
+    if(!el) continue;
+    const r = el.getBoundingClientRect();
+    if(r.height > 0 && r.bottom > tr.top) top = Math.max(top, toY(r.bottom));
+  }
+  const st = document.getElementById("status");
+  if(st){ const r = st.getBoundingClientRect(); if(r.height > 0) bottom = Math.min(bottom, toY(r.top)); }
+  top += 3; bottom -= 3;
+  if(bottom - top < 40){ top = 30; bottom = 126; } // 万一帯が広すぎる場合は中央寄りにフォールバック
+  return { top, bottom };
+}
+/* 隠れ場所（どの端の、どのあたりか）を選ぶ。中心位置そのものは
+   hideTargetPos() が出し具合に応じて毎フレーム計算する */
+function pickHideSpot(){
+  let side = Math.floor(Math.random()*4);
+  if(side === lastHideSide) side = (side + 1 + Math.floor(Math.random()*3)) % 4; // 連続で同じ端は避ける
+  lastHideSide = side;
+  hideSpot = { side, along: 0.15 + Math.random()*0.7 };
+  peekCur = 0; peekGoal = 0; peekTimer = 35 + Math.random()*35; // まず しっかり隠れてから、体を出し始める
+  return hideTargetPos();
+}
+/* 現在の出し具合（peekCur）から、隠れ場所での中心位置を計算する。
+   隠れ時で体の約24%、出した時で約68%が見える。見える部分は安全範囲の中 */
+function hideTargetPos(){
+  if(!hideSpot) return { x: pos.x, y: pos.y };
+  const sz = charLogicalSize(), band = hideSafeBand(), side = hideSpot.side;
+  const dim = (side===0 || side===1) ? sz.w : sz.h;
+  const vis = dim * (0.24 + 0.44 * peekCur);
+  if(side===0) return { x: vis - sz.w/2, y: band.top + (band.bottom - band.top) * hideSpot.along };   // 左端
+  if(side===1) return { x: 320 - vis + sz.w/2, y: band.top + (band.bottom - band.top) * hideSpot.along }; // 右端
+  if(side===2) return { x: 60 + 200 * hideSpot.along, y: band.top + vis - sz.h/2 };                    // 上端（セリフ帯の裏から出す）
+  return { x: 60 + 200 * hideSpot.along, y: band.bottom - vis + sz.h/2 };                              // 下端（ステータス帯の裏から出す）
+}
+function startPlay(){
+  playCatches = 0;
+  playKind = Math.random() < 0.5 ? "hide" : "chase";
+  if(playKind==="hide"){
+    lastHideSide = -1;
+    target = pickHideSpot();
+    setTempAnim("curious", 1200); // きょろきょろしながら隠れに行く
+    log("🎮 かくれんぼが はじまった");
+  } else {
+    target = { x: 56+Math.random()*208, y: 52+Math.random()*64 };
+    log("🎮 追いかけっこが はじまった");
+  }
+  if(playTimer) clearTimeout(playTimer);
+  playTimer = setTimeout(()=>{ if(mode==="play") finishPlay(false); }, 30000); // 約30秒で終了
+}
+function finishPlay(completed){
+  if(playTimer){ clearTimeout(playTimer); playTimer = null; }
+  const c = playCatches; playCatches = 0;
+  mode = "normal"; applyModeUI();
+  if(!S || c<=0) return;
+  const pc = CONFIG.CARE.play;
+  S.stats.mood = clamp(S.stats.mood + pc.mood + c*2);
+  S.stats.energy = clamp(S.stats.energy - pc.energyCost);
+  S.pt += pc.pt; S.careCount++;
+  sfx("play"); setTempAnim("dance", 2200);
+  say(pick(LINES.play));
+  log("🎮 あそんだ（" + (playKind==="hide" ? "かくれんぼ・" : "追いかけっこ・") + c + "回 " + (playKind==="hide" ? "みつけた" : "つかまえた") + (completed ? "・コンプリート！" : "") + "）");
+  checkGrowth(); afterCare();
+}
+function catchPlay(p){
+  playCatches++;
+  setTempAnim("happy", 900); sfx("play");
+  spawnHeart(p.px, p.py, true);
+  document.getElementById("modeHint").textContent = "つかまえた！（" + playCatches + "/5）";
+  // 別の場所へ逃げる（今いる場所から遠い所へ）
+  let nx = pos.x, ny = pos.y, tries = 0;
+  while(Math.hypot(nx-pos.x, ny-pos.y) < 110 && tries < 12){ nx = 56+Math.random()*208; ny = 52+Math.random()*64; tries++; }
+  target = { x: nx, y: ny };
+  if(playCatches >= 5) finishPlay(true);
+}
+function catchHide(p){
+  playCatches++;
+  setTempAnim("happy", 900); sfx("play"); hopChar();
+  spawnHeart(p.px, p.py, true);
+  document.getElementById("modeHint").textContent = "みつけた！（" + playCatches + "/5）";
+  if(playCatches >= 5){ finishPlay(true); return; }
+  target = pickHideSpot(); // 別の場所へ隠れ直す
+}
+function refreshFoodChips(){
+  document.querySelectorAll("#foodBand [data-food]").forEach(b=>{ b.classList.toggle("foodsel", b.dataset.food===selectedFood); });
+}
+/* ---------- ガラスの苔（清潔度に応じて生える緑の斑点。全モードで常時表示） ----------
+   苔は掃除モード専用ではない: 通常モード含む全モードで、水槽の清潔度（water）に
+   応じた量を常に表示する。汚いほど多く、きれいなほど少ない／無い。
+   擦って落とす操作だけは従来通り掃除モード専用で、掃除中は destination-out で
+   削った見た目を保持するため再描画しない（syncMoss が掃除中を除外する）。 */
+const mossC = document.getElementById("mossCanvas"), mossX = mossC.getContext("2d");
+let cleanGain = 0, cleanRewarded = false;
+/* 表示用の汚れ具合（0=澄んでいる…1=真っ汚れ）。実値へは drawTank が毎フレーム少しずつ
+   追随させるため、清潔度の増減どちらにも滑らかに連動する。lastMossBlobs は
+   現在キャンバスに描かれている苔の数で、変わった時だけ描き直すための目印 */
+let dispDirt = -1, lastMossBlobs = -1;
+/* 掃除セリフの条件: 掃除モードで擦って苔を1つでも実際に落としたら、
+   その場で掃除セリフを1回出す。ただし1回の掃除セッション
+   （モードに入ってから出るまで）で1回まで。苔が無い所を擦っても出さない。
+   判定は消す直前の苔キャンバスのピクセルを見て、ストローク範囲内に
+   苔のピクセルがあれば「落とした」とみなす。 */
+let cleanLineSaid = false;
+function beginCleanSession(){
+  cleanGain = 0; cleanRewarded = false; cleanLineSaid = false;
+}
+function mossHit(x0,y0,x1,y1){
+  try{
+    const minX = Math.max(0, Math.floor(Math.min(x0,x1)-16));
+    const maxX = Math.min(320, Math.ceil(Math.max(x0,x1)+16));
+    const minY = Math.max(0, Math.floor(Math.min(y0,y1)-16));
+    const maxY = Math.min(156, Math.ceil(Math.max(y0,y1)+16));
+    const w = maxX-minX, h = maxY-minY;
+    if(w<=0 || h<=0) return false;
+    const data = mossX.getImageData(minX, minY, w, h).data;
+    const dx = x1-x0, dy = y1-y0, len2 = dx*dx + dy*dy;
+    for(let y=0; y<h; y++){
+      for(let x=0; x<w; x++){
+        if(data[(y*w+x)*4+3] > 10){
+          const px = minX+x, py = minY+y;
+          let t = 0;
+          if(len2>0) t = Math.max(0, Math.min(1, ((px-x0)*dx + (py-y0)*dy)/len2));
+          const cx = x0 + t*dx, cy = y0 + t*dy;
+          if((px-cx)*(px-cx) + (py-cy)*(py-cy) <= 225) return true;
+        }
+      }
+    }
+  }catch(e){}
+  return false;
+}
+function maybeSayCleanLine(x0,y0,x1,y1){
+  if(cleanLineSaid || !S) return;
+  if(!mossHit(x0,y0,x1,y1)) return;
+  cleanLineSaid = true;
+  sfx("clean"); approachAnim(); say(pick(LINES.cleaned));
+}
+function syncMoss(){ // 清潔度に合わせて苔を描き直す（掃除モード中は擦った跡を消さないよう何もしない）
+  try{ if(screen==="main" && S && (typeof mode==="undefined" || mode!=="clean")) renderMoss(); }catch(e){}
+}
+function seededRand(seed){ let a = seed>>>0; return function(){ a|=0; a=(a+0x6D2B79F5)|0; let t=Math.imul(a^(a>>>15),1|a); t=(t+Math.imul(t^(t>>>7),61|t))^t; return ((t^(t>>>14))>>>0)/4294967296; }; }
+function renderMoss(dirtVal){
+  mossX.globalCompositeOperation = "source-over";
+  mossX.clearRect(0,0,320,156);
+  if(!S){ lastMossBlobs = -1; return; }
+  // 汚れ具合は原則として表示用（滑らか追随）の値を使う。未初期化時のみ実値で代用
+  const dirt = (typeof dirtVal==="number") ? dirtVal : (dispDirt >= 0 ? dispDirt : 1 - S.stats.water/100);
+  if(dirt <= 0.03){ lastMossBlobs = 0; return; }
+  const rand = seededRand(1234567); // 配置は固定（掃除中に苔が動かない）
+  const blobs = Math.round(dirt * 240);
+  lastMossBlobs = blobs;
+  // 縦長画面ではキャンバスが縦に引き伸ばされるため、斑点が丸く見えるよう縦スケールを補正
+  const ky = Math.max(0.2, Math.min(1.5, (tankEl.clientWidth*156) / (Math.max(1,tankEl.clientHeight)*320)));
+  const shades = ["rgba(64,110,44,.55)","rgba(84,128,52,.5)","rgba(52,92,38,.6)","rgba(104,146,66,.45)"];
+  for(let i=0;i<blobs;i++){
+    const bx = rand()*320, by = rand()*156, br = 3 + rand()*9;
+    mossX.fillStyle = shades[i%shades.length];
+    mossX.save(); mossX.translate(bx, by); mossX.scale(1, ky);
+    for(let j=0;j<5;j++){
+      mossX.beginPath();
+      mossX.arc((rand()-0.5)*br*1.5, (rand()-0.5)*br*1.5, br*(0.35+rand()*0.55), 0, Math.PI*2);
+      mossX.fill();
+    }
+    mossX.restore();
+  }
+}
+function eraseMoss(x0,y0,x1,y1){
+  mossX.globalCompositeOperation = "destination-out";
+  mossX.strokeStyle = "rgba(0,0,0,1)"; mossX.lineWidth = 30; mossX.lineCap = "round"; mossX.lineJoin = "round";
+  mossX.beginPath(); mossX.moveTo(x0,y0); mossX.lineTo(x1,y1); mossX.stroke();
+  mossX.globalCompositeOperation = "source-over";
+}
+function rewardClean(){ // 掃除の締め（pt・世話回数）。セリフはここでは出さない
+  cleanRewarded = true;
+  S.pt += CONFIG.CARE.clean.pt; S.careCount++;
+  checkGrowth(); afterCare();
+}
+
+/* ---------- 餌やり: 効果本体（好物判定・満腹・病気時半減は従来通り） ---------- */
+function doFeed(food){
+  if(!S) return; touch();
+  if(S.stats.belly>=98){ say(pick(LINES.feedFull)); return; }
+  const c = CONFIG.CARE.feed, st = S.stats;
+  const fav = food === S.personality.food;
+  let gain = fav ? c.favBelly : c.belly;
+  if(S.sick) gain = Math.round(gain/2);
+  st.belly = clamp(st.belly+gain);
+  if(fav) st.mood = clamp(st.mood + c.favMood);
+  st.water = clamp(st.water - c.waterCost); // 汚れの発生源その2: 餌やり（食べ残し・フン）。苔の表示量はこの清潔度に連動する
+  S.pt += c.pt; S.careCount++;
+  sfx("feed"); approachAnim(); setTempAnim("eat", 2600); animQueue = [{set:"happy", at:Date.now()+2600, dur:1400}];
+  say(fav ? pick(LINES.feedFav) : pick(LINES.feedNormal));
+  checkGrowth(); afterCare();
+}
+/* 餌の放物線アニメーション（スワイプの強さで速さ・弧の高さが変わる。飛ぶ餌は選んだ餌のイラスト） */
+const FOOD_IMG = { "あかむし":"assets/food-akamushi.png", "えび":"assets/food-ebi.png", "ペレット":"assets/food-pellet.png" };
+let projRAF = null;
+function cancelProj(){ if(projRAF) cancelAnimationFrame(projRAF); projRAF = null; document.getElementById("foodProj").style.display = "none"; }
+function launchFood(sx, sy, strength, reach){
+  const food = heldFood || selectedFood;
+  feedPhase = "flying"; updateFoodUI(); // 手持ち表示を消して、餌そのものが飛んでいく
+  const el = document.getElementById("foodProj"), r = tankEl.getBoundingClientRect();
+  const tx = pos.x/320*r.width, ty = pos.y/156*r.height;
+  const ex = sx + (tx-sx)*reach, ey = sy + (ty-sy)*reach;
+  el.src = assetUrl(FOOD_IMG[food] || FOOD_IMG["あかむし"]); el.style.display = "block";
+  const dur = Math.max(360, 800 - strength*400), arc = 46 + strength*76, t0 = performance.now();
+  const step = (now)=>{
+    const t = Math.min(1, (now-t0)/dur);
+    el.style.left = (sx + (ex-sx)*t) + "px";
+    el.style.top = (sy + (ey-sy)*t - Math.sin(Math.PI*t)*arc) + "px";
+    el.style.transform = "translate(-50%,-50%) rotate(" + (t*170-85) + "deg)";
+    if(t < 1){ projRAF = requestAnimationFrame(step); return; }
+    projRAF = null; el.style.display = "none";
+    if(reach >= 1) doFeed(food);
+    else flashHint("届かなかった… もっと 勢いよく 上へ スワイプ");
+    // 投げ終わったら、チップ群をスライドで戻して 次の餌を選べるようにする
+    if(mode==="feed"){ feedPhase = "choose"; heldFood = null; applyModeUI(); }
+  };
+  projRAF = requestAnimationFrame(step);
+}
+/* ---------- 撫でる: ハート演出 ---------- */
+function spawnHeart(px, py, big){
+  const s = document.createElement("span");
+  s.className = "heartFx"; s.textContent = "♥";
+  s.style.left = px + "px"; s.style.top = py + "px";
+  s.style.fontSize = (big ? 32 : 20 + Math.random()*7) + "px";
+  tankEl.appendChild(s);
+  setTimeout(()=>{ s.remove(); }, 1150);
+}
+/* ---------- モード切替ボタン ---------- */
+document.getElementById("btnFeed").addEventListener("click", ()=>{
+  ensureAudio(); if(!S || screen!=="main") return; touch(); if(wakeTap()) return;
+  setMode("feed");
+});
+document.getElementById("btnFoodCancel").addEventListener("click", ()=>{ setMode("feed"); });
+document.querySelectorAll("#foodBand [data-food]").forEach(b=>{
+  b.addEventListener("click", ()=>{ // 餌を選んだら: チップは下へスライドして消え、選んだ餌が「手持ちの餌」として画面下に出る
+    ensureAudio(); if(mode!=="feed" || feedPhase!=="choose") return;
+    selectedFood = b.dataset.food; heldFood = selectedFood; feedPhase = "held";
+    refreshFoodChips(); blip(740,.06,"sine",.10,0);
+    applyModeUI();
+  });
+});
+document.getElementById("btnClean").addEventListener("click", ()=>{
+  ensureAudio(); if(!S || screen!=="main") return; touch(); if(wakeTap()) return;
+  setMode("clean");
+});
+function doPet(){
+  if(!S) return; touch(); if(wakeTap()) return;
+  inviteUntil = 0; // 「遊んでほしい」の誘いにタップで応えた時も、反応は なでる に統一
+  S.stats.mood = clamp(S.stats.mood + CONFIG.CARE.pet.mood);
+  S.pt += CONFIG.CARE.pet.pt; S.careCount++;
+  sfx("pet"); approachAnim(); say(pick(LINES.pet)); checkGrowth(); afterCare();
+}
+document.getElementById("btnPlay").addEventListener("click", ()=>{
+  ensureAudio(); if(!S || screen!=="main") return; touch();
+  if(mode!=="play"){
+    if(wakeTap()) return;
+    if(S.stats.energy < CONFIG.CARE.play.needEnergy){ say(pick(LINES.playTired)); return; }
+  }
+  setMode("play");
+});
+/* 「はなす」ボタンは廃止。話すのは画面タップ（通常モードのタップ＝寄ってきてセリフを話す）が担う */
+document.getElementById("btnSensor").addEventListener("click", ()=>{
+  ensureAudio(); if(!S) return; touch(); if(wakeTap()) return;
+  approachAnim();
+  say(pick(LINES.approach));
+  log("👋 人が近づいたのを感じて 寄ってきた");
+});
+/* ---------- 水槽タッチ（1本指のみ。モードで振る舞いが変わる） ---------- */
+const tankEl = document.getElementById("tank");
+let activePtr = null, lastPt = null, feedSwipe = null, petStrokeAcc = 0, petHeartAcc = 0, lastCleanInt = -1;
+function tankPoint(e){
+  const r = tankEl.getBoundingClientRect();
+  return { cx:e.clientX, cy:e.clientY, px:e.clientX-r.left, py:e.clientY-r.top,
+    lx:(e.clientX-r.left)/r.width*320, ly:(e.clientY-r.top)/r.height*156 };
+}
+tankEl.addEventListener("pointerdown", (e)=>{
+  ensureAudio(); if(!S || screen!=="main") return;
+  if(activePtr !== null) return; // 2本目以降の指は無視
+  activePtr = e.pointerId;
+  try{ tankEl.setPointerCapture(e.pointerId); }catch(err){}
+  touch();
+  const p = tankPoint(e); lastPt = p;
+  if(mode==="feed"){
+    feedSwipe = null;
+    if(feedPhase==="held"){ // スワイプの起点は「手持ちの餌」の位置だけ。餌をつかんだ時だけ投げる構えに入る
+      const hr = document.getElementById("heldFood").getBoundingClientRect(), tr = tankEl.getBoundingClientRect();
+      const hx = hr.left + hr.width/2 - tr.left, hy = hr.top + hr.height/2 - tr.top;
+      const near = p.px >= hr.left - tr.left - 26 && p.px <= hr.right - tr.left + 26 && p.py >= hr.top - tr.top - 26 && p.py <= hr.bottom - tr.top + 26;
+      if(near){ feedSwipe = { x:p.cx, y:p.cy, px:p.px, py:p.py, t:Date.now(), hx:hx, hy:hy }; document.getElementById("heldFood").classList.add("dragging"); }
+      else flashHint("下の 餌を つかんで、上へ スワイプしてね");
+    }
+  }
+  else if(mode==="clean"){ maybeSayCleanLine(p.lx, p.ly, p.lx, p.ly); eraseMoss(p.lx, p.ly, p.lx, p.ly); }
+  else if(mode==="play"){
+    const cr = charEl.getBoundingClientRect();
+    if(playKind==="hide"){
+      // かくれんぼ: 見えている部分（水槽の内側に収まった範囲）へのタッチだけを「みつけた」とする
+      const tr = tankEl.getBoundingClientRect();
+      const vx0 = Math.max(cr.left, tr.left), vx1 = Math.min(cr.right, tr.right);
+      const vy0 = Math.max(cr.top, tr.top), vy1 = Math.min(cr.bottom, tr.bottom);
+      if(p.cx >= vx0-12 && p.cx <= vx1+12 && p.cy >= vy0-12 && p.cy <= vy1+12) catchHide(p);
+    }
+    else if(p.cx >= cr.left-6 && p.cx <= cr.right+6 && p.cy >= cr.top-6 && p.cy <= cr.bottom+6) catchPlay(p);
+  }
+  else { // 通常モード: タップした場所へ寄ってきて、セリフを1つ話す。
+    // そのまま指を滑らせて キャラの体を擦る（なぞる）と「なでる」が発動する
+    // （発動判定は pointermove 側。効果・セリフ・クールダウンは旧なでるモードと同じ）。
+    // 「あそぶ」のお誘い・追いかけっこは始まらない（遊ぶのは あそぶモードだけ）。
+    petStrokeAcc = 0; petHeartAcc = 0; // 擦り始め: なでる量の数え直し
+    if(S.sleeping){ wakeTap(); return; }
+    target = {x: Math.max(50,Math.min(270,p.lx)), y: Math.max(48,Math.min(118,p.ly))};
+    talkNormal();
+  }
+});
+tankEl.addEventListener("pointermove", (e)=>{
+  if(e.pointerId !== activePtr || !S || screen!=="main" || !lastPt) return;
+  const p = tankPoint(e);
+  if(mode==="feed" && feedSwipe){ // ドラッグ中は手持ちの餌が指に付いてくる
+    const dx = p.cx - feedSwipe.x, dy = Math.max(0, feedSwipe.y - p.cy);
+    document.getElementById("heldFood").style.transform = "translateX(-50%) translate(" + dx + "px," + (-dy) + "px)";
+  }
+  if(mode==="clean"){
+    maybeSayCleanLine(lastPt.lx, lastPt.ly, p.lx, p.ly);
+    eraseMoss(lastPt.lx, lastPt.ly, p.lx, p.ly);
+    const seg = Math.hypot(p.lx-lastPt.lx, p.ly-lastPt.ly);
+    if(seg > 0){
+      const gain = seg * 0.09; // 擦った分だけ清潔度が回復する
+      cleanGain += gain;
+      S.stats.water = clamp(S.stats.water + gain);
+      const wi = Math.round(S.stats.water);
+      if(wi !== lastCleanInt){ lastCleanInt = wi; renderStats(); }
+      if(cleanGain >= 12 && !cleanRewarded) rewardClean();
+      if(S.stats.water >= 100 && cleanGain >= 4 && !cleanRewarded) rewardClean();
+    }
+  } else if(mode==="normal"){
+    // 通常モードの「なでる」: キャラの体を擦る（なぞる）と発動する。
+    // 体の上を擦った分だけ「撫でた」ことになる（外は無反応）。効果・セリフ・
+    // ハート演出・15秒クールダウンは旧なでるモードと全く同じ（doPet を共用）
+    const cr = charEl.getBoundingClientRect();
+    const inside = p.cx >= cr.left-10 && p.cx <= cr.right+10 && p.cy >= cr.top-10 && p.cy <= cr.bottom+10;
+    if(inside){
+      const d = Math.hypot(p.cx-lastPt.cx, p.cy-lastPt.cy);
+      petStrokeAcc += d; petHeartAcc += d;
+      const petRemain = PET_COOLDOWN_MS - (Date.now() - lastPetAt);
+      const petReady = !(lastPetAt && petRemain > 0); // 撫でる反応は現実時間で15秒に1回まで
+      if(petReady && petHeartAcc > 85){ petHeartAcc = 0; spawnHeart(p.px, p.py, false); }
+      if(petStrokeAcc >= 280){
+        petStrokeAcc = 0;
+        if(!petReady){ // クールダウン中: 効果・専用セリフは出さず、残り時間だけ知らせる
+          flashHint("なでなでは おやすみ中… あと " + Math.ceil(petRemain/1000) + "秒");
+        } else {
+          for(let i=0;i<5;i++) spawnHeart(p.px + (Math.random()*48-24), p.py + (Math.random()*22-11), true);
+          lastPetAt = Date.now();
+          doPet(); // doPet→afterCare→save で lastPetAt も保存される
+        }
+      }
+    }
+  }
+  lastPt = p;
+});
+function endTankPointer(e){
+  if(e.pointerId !== activePtr) return;
+  activePtr = null;
+  if(mode==="feed" && S && screen==="main"){
+    const heldEl = document.getElementById("heldFood");
+    heldEl.classList.remove("dragging");
+    if(feedSwipe){
+      const dy = feedSwipe.y - e.clientY; // 上方向へのスワイプ量
+      const dx = e.clientX - feedSwipe.x;
+      const dt = Math.max(60, Date.now() - feedSwipe.t);
+      if(dy >= 30 && !projRAF){
+        const strength = Math.max(0.15, Math.min(1, dy/230 + (dy/dt)*0.12));
+        // 投げる餌は手持ちの餌の位置（ドラッグで持ち上がった位置）から飛ぶ
+        launchFood(feedSwipe.hx + dx, feedSwipe.hy - Math.max(0, dy), strength, dy < 70 ? 0.45 : 1); // 弱いと途中で落ちる
+      } else heldEl.style.transform = ""; // 弱いスワイプは投げずに、手持ちの餌が元の位置へ戻る
+    }
+  }
+  feedSwipe = null; lastPt = null;
+}
+tankEl.addEventListener("pointerup", endTankPointer);
+tankEl.addEventListener("pointercancel", endTankPointer);
+
+/* ---------- 表示 ---------- */
+const STAT_DEFS = [["belly","おなか","#f59e4c"],["mood","きげん","#e85d8a"],["energy","げんき","#7bc950"],["water","みず","#2e9db4"],["health","たいちょう","#9b7ede"]];
+function renderStats(){
+  const box = document.getElementById("status"); if(!S){ box.innerHTML=""; return; }
+  box.innerHTML = STAT_DEFS.map(([k,label,col])=>{ const v=Math.round(S.stats[k]); return '<div class="st"><span>'+label+'</span><div class="bar"><i style="width:'+v+'%;background:'+col+'"></i></div><b>'+v+'</b></div>'; }).join("");
+  syncMoss(); // 清潔度が変わったら苔の量も全モードで追従させる（掃除中は syncMoss 側で除外）
+}
+/* 上部バー（名前・種族などのキャラ情報表示）は廃止。情報はセリフ帯の名前表示のみ */
+function showScreen(){
+  document.getElementById("device").classList.toggle("covered", screen!=="main");
+  document.getElementById("gateScreen").classList.toggle("hidden", screen!=="gate");
+  document.getElementById("eggScreen").classList.toggle("hidden", screen!=="egg");
+  document.getElementById("deadScreen").classList.toggle("hidden", screen!=="dead");
+  document.getElementById("char").style.visibility = (screen==="main" && S) ? "visible" : "hidden";
+  if(screen==="egg"){ drawEggStage(); }
+  if(screen==="main" && S){ renderStats(); syncMoss(); }
+  applyModeUI();
+}
+document.getElementById("btnVoice").addEventListener("click", (e)=>{
+  voiceOn = !voiceOn; e.target.textContent = voiceOn ? "ON" : "OFF";
+  if(voiceOn) ensureAudio(); else { try{ if(AC) AC.suspend(); }catch(err){} document.getElementById("audioState").textContent = "音声：OFF"; }
+});
+document.getElementById("btnSoundTest").addEventListener("click", ()=>{
+  if(!voiceOn){ voiceOn = true; document.getElementById("btnVoice").textContent = "ON"; }
+  ensureAudio();
+  setTimeout(()=>{
+    sfx("fanfare");
+    const el = document.getElementById("audioState");
+    if(el) el.textContent = (AC && AC.state === "running") ? "音声：準備OK（テスト音を鳴らしました）" : "音声：開始できませんでした（もう一度タップしてください）";
+  }, 120);
+});
+/* ---------- カメラ動き検知（シミュレーション専用・保存/録画は一切しない） ----------
+   ONで getUserMedia(映像のみ・前面カメラ優先) を取得し、小さなプレビューを表示する。
+   映像は 64×48 の隠しキャンバスに描いてグレースケール化し、前フレームとの平均差分が
+   しきい値を超えたら「動きがあった」と判定する（インジケーターとバーで目に見える）。
+   検知したら camReact() でキャラが気づいて寄ってきて、登録アクション "motion"
+   （ACTION_DEFS 参照）と専用セリフ LINES.camMotion で反応する。動きが続く間も
+   CAM_COOLDOWN_MS の間隔を空けて再反応する。映像は保存・録画・送信しない。 */
+let camOn = false, camStream = null, camTimer = null, camPrev = null, camLastReactAt = 0;
+const CAM_W = 64, CAM_H = 48, CAM_THRESHOLD = 18, CAM_COOLDOWN_MS = 4000; // しきい値は感度を下げるため引き上げ済み: 小さな動きや明るさの揺れ（平均差分18以下）では反応しない
+function camSetState(txt){ const el = document.getElementById("camState"); if(el) el.textContent = txt; }
+function camReact(){
+  if(screen!=="main" || !S || S.sleeping) return;
+  camLastReactAt = Date.now();
+  const r = Math.random();
+  if(r < 0.35){ playAction("motion", 1500); hopChar(); target = {x:160, y:86}; frontBoostUntil = Date.now()+3000; }
+  else approachAnim();
+  say(pick(LINES.camMotion));
+  log("📷 カメラが動きを検知して 反応した");
+}
+function stopCam(){
+  camOn = false; camPrev = null;
+  if(camTimer){ clearInterval(camTimer); camTimer = null; }
+  if(camStream){ try{ camStream.getTracks().forEach(t=>t.stop()); }catch(e){} camStream = null; }
+  const v = document.getElementById("camVideo");
+  if(v){ try{ v.pause(); }catch(e){} v.srcObject = null; v.classList.remove("on"); }
+  const b = document.getElementById("btnCam"); if(b) b.textContent = "OFF";
+  const bar = document.getElementById("camBar"); if(bar) bar.style.width = "0%";
+  const dot = document.getElementById("camDot"); if(dot) dot.classList.remove("hot");
+}
+function camLoop(){
+  if(!camOn) return;
+  try{
+    const v = document.getElementById("camVideo"), cv = document.getElementById("camCanvas");
+    if(!v || !cv || v.readyState < 2) return;
+    const cx = cv.getContext("2d", {willReadFrequently:true}); if(!cx) return;
+    cx.drawImage(v, 0, 0, CAM_W, CAM_H);
+    const data = cx.getImageData(0, 0, CAM_W, CAM_H).data;
+    const gray = new Uint8Array(CAM_W*CAM_H);
+    for(let i=0, j=0; i<data.length; i+=4, j++) gray[j] = (data[i]*0.299 + data[i+1]*0.587 + data[i+2]*0.114)|0;
+    if(camPrev){
+      let sum = 0;
+      for(let j=0; j<gray.length; j++) sum += Math.abs(gray[j]-camPrev[j]);
+      const diff = sum / gray.length; // 平均差分 0〜255
+      const bar = document.getElementById("camBar"); if(bar) bar.style.width = Math.min(100, Math.round(diff*4)) + "%";
+      const dot = document.getElementById("camDot"); if(dot) dot.classList.toggle("hot", diff > CAM_THRESHOLD);
+      if(diff > CAM_THRESHOLD && Date.now() - camLastReactAt >= CAM_COOLDOWN_MS) camReact();
+    }
+    camPrev = gray;
+  }catch(e){}
+}
+document.getElementById("btnCam").addEventListener("click", async ()=>{
+  if(camOn){ stopCam(); camSetState("カメラ：OFF"); return; }
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    camSetState("カメラが使えませんでした（この環境はカメラ非対応です）");
+    return;
+  }
+  camSetState("カメラ：許可を待っています…");
+  try{
+    camStream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:"user", width:{ideal:320}, height:{ideal:240} }, audio:false });
+  }catch(e){
+    camStream = null;
+    const name = (e && e.name) ? e.name : "不明なエラー";
+    if(name==="NotAllowedError" || name==="SecurityError") camSetState("カメラが使えませんでした（許可されませんでした：" + name + "。アプリ内表示では許可がブロックされることがあります）");
+    else if(name==="NotFoundError" || name==="OverconstrainedError") camSetState("カメラが使えませんでした（カメラが見つかりませんでした：" + name + "）");
+    else if(name==="NotReadableError") camSetState("カメラが使えませんでした（他のアプリが使用中かもしれません：" + name + "）");
+    else camSetState("カメラが使えませんでした（" + name + "）");
+    return;
+  }
+  try{
+    const v = document.getElementById("camVideo");
+    v.srcObject = camStream;
+    const p = v.play(); if(p && p.catch) p.catch(function(){});
+    v.classList.add("on");
+    camOn = true; camPrev = null; camLastReactAt = 0;
+    document.getElementById("btnCam").textContent = "ON";
+    camSetState("カメラ：動きを見ています（保存・録画はしません）");
+    camTimer = setInterval(camLoop, 150);
+    log("📷 カメラON：動き検知を開始");
+  }catch(e){
+    stopCam();
+    camSetState("カメラが使えませんでした（開始できませんでした）");
+  }
+});
+/* ---------- テスト用リセット（シミュレーション専用） ---------- */
+document.getElementById("btnReset").addEventListener("click", ()=>{
+  document.getElementById("resetConfirm").classList.remove("hidden");
+});
+document.getElementById("btnResetNo").addEventListener("click", ()=>{
+  document.getElementById("resetConfirm").classList.add("hidden");
+});
+document.getElementById("btnResetYes").addEventListener("click", ()=>{
+  try{ localStorage.removeItem(CONFIG.SAVE_KEY); }catch(e){}
+  S = null; memories = []; eggTaps = 0; lastInteractAt = 0; lastDecayAt = 0; lastPetAt = 0; lastShownBW = "";
+  sulkHours = 0; zeroHealthHours = 0; neglectHours = 0; wasSick = false; recentLines = [];
+  ascending = false; ascendTimers.forEach(clearTimeout); ascendTimers = [];
+  if(typeTimer){ clearInterval(typeTimer); typeTimer = null; }
+  if(clearTimer){ clearTimeout(clearTimer); clearTimer = null; }
+  document.getElementById("speechText").textContent = "";
+  document.getElementById("speechName").textContent = "";
+  document.getElementById("foodBand").classList.add("hidden");
+  mode = "normal"; cancelProj(); applyModeUI();
+  try{ mossX.clearRect(0,0,320,156); }catch(e){}
+  document.getElementById("resetConfirm").classList.add("hidden");
+  screen = "egg"; showScreen(); save();
+  log("🧪 テスト用リセット：全データを消去して 新しい卵から開始");
+});
+document.getElementById("btnFarewell").addEventListener("click", ()=>{ startAscension(); });
+document.getElementById("deadScreen").addEventListener("pointerdown", ()=>{ startAscension(); });
+
+/* ============================================================
+家族共有（Firebase Firestore）— 家族全員が同じ1匹を共有する。
+セーブ先は Firestore の共有ドキュメント1つ（upapet_shared/main）。
+中身は { passHash, data（セーブ全体のJSON文字列）, updatedAt }。
+- 合言葉: ドキュメントに SHA-256 ハッシュで持たせる。初回（ドキュメント
+  未作成時）は合言葉の設定画面（2回入力）。2回目以降は入力を求め、一致
+  したら開く。通った端末はハッシュを端末側に控え、次回から入力を省略する。
+- 同期: onSnapshot で他人の変更をリアルタイム反映。書き込みは世話操作時
+  （save 経由・デバウンス）＋30秒ごとの定期保存。競合は updatedAt の
+  新しい方を正とする（last-write-wins）。
+- 接続できない時はローカル保存にフォールバックし、その旨を表示する。
+「生きた日数」等の状態は共有ドキュメント側の値を正とする。
+============================================================ */
+const FB_CONFIG = {
+  apiKey: "AIzaSyAyY5dx0abrg8ebszeSW09FjsTcHhBmErM",
+  authDomain: "jogo-base1.firebaseapp.com",
+  projectId: "jogo-base1",
+  storageBucket: "jogo-base1.firebasestorage.app",
+  messagingSenderId: "900398186329",
+  appId: "1:900398186329:web:fdd8dd385df75be1605648"
+};
+const SHARE_COLLECTION = "upapet_shared", SHARE_DOC = "main";
+const PASS_FLAG_KEY = "upapet_pass_hash";
+let shareMode = "booting"; // booting | shared | local
+let fbDb = null, shareDocRef = null, shareUnsub = null;
+let sharePassHash = null, pendingDocData = null;
+let sharedUpdatedAt = 0; // いま手元にある共有データの updatedAt（これより新しいものだけ取り込む）
+let applyingRemote = false, shareDirty = false, shareSaveTimer = null;
+function setShareState(t){ const el = document.getElementById("shareState"); if(el) el.textContent = t; }
+function gateShow(which){
+  ["gateLoading","gateSetup","gateEnter","gateOffline"].forEach(id=>{
+    const el = document.getElementById(id); if(el) el.classList.toggle("hidden", id!==which);
+  });
+}
+async function hashPass(str){
+  try{
+    if(window.crypto && crypto.subtle && window.TextEncoder){
+      const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("upapet:" + str));
+      return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
+    }
+  }catch(e){}
+  // SHA-256 が使えない環境向けの予備（簡易ハッシュ）
+  let h = 0x811c9dc5; const s = "upapet:" + str;
+  for(let i=0;i<s.length;i++){ h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+  return "fnv" + h.toString(16);
+}
+function payloadString(){ return JSON.stringify({S, memories, eggTaps, lastInteractAt, lastDecayAt, lastPetAt}); }
+function applyPayloadString(str){
+  try{
+    const d = JSON.parse(str); if(!d) return false;
+    S = d.S || null; memories = d.memories || []; eggTaps = d.eggTaps || 0;
+    lastInteractAt = d.lastInteractAt || 0; lastDecayAt = d.lastDecayAt || 0; lastPetAt = d.lastPetAt || 0;
+    return true;
+  }catch(e){ return false; }
+}
+function scheduleShareSave(){
+  shareDirty = true;
+  if(shareSaveTimer) return;
+  shareSaveTimer = setTimeout(flushShareSave, 900); // 世話操作の連続書き込みをまとめる
+}
+function flushShareSave(){
+  shareSaveTimer = null;
+  if(shareMode!=="shared" || !shareDocRef || !shareDirty) return;
+  shareDirty = false;
+  const now = Math.max(Date.now(), sharedUpdatedAt + 1);
+  sharedUpdatedAt = now; // 自分の書き込みのエコーは updatedAt 一致で取り込まない
+  try{
+    shareDocRef.set({ passHash: sharePassHash, data: payloadString(), updatedAt: now })
+      .then(()=>{ setShareState("共有中（家族と おなじ子）"); })
+      .catch(()=>{ shareDirty = true; setShareState("共有中（送信まち…接続を待っています）"); });
+  }catch(e){ shareDirty = true; }
+}
+setInterval(()=>{ // 定期保存: 共有モードでは30秒ごとに最新状態を送る（減衰の進み具合も含む）
+  if(shareMode==="shared"){ if(shareDirty) flushShareSave(); else save(); }
+}, 30000);
+function refreshFromRemote(){
+  // 家族の変更を取り込んだ後の画面の合わせ直し（世話・孵化・星になった等）
+  mode = "normal"; cancelProj(); tempAnim = null; animQueue = [];
+  if(playTimer){ clearTimeout(playTimer); playTimer = null; } playCatches = 0;
+  if(S){
+    if(!S.species || S.species==="fluffy" || S.species==="stubby"){ S.species = "sakura"; S.speciesName = "さくらピンク"; }
+    if(S.sizeMul===undefined){ S.sizeMul = 1.0; S.sizeName = "ふつう"; }
+    if(S.voice && !S.voice.type) S.voice.type = "normal";
+    if(screen!=="dead"){ screen = "main"; checkGrowth._last = growth().stage; }
+    pos = {x:160, y:82}; target = {x:160, y:82};
+  } else if(screen!=="dead"){
+    screen = "egg"; // 他の端末で星になった／リセットされた場合は卵の画面へ（お見送りは操作した端末で表示）
+  }
+  lastShownBW = "";
+  showScreen(); renderStats();
+}
+function subscribeShare(){
+  if(shareUnsub || !shareDocRef) return;
+  shareUnsub = shareDocRef.onSnapshot(snap=>{
+    try{
+      if(!snap.exists) return;
+      const d = snap.data() || {};
+      if(typeof d.updatedAt==="number" && d.updatedAt > sharedUpdatedAt && d.data && d.data !== payloadString()){
+        sharedUpdatedAt = d.updatedAt;
+        applyingRemote = true;
+        applyPayloadString(d.data);
+        saveLocal(); // 端末内の控えも最新にしておく（フォールバック用）
+        applyingRemote = false;
+        refreshFromRemote();
+        log("🔄 家族の お世話が 反映された");
+      }
+    }catch(e){}
+  }, ()=>{ setShareState("共有中（接続が 不安定です）"); });
+}
+function acceptShared(data){
+  if(data){
+    if(typeof data.updatedAt==="number") sharedUpdatedAt = data.updatedAt;
+    if(data.data) applyPayloadString(data.data);
+  }
+  saveLocal();
+  shareMode = "shared";
+  setShareState("共有中（家族と おなじ子）");
+  subscribeShare();
+  finishBoot();
+}
+async function initShare(){
+  setShareState("接続中…");
+  screen = "gate"; showScreen(); gateShow("gateLoading");
+  try{
+    if(typeof firebase==="undefined" || !FB_CONFIG) throw new Error("sdk unavailable");
+    firebase.initializeApp(FB_CONFIG);
+    fbDb = firebase.firestore();
+    shareDocRef = fbDb.collection(SHARE_COLLECTION).doc(SHARE_DOC);
+    const snap = await Promise.race([
+      shareDocRef.get(),
+      new Promise((_, rej)=>setTimeout(()=>rej(new Error("timeout")), 12000))
+    ]);
+    if(!snap.exists){ gateShow("gateSetup"); setShareState("合言葉の設定まち"); return; }
+    const data = snap.data() || {};
+    sharePassHash = data.passHash || null;
+    pendingDocData = data;
+    let stored = null;
+    try{ stored = localStorage.getItem(PASS_FLAG_KEY); }catch(e){}
+    if(sharePassHash && stored && stored === sharePassHash){
+      acceptShared(data); // 合言葉が通った端末: 入力を省略して そのまま開く
+    } else {
+      gateShow("gateEnter"); setShareState("合言葉まち");
+    }
+  }catch(e){
+    gateShow("gateOffline");
+    setShareState("この端末のみ");
+    const m = document.getElementById("offlineMsg");
+    if(m) m.textContent = "共有の 水槽に つなげませんでした。ネットの接続を 確認して もう一度 開くか、この端末だけで 遊べます（この端末の子は 端末内に 保存されます）。";
+  }
+}
+document.getElementById("btnPassSetup").addEventListener("click", async ()=>{
+  const err = document.getElementById("setupErr");
+  const p1 = document.getElementById("passNew1").value, p2 = document.getElementById("passNew2").value;
+  if(!p1 || p1.length < 4){ err.textContent = "合言葉は 4文字以上に してね"; return; }
+  if(p1 !== p2){ err.textContent = "2つの 合言葉が ちがいます"; return; }
+  err.textContent = "";
+  try{
+    sharePassHash = await hashPass(p1);
+    load(); // いま この端末で育てている子を 共有の子にする（いなければ卵の状態から）
+    const now = Date.now(); sharedUpdatedAt = now;
+    await shareDocRef.set({ passHash: sharePassHash, data: payloadString(), updatedAt: now });
+    try{ localStorage.setItem(PASS_FLAG_KEY, sharePassHash); }catch(e){}
+    acceptShared({ passHash: sharePassHash, data: payloadString(), updatedAt: now });
+    log("🐾 合言葉を決めて 家族共有を はじめた");
+  }catch(e){
+    err.textContent = "共有を はじめられませんでした。接続を 確認して もう一度 試してね";
+  }
+});
+document.getElementById("btnPassEnter").addEventListener("click", async ()=>{
+  const err = document.getElementById("enterErr");
+  const p = document.getElementById("passIn").value;
+  if(!p){ err.textContent = "合言葉を 入れてね"; return; }
+  const h = await hashPass(p);
+  if(sharePassHash && h === sharePassHash){
+    try{ localStorage.setItem(PASS_FLAG_KEY, h); }catch(e){}
+    acceptShared(pendingDocData);
+  } else {
+    err.textContent = "合言葉が ちがいます";
+  }
+});
+document.getElementById("btnLocalOnly").addEventListener("click", ()=>{
+  shareMode = "local";
+  setShareState("この端末のみ");
+  load();
+  finishBoot();
+  log("📱 共有に つなげなかったため、この端末だけで 遊ぶ");
+});
+
+/* ---------- 起動 ---------- */
+function finishBoot(){
+  if(S){
+    // 旧セーブ互換: 種族が無いデータ／廃止されたモフエラ・尾なしは さくらピンク として読み替える
+    if(!S.species || S.species === "fluffy" || S.species === "stubby"){ S.species = "sakura"; S.speciesName = "さくらピンク"; }
+    if(S.sizeMul===undefined){ S.sizeMul = 1.0; S.sizeName = "ふつう"; }
+    if(S.voice && !S.voice.type) S.voice.type = "normal"; // 旧セーブの声は「ふつう」として読み替える
+    if(!lastInteractAt) lastInteractAt = Date.now(); // 最終操作時刻が無い旧セーブは 読み込み時刻を起点にする（即死させない）
+    if(!lastDecayAt) lastDecayAt = Date.now(); // 減衰の起点が無い旧セーブは 読み込み時刻を起点にする（遡って減らさない）
+    screen = "main"; checkGrowth._last = growth().stage;
+    applyRealDecay(); // ページを閉じている間に進んだ おなか・水の実時間減衰を反映する
+    renderStats();
+    checkNeglectDeath(); // ページを閉じている間に 実時間24時間が経っていたら、星になるフローへ
+  } else screen = "egg";
+  showScreen();
+  if(screen==="main" && S) setTimeout(()=>{ try{ say(pick(LINES.boot)); }catch(e){} }, 600);
+}
+screen = "gate"; showScreen();
+drawTank();
+initShare(); // 共有に接続できれば共有データで、できなければ合言葉／端末のみの流れへ
+
+</script>
+</body>
+</html>
