@@ -22,7 +22,8 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Maru G
 #idleClock.show{opacity:1;pointer-events:auto;cursor:grab;touch-action:none}
 /* セリフ帯（1行スクロール、水槽に重ねる半透明オーバーレイ） */
 .speech{position:absolute;left:0;right:0;top:var(--sat);z-index:8;min-height:max(40px,10.5cqw);display:flex;align-items:center;gap:1.6cqw;padding:.6cqw 2cqw;background:rgba(43,33,24,.82);color:#ffe9c9;pointer-events:none}
-.speech .nm{flex:0 0 auto;font-size:4.2cqw;color:#ffb7cd;font-weight:700;white-space:nowrap;max-width:26%;overflow:hidden;text-overflow:ellipsis;padding-right:1.4cqw;border-right:1px solid rgba(255,233,201,.28)}
+.speech .nm{flex:0 0 auto;font-size:4.2cqw;color:#ffb7cd;font-weight:700;white-space:nowrap;max-width:26%;overflow:hidden;text-overflow:ellipsis;padding-right:1.4cqw;border-right:1px solid rgba(255,233,201,.28);pointer-events:auto;touch-action:none;-webkit-touch-callout:none;cursor:pointer}
+.speech .nm.pressing{color:#fff}
 .speechView{flex:1 1 auto;min-width:0;overflow:hidden;white-space:nowrap;mask-image:linear-gradient(90deg,#000 0,#000 95%,transparent 100%);-webkit-mask-image:linear-gradient(90deg,#000 0,#000 95%,transparent 100%)}
 #speechText{display:inline-block;font-size:4.8cqw;letter-spacing:.02em;transition:transform .1s linear,opacity .5s;will-change:transform}
 /* 水槽（画面いっぱい） */
@@ -87,6 +88,18 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Maru G
 .screen input[type="password"],.screen input[type="text"]{font-family:inherit;font-size:5.2cqw;padding:2.2cqw;border:1.5px solid var(--line);border-radius:8px;background:var(--btn);color:var(--ink);width:100%;margin-top:2cqw}
 .gateErr{color:#c0392b;font-size:4.7cqw;font-weight:700;min-height:5.5cqw;margin-top:1.5cqw;line-height:1.45}
 #gateScreen .row{margin-top:2.5cqw}
+/* パスワード画面・設定画面（名前の長押しで入る。消灯の暗幕より手前に出す） */
+#passScreen,#settingsScreen{z-index:40}
+#settingsScreen{overflow-y:auto}
+.screen select{font-family:inherit;font-size:5.2cqw;padding:2cqw;border:1.5px solid var(--line);border-radius:8px;background:var(--btn);color:var(--ink)}
+.setSec{font-size:5.8cqw;font-weight:800;margin:3.6cqw 0 0;padding-top:2.8cqw;border-top:1px solid var(--line)}
+.setSec.first{margin-top:1cqw;padding-top:0;border-top:0}
+.setRow{display:flex;align-items:center;gap:2cqw;margin-top:2cqw;font-size:5.2cqw}
+.setRow .lab{flex:1;line-height:1.45}
+.setRow button{flex:0 0 auto;font-family:inherit;font-size:5.1cqw;font-weight:700;border:1.5px solid var(--line);background:var(--btn);color:var(--ink);border-radius:8px;padding:1.8cqw 3.6cqw;cursor:pointer;min-width:26cqw}
+.setNote{font-size:4.6cqw;color:var(--sub);line-height:1.5;margin-top:1.2cqw}
+.setMsg{font-size:4.9cqw;font-weight:700;min-height:5.5cqw;margin-top:1.5cqw;line-height:1.45}
+.setMsg.ok{color:#2e8b57}
 .memorial{align-items:center;text-align:center}
 .memorial img{width:44%;image-rendering:pixelated;filter:saturate(.25) brightness(1.05);margin-top:2cqw}
 .memorial .mname{font-size:8.4cqw;font-weight:800;margin:1cqw 0}
@@ -194,6 +207,41 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Maru G
     <input id="userNameInput" type="text" placeholder="あなたの名前（10文字まで）" maxlength="10" autocomplete="off">
     <div class="gateErr" id="nameErr"></div>
     <div class="row"><button id="btnNameSkip">あとで</button><button id="btnNameSave" class="primary">この名前で はじめる</button></div>
+  </section>
+  <section class="screen hidden" id="passScreen">
+    <h2>🔒 パスワード</h2>
+    <div class="line">設定画面を ひらくには、パスワードが 必要です。</div>
+    <input id="settingsPassIn" type="password" placeholder="パスワード" autocomplete="current-password">
+    <div class="gateErr" id="settingsPassErr"></div>
+    <div class="row"><button id="btnPassBack">もどる</button><button id="btnPassOpen" class="primary">ひらく</button></div>
+  </section>
+  <section class="screen hidden" id="settingsScreen">
+    <h2>⚙️ せってい</h2>
+    <div class="setSec first">あなたの名前（この端末）</div>
+    <input id="setUserName" type="text" placeholder="あなたの名前（10文字まで）" maxlength="10" autocomplete="off">
+    <div class="setRow"><span class="lab">ウーパールーパーが この名前で 呼びかけます。名前は この端末だけに 保存されます。</span><button id="btnSetUserName">変更</button></div>
+    <div class="setSec">音とカメラ</div>
+    <div class="setRow"><span class="lab">声</span><button id="btnSetVoice">ON</button></div>
+    <div class="setRow"><span class="lab">カメラ（動き検知）</span><button id="btnSetCam">OFF</button></div>
+    <div class="setNote">カメラは 動き検知専用です。映像は 保存・録画しません。</div>
+    <div class="setSec">ゲームの速さ</div>
+    <div class="setRow"><span class="lab">速度</span><select id="setSpeedSel">
+      <option value="normal">ふつう（1時間／30秒）</option>
+      <option value="fast">早回し・テスト用（1時間／5秒）</option>
+      <option value="super">超早回し・テスト用（1時間／1秒）</option>
+    </select></div>
+    <div class="setSec">設定画面のパスワード</div>
+    <input id="setPassNew" type="password" placeholder="新しいパスワード（4文字以上）" autocomplete="new-password">
+    <input id="setPassNew2" type="password" placeholder="新しいパスワードを もう一度" autocomplete="new-password">
+    <div class="setMsg" id="setPassMsg"></div>
+    <div class="setRow"><span class="lab">パスワードは この端末だけに 保存されます。</span><button id="btnSetPass">変更</button></div>
+    <div class="setSec">リセット</div>
+    <div class="setRow"><span class="lab">現在の子・セーブデータを 全て消して、新しい卵から 始めます。</span><button id="btnSetReset">リセット</button></div>
+    <div id="setResetConfirm" class="hidden">
+      <div class="setMsg" style="color:#c0392b">本当に 全て消しますか？ 元には 戻せません。</div>
+      <div class="row"><button id="btnSetResetNo">やめる</button><button id="btnSetResetYes">消去して リセット</button></div>
+    </div>
+    <div class="row"><button id="btnSettingsBack" class="primary">もどる</button></div>
   </section>
   <div id="sleepShade"></div>
 </div>
@@ -1713,6 +1761,8 @@ function showScreen(){
   document.getElementById("device").classList.toggle("covered", screen!=="main");
   document.getElementById("gateScreen").classList.toggle("hidden", screen!=="gate");
   document.getElementById("nameScreen").classList.toggle("hidden", screen!=="name");
+  document.getElementById("passScreen").classList.toggle("hidden", screen!=="pass");
+  document.getElementById("settingsScreen").classList.toggle("hidden", screen!=="settings");
   document.getElementById("eggScreen").classList.toggle("hidden", screen!=="egg");
   document.getElementById("deadScreen").classList.toggle("hidden", screen!=="dead");
   document.getElementById("char").style.visibility = (screen==="main" && S) ? "visible" : "hidden";
@@ -2053,6 +2103,125 @@ document.getElementById("btnUserNameSave").addEventListener("click", ()=>{
   if(screen==="main" && S && userName) say(pick(LINES.callName));
 });
 refreshUserNameUI();
+
+/* ---------- 設定画面（左上の名前を長押し → パスワード → 設定） ----------
+   左上に表示されるペットの名前（セリフ帯の名前表示）を長押しすると
+   パスワード入力が出て、正しいパスワードで設定画面が開く。
+   パスワードは端末ごとに localStorage へ保存し、家族共有のセーブ
+   （Firestore の payloadString や端末内セーブ）には絶対に入れない。
+   初期パスワードは小文字で「papa」。設定画面の中で変更できる */
+const SETTINGS_PASS_KEY = "upapet_settings_pass";
+const DEFAULT_SETTINGS_PASS = "papa";
+let settingsPass = DEFAULT_SETTINGS_PASS;
+try{ const sp = localStorage.getItem(SETTINGS_PASS_KEY); if(sp) settingsPass = sp; }catch(e){}
+function openPassScreen(){
+  document.getElementById("settingsPassIn").value = "";
+  document.getElementById("settingsPassErr").textContent = "";
+  screen = "pass"; showScreen();
+  const inp = document.getElementById("settingsPassIn");
+  setTimeout(()=>{ try{ inp.focus(); }catch(e){} }, 60);
+}
+function closeToMain(){
+  screen = (S ? "main" : "egg"); showScreen();
+}
+document.getElementById("btnPassBack").addEventListener("click", ()=>{ ensureAudio(); closeToMain(); });
+document.getElementById("btnPassOpen").addEventListener("click", ()=>{
+  ensureAudio();
+  const v = document.getElementById("settingsPassIn").value;
+  const err = document.getElementById("settingsPassErr");
+  if(v === settingsPass){ // パスワードが合った時だけ設定画面へ。違えば入れない
+    err.textContent = "";
+    document.getElementById("settingsPassIn").value = "";
+    openSettings();
+  } else {
+    err.textContent = "パスワードが ちがいます";
+    document.getElementById("settingsPassIn").value = "";
+  }
+});
+document.getElementById("settingsPassIn").addEventListener("keydown", (e)=>{ if(e.key==="Enter") document.getElementById("btnPassOpen").click(); });
+/* 名前の長押し判定（約0.7秒）。普通のタップでは開かない。
+   指が大きく動いたら長押しをやめる（スクロール等の誤作動防止） */
+(function(){
+  const nm = document.getElementById("speechName"); if(!nm) return;
+  let timer = null, sx = 0, sy = 0;
+  const cancel = ()=>{ if(timer){ clearTimeout(timer); timer = null; } nm.classList.remove("pressing"); };
+  nm.addEventListener("pointerdown", (e)=>{
+    if(screen!=="main") return;
+    sx = e.clientX; sy = e.clientY;
+    nm.classList.add("pressing");
+    if(timer) clearTimeout(timer);
+    timer = setTimeout(()=>{
+      timer = null; nm.classList.remove("pressing");
+      try{ if(navigator.vibrate) navigator.vibrate(30); }catch(err){}
+      openPassScreen();
+    }, 700);
+  });
+  nm.addEventListener("pointermove", (e)=>{ if(timer && Math.hypot(e.clientX - sx, e.clientY - sy) > 12) cancel(); });
+  nm.addEventListener("pointerup", cancel);
+  nm.addEventListener("pointercancel", cancel);
+  nm.addEventListener("pointerleave", cancel);
+  nm.addEventListener("contextmenu", (e)=>{ e.preventDefault(); }); // 長押し時のメニュー表示を防ぐ
+})();
+/* ---------- 設定画面の中身（既存の設定項目をここに集約） ----------
+   声・カメラ・リセットは、シミュレーション専用UI側の既存ボタンの処理を
+   そのまま共用する（状態は1か所で管理され、二重管理にならない）。
+   速度は既存の速度セレクタの値を書き換える（ゲームループはそちらを読む） */
+function syncSettingsUI(){
+  const un = document.getElementById("setUserName");
+  if(un && document.activeElement !== un) un.value = userName;
+  document.getElementById("btnSetVoice").textContent = voiceOn ? "ON" : "OFF";
+  document.getElementById("btnSetCam").textContent = camOn ? "ON" : "OFF";
+  const ss = document.getElementById("setSpeedSel"), ms = document.getElementById("speedSel");
+  if(ss && ms) ss.value = ms.value;
+  document.getElementById("setResetConfirm").classList.add("hidden");
+  const pm = document.getElementById("setPassMsg"); pm.textContent = ""; pm.classList.remove("ok");
+  document.getElementById("setPassNew").value = "";
+  document.getElementById("setPassNew2").value = "";
+}
+function openSettings(){
+  syncSettingsUI();
+  screen = "settings"; showScreen();
+}
+document.getElementById("btnSettingsBack").addEventListener("click", ()=>{ ensureAudio(); closeToMain(); });
+document.getElementById("btnSetUserName").addEventListener("click", ()=>{
+  ensureAudio();
+  saveUserName(document.getElementById("setUserName").value);
+  log(userName ? "👋 この端末の名前を「" + userName + "」に変更した" : "👋 この端末の名前を 未設定に戻した");
+});
+document.getElementById("btnSetVoice").addEventListener("click", (e)=>{
+  document.getElementById("btnVoice").click(); // 既存の声ON/OFF処理を共用
+  e.target.textContent = voiceOn ? "ON" : "OFF";
+});
+document.getElementById("btnSetCam").addEventListener("click", (e)=>{
+  document.getElementById("btnCam").click(); // 既存のカメラON/OFF処理を共用
+  setTimeout(()=>{ e.target.textContent = camOn ? "ON" : "OFF"; }, 1200); // カメラ許可の結果を待って表示を合わせる
+});
+document.getElementById("setSpeedSel").addEventListener("change", (e)=>{
+  const ms = document.getElementById("speedSel"); if(ms) ms.value = e.target.value;
+});
+document.getElementById("btnSetPass").addEventListener("click", ()=>{
+  ensureAudio();
+  const msg = document.getElementById("setPassMsg");
+  const p1 = document.getElementById("setPassNew").value, p2 = document.getElementById("setPassNew2").value;
+  msg.classList.remove("ok");
+  if(!p1 || p1.length < 4){ msg.textContent = "パスワードは 4文字以上に してね"; return; }
+  if(p1 !== p2){ msg.textContent = "2つの パスワードが ちがいます"; return; }
+  settingsPass = p1;
+  try{ localStorage.setItem(SETTINGS_PASS_KEY, settingsPass); }catch(e){}
+  document.getElementById("setPassNew").value = "";
+  document.getElementById("setPassNew2").value = "";
+  msg.textContent = "パスワードを 変更しました"; msg.classList.add("ok");
+  log("🔒 設定画面のパスワードを変更した（この端末だけに保存）");
+});
+document.getElementById("btnSetReset").addEventListener("click", ()=>{
+  document.getElementById("setResetConfirm").classList.remove("hidden");
+});
+document.getElementById("btnSetResetNo").addEventListener("click", ()=>{
+  document.getElementById("setResetConfirm").classList.add("hidden");
+});
+document.getElementById("btnSetResetYes").addEventListener("click", ()=>{
+  document.getElementById("btnResetYes").click(); // 既存のリセット処理を共用（画面は卵へ移る）
+});
 
 /* ---------- 起動 ---------- */
 function finishBoot(){
