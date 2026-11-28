@@ -16,12 +16,36 @@
    通常のスクロール自体は残すので、下のシム専用エリアへは今まで通り移動できる */
 html,body{overscroll-behavior:none}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Maru Gothic ProN","Hiragino Sans","Yu Gothic",sans-serif;-webkit-tap-highlight-color:transparent}
-.wrap{max-width:none;margin:0;padding:0}
+.wrap{max-width:none;margin:0;padding:0;display:flex;flex-direction:column;align-items:center}
+.simui,.log{align-self:stretch}
+/* ============================================================
+   仮想デバイス本体（たまごっち風）: ゲーム画面全体をパステル本体の
+   「画面窓」の中に入れる。本体側にチェーン穴・飾りボタン・星/ハート/
+   キラキラ/水玉の装飾を付け、ゲームの操作系・レイアウトは窓の中で従来通り。
+   本体は丸い卵型にはしない（角丸の弱い長方形）。画面窓の角丸も小さくし、
+   画面の端・四隅の文字が角丸で隠れたり切れたりしないようにする。
+   （この見た目はシミュレーション版のみ。Pages にはまだ反映しない前提） */
+.shell{position:relative;width:min(97vw,540px);height:min(97dvh,1020px);margin:20px auto 4px;display:flex;flex-direction:column;padding:40px 16px 12px;border-radius:28px;background-color:#ffc7dd;background-image:radial-gradient(circle,rgba(255,255,255,.55) 3.4px,transparent 4.4px),radial-gradient(circle,rgba(255,255,255,.35) 3.4px,transparent 4.4px),linear-gradient(165deg,#ffd9e9 0%,#ffc2da 52%,#ffabd0 100%);background-size:52px 52px,52px 52px,cover;background-position:0 0,26px 26px,0 0;box-shadow:0 18px 44px rgba(190,90,140,.35),inset 0 3px 8px rgba(255,255,255,.75),inset 0 -12px 24px rgba(214,90,150,.28)}
+.shellRing{position:absolute;top:-28px;left:50%;transform:translateX(-50%);width:54px;height:54px;border-radius:50%;border:10px solid #f78fb8;box-shadow:0 3px 8px rgba(190,90,140,.35),inset 0 2px 3px rgba(255,255,255,.7);z-index:3;pointer-events:none}
+.shellRing::after{content:"";display:none}
+.shellDeco{position:absolute;inset:0;z-index:2;pointer-events:none}
+.shellDeco svg{position:absolute;filter:drop-shadow(0 1px 1px rgba(180,80,130,.3))}
+.shellBtns{display:flex;justify-content:center;align-items:flex-start;gap:30px;padding-top:12px}
+.shellBtns .sbWrap{display:flex;flex-direction:column;align-items:center;gap:4px}
+.shellBtns .sb{width:44px;height:44px;border-radius:50%;box-shadow:0 4px 8px rgba(190,90,140,.35),inset 0 3px 5px rgba(255,255,255,.85),inset 0 -4px 6px rgba(160,70,120,.25);border:2px solid rgba(255,255,255,.65);padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.shellBtns .sb1{background:radial-gradient(circle at 35% 30%,#fff6da,#ffd94d)}
+.shellBtns .sb2{background:radial-gradient(circle at 35% 30%,#ffeef5,#ff8fb5)}
+.shellBtns .sb3{background:radial-gradient(circle at 35% 30%,#eafff8,#8fe3cb)}
+.shellBtns .sb:active{transform:scale(.93)}
+.shellBtns .sb.modeOn{box-shadow:0 0 0 3px #fff,0 0 0 6px #e85d8a,0 2px 4px rgba(190,90,140,.4),inset 0 4px 9px rgba(120,40,80,.38);transform:scale(.94)}
+.shellBtns .sbLab{font-size:11px;font-weight:700;letter-spacing:.06em;color:#9c5578;line-height:1}
+.shellBtns .sb.modeOn + .sbLab{color:#d6336c}
+@media (max-width:480px){.shell{padding:36px 10px 10px;height:98dvh}}
 /* ゲーム画面（.device）内ではブラウザのスクロール／ダブルタップ拡大／ピンチ拡大を
    一切させない（touch-action:none）。操作は全て pointer イベントで受けるので、
    タップ・スワイプ・擦る操作は今まで通り効く。抑止はゲーム画面の中だけに限定し、
    画面外（シム専用エリア）のスクロールには影響しない */
-.device{container-type:inline-size;position:relative;width:100%;height:100vh;height:100dvh;background:#20303c;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:none}
+.device{container-type:inline-size;position:relative;width:100%;flex:1 1 auto;min-height:0;height:auto;background:#20303c;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:none;border-radius:14px;border:4px solid #7c4a63;box-shadow:inset 0 0 0 2px rgba(0,0,0,.28),inset 0 0 26px rgba(0,0,0,.38),0 2px 6px rgba(190,90,140,.3)}
 /* 無操作時の現在時刻（水槽の真ん中。5秒タップが無いと自動で大きく出て、
    どこかへのタップで消える。見た目はこの1種に固定で、タップで切り替わったりはしない。
    pointer-events:none なので時計へのタップも下の水槽・画面全体の操作として扱われる） */
@@ -58,10 +82,11 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Maru G
 #char.flip{scale:-1 1}
 #zzz{position:absolute;z-index:4;font-weight:800;color:#fff;text-shadow:0 1px 2px rgba(0,40,60,.5);font-size:6cqw;pointer-events:none;display:none}
 /* ステータス（水槽に重ねる半透明オーバーレイ） */
-.status{position:absolute;left:0;right:0;bottom:calc(max(60px,15cqw) + env(safe-area-inset-bottom));z-index:8;min-height:max(38px,10cqw);display:flex;align-items:center;gap:1.8cqw;padding:.8cqw 2cqw;background:rgba(255,247,236,.88);border-top:1px solid rgba(227,205,180,.7);pointer-events:none}
+.status{position:absolute;left:0;right:0;bottom:calc(max(60px,15cqw) + env(safe-area-inset-bottom));z-index:8;min-height:max(44px,11.5cqw);display:flex;align-items:center;gap:1.8cqw;padding:.9cqw 2cqw;background:rgba(255,247,236,.9);border-top:1px solid rgba(227,205,180,.7);pointer-events:none}
 .st{flex:1;display:flex;align-items:center;gap:1cqw;font-size:3.5cqw;color:#5d4a55;white-space:nowrap}
-.st .bar{flex:1;height:1.6cqw;min-height:3px;background:#eadfd6;border-radius:99px;overflow:hidden}
-.st .bar i{display:block;height:100%;border-radius:99px;transition:width .4s}
+/* パラメーターのゲージ: 数値と併せて、太めのバーで残量が一目で分かるようにする */
+.st .bar{flex:1;height:2.9cqw;min-height:9px;background:#e7d7c8;border-radius:99px;overflow:hidden;box-shadow:inset 0 1px 3px rgba(90,60,40,.35)}
+.st .bar i{display:block;height:100%;border-radius:99px;transition:width .4s;box-shadow:inset 0 -2px 3px rgba(0,0,0,.16),inset 0 1px 2px rgba(255,255,255,.5)}
 .st b{font-variant-numeric:tabular-nums;font-weight:700;min-width:5.8cqw;text-align:right}
 /* ボタン帯（モード切替、水槽に重ねる半透明オーバーレイ） */
 .btnband{position:absolute;left:0;right:0;bottom:0;z-index:9;min-height:calc(max(60px,15cqw) + env(safe-area-inset-bottom));display:flex;gap:1px;background:rgba(217,191,164,.92);padding-bottom:env(safe-area-inset-bottom)}
@@ -80,10 +105,21 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Maru G
 .foodChips button img{width:10.5cqw;height:10.5cqw;max-width:46px;max-height:46px;object-fit:contain;image-rendering:pixelated;pointer-events:none}
 .foodChips button#btnFoodCancel{flex-direction:row;align-self:center;border-radius:99px}
 .foodChips button.foodsel{background:#ffe1a8;border-color:#e8930c;color:#7a4a12}
-/* 餌やりクールダウン表示（食べた後10秒、次の餌を投げられない間だけ出す） */
-.feedCooldown{position:absolute;left:50%;bottom:calc(max(60px,15cqw) + max(38px,10cqw) + env(safe-area-inset-bottom) + 10px);transform:translateX(-50%);z-index:10;background:rgba(30,24,20,.85);color:#ffe9c9;font-size:4.4cqw;font-weight:700;line-height:1.4;text-align:center;padding:1.8cqw 3.6cqw;border-radius:99px;pointer-events:none;white-space:nowrap}
+/* 餌やりクールダウン表示（食べた後10秒、次の餌を投げられない間だけ、水槽内の上の方＝セリフ帯とモードヒントの下に出す） */
+.feedCooldown{position:absolute;left:50%;top:calc(var(--sat) + max(40px,10.5cqw) + max(36px,10cqw) + 20px);transform:translateX(-50%);z-index:10;background:rgba(30,24,20,.85);color:#ffe9c9;font-size:4.4cqw;font-weight:700;line-height:1.4;text-align:center;padding:1.8cqw 3.6cqw;border-radius:99px;pointer-events:none;white-space:nowrap}
+/* カップ当てゲーム（あそぶモードの遊びの1種）: コップ3つと、その下の餌 */
+#cupLayer{position:absolute;inset:0;z-index:5;pointer-events:none}
+.cup{position:absolute;top:50%;width:24%;transform:translateX(-50%);transition:left .45s ease-in-out;pointer-events:auto;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:none}
+.cup.noanim{transition:none}
+.cup .cupImg{width:100%;height:auto;display:block;image-rendering:pixelated;filter:drop-shadow(0 4px 6px rgba(40,20,0,.35));transition:transform .35s ease;position:relative;z-index:2}
+.cup .cupFood{position:absolute;left:50%;bottom:1%;width:48%;transform:translateX(-50%);image-rendering:pixelated;z-index:1;display:none}
+/* 餌はコップを持ち上げた時（.up）だけ出す。伏せている間（シャッフル・当てる段階）は
+   完全に見えないようにする（以前は hasFood の間ずっと表示され、下端からはみ出て見えていた） */
+.cup.hasFood.up .cupFood{display:block}
+.cup.up .cupImg{transform:translateY(-54%)}
+.cup.hop .cupImg{transform:translateY(-15%)}
 .hidden{display:none!important}
-.device.covered .speech,.device.covered .tank,.device.covered .status,.device.covered .btnband,.device.covered .foodChips,.device.covered .heldFood{display:none!important}
+.device.covered .speech,.device.covered .tank,.device.covered .status,.device.covered .btnband,.device.covered .foodChips,.device.covered .heldFood,.device.covered #cupLayer{display:none!important}
 /* 320x240内オーバーレイ画面 */
 .screen{position:absolute;inset:0;background:var(--panel);color:var(--ink);display:flex;flex-direction:column;padding:calc(3cqw + var(--sat)) 3cqw calc(3cqw + var(--sab));z-index:5}
 .screen h2{font-size:6.2cqw;margin:0 0 1.5cqw}
@@ -147,6 +183,18 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Maru G
 </head>
 <body>
 <div class="wrap">
+<div class="shell" id="shell">
+  <div class="shellRing"></div>
+  <div class="shellDeco" aria-hidden="true">
+    <svg style="top:5px;left:13%;width:27px" viewBox="0 0 24 24"><path d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.2 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8z" fill="#ffd94d" stroke="rgba(190,120,20,.35)" stroke-width=".8"/></svg>
+    <svg style="top:4px;right:12%;width:27px" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#ff6b9d"/></svg>
+    <svg style="top:9px;left:31%;width:18px" viewBox="0 0 24 24"><path d="M12 1l2.5 8.5L23 12l-8.5 2.5L12 23l-2.5-8.5L1 12l8.5-2.5z" fill="#ffffff" opacity=".92"/></svg>
+    <svg style="top:9px;right:31%;width:18px" viewBox="0 0 24 24"><path d="M12 1l2.5 8.5L23 12l-8.5 2.5L12 23l-2.5-8.5L1 12l8.5-2.5z" fill="#9fe8d8"/></svg>
+    <svg style="bottom:25px;left:5.5%;width:21px" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#ff9ec2"/></svg>
+    <svg style="bottom:25px;right:5.5%;width:21px" viewBox="0 0 24 24"><path d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.2 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8z" fill="#ffe066" stroke="rgba(190,120,20,.35)" stroke-width=".8"/></svg>
+    <svg style="bottom:24px;left:23%;width:15px" viewBox="0 0 24 24"><path d="M12 1l2.5 8.5L23 12l-8.5 2.5L12 23l-2.5-8.5L1 12l8.5-2.5z" fill="#ffffff" opacity=".8"/></svg>
+    <svg style="bottom:24px;right:23%;width:15px" viewBox="0 0 24 24"><path d="M12 1l2.5 8.5L23 12l-8.5 2.5L12 23l-2.5-8.5L1 12l8.5-2.5z" fill="#ffd1e8"/></svg>
+  </div>
 <div class="device" id="device">
   <div id="idleClock">00:00</div>
   <button id="btnLight" aria-label="電気（消灯モードの切り替え）" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4.9 12c.6.5 1 1.2 1.1 2h7.6c.1-.8.5-1.5 1.1-2A7 7 0 0 0 12 2z"/></svg></button>
@@ -170,6 +218,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Maru G
     <img id="heldFoodImg" data-asset="assets/food-akamushi.png" alt="" draggable="false">
   </div>
   <div class="feedCooldown hidden" id="feedCooldown"></div>
+  <div id="cupLayer" class="hidden"></div>
 
   <section class="screen hidden" id="eggScreen">
     <h2>🥚 たまご</h2>
@@ -260,6 +309,8 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Maru G
     <div class="row"><button id="btnSettingsBack" class="primary">もどる</button></div>
   </section>
   <div id="sleepShade"></div>
+</div>
+  <div class="shellBtns"><span class="sbWrap"><button class="sb sb1" id="sbFeed" aria-label="ごはん（えさ）モード切り替え"></button><span class="sbLab">ごはん</span></span><span class="sbWrap"><button class="sb sb2" id="sbClean" aria-label="そうじモード切り替え"></button><span class="sbLab">そうじ</span></span><span class="sbWrap"><button class="sb sb3" id="sbPlay" aria-label="あそぶモード切り替え"></button><span class="sbLab">あそぶ</span></span></div>
 </div>
 
 <div class="simui">
@@ -354,7 +405,8 @@ GROWTH: [ {stage:"あかちゃん", key:"baby", pt:0, cm:6}, {stage:"こども",
 SLEEP: { autoUnderDay: 10, autoUnderNight: 35, wakeAt: 100 },
 SULK_MOOD_UNDER: 25, SULK_DEEP_MOOD: 10, SULK_DEEP_HOURS: 6,
 EGG_TAPS_TO_HATCH: 6,
-POOP: { delayMinMs: 60000, delayMaxMs: 180000, max: 10, waterPerHour: 3, cleanWater: 6 }, // うんち: 餌を食べてから実時間1〜3分後に1個（キャラの現在位置の底）。残っている間は1個につき清潔度が追加で -3/実時間1時間。掃除で消すと1個につき清潔度 +6
+POOP: { delayMinMs: 60000, delayMaxMs: 180000, max: 10, waterPerHour: 3, cleanWater: 6 }, // うんち: 餌を食べてから実時間1〜3分後に1個（下の帯に重ならない範囲のランダムな場所）。残っている間は1個につき清潔度が追加で -3/実時間1時間。掃除で消すと1個につき清潔度 +6
+MOSS: { perHour: 1, perFeed: 2, max: 40, poopBoost: 0.5 }, // 苔: 実時間1時間に1つずつ増える／餌を食べると2つ増える／うんちが残っている間は1個につき発生ペース+50%。上限40個。掃除で擦ると消える
 NEGLECT_DEATH_MS: 24*60*60*1000, // 実時間ルール: 最後の操作から24時間（現実の時計）放置したら死亡。ゲーム内速度設定には依存しない
 SAVE_KEY: "uparupa_save_v1"
 };
@@ -491,15 +543,59 @@ poop:["うんち でちゃった…","すっきり！","ぷりっと うんち�
 sick:["ぐあい わるい…","からだが おもい…","へいき、へいき… たぶん","あたまが ぼーっと する…","はやく よくなりたいな","からだが だるい…","エラが いたい きがする…","げんきが でない…","ぼーっと しちゃう…","はやく 元気に なりたい…"],
 recover:["すこし よくなった","もう だいじょうぶそう","げんきが もどってきた！","なおって よかった…","げんきに なってきた！","からだが かるくなった","もう 大丈夫、ありがとう","よくなって うれしい"],
 danger:["たすけて… このままだと…","がんばってるけど、つらい","だれか… たすけて…","もう がまん できないかも…","もう がんばれないかも…","つらい… たすけて…","からだが… うごかない…","そばに いて…"],
-grow:["からだが おおきく なった きがする！","せいちょう したよ、みてみて","おおきく なった！ みて みて！","せが のびた きがする","おおきく なった でしょ！","せいちょう期 かな？ ぐんぐん！","からだが ひとまわり 大きく！","みて、こんなに 大きく なった"]
+grow:["からだが おおきく なった きがする！","せいちょう したよ、みてみて","おおきく なった！ みて みて！","せが のびた きがする","おおきく なった でしょ！","せいちょう期 かな？ ぐんぐん！","からだが ひとまわり 大きく！","みて、こんなに 大きく なった"],
+cupWin:["やった！ みつけた！","せいかい！ すごい すごい！","あった！ えへへ、当てたね","その通り！ かんぺき！","わあ、当たった！ うれしい","みごと せいかい！"],
+cupFail:["ざんねん、ちがう コップだった…","はずれ… つぎは 当ててね","あれれ、ちがったみたい","どんまい！ もういちど あそぼ","おしい！ 餌は こっちだったよ"]
 };
+/* ---------- セリフの組み合わせ生成（手書き×部品で1万通り以上） ----------
+   手書きセリフ（上の LINES、462種超）を「本文」として取り込み、状況カテゴリ
+   ごとに「文頭（呼びかけ・感嘆）」と「語尾（締めの飾り）」の部品を組み合わせて
+   バリエーションを生成する。組み合わせはカテゴリ内だけに限定し（カテゴリを
+   またいだ部品の流用はしない）、不自然な文にならないよう、文頭は前に置いて
+   自然なもの、語尾は文末に付けて崩れないものだけを使う。
+   組み合わせ総数 = Σカテゴリ（本文数 × 文頭数 × 語尾数）で1万通りを超える。
+   選出時は手書きのままの形を優先的に出し（約45%）、残りで部品を付ける。
+   名前入り（{user} 置換）と直近の重複回避は従来通り pickFresh が担う */
+const LINE_FRAMES = {
+  gen:    { pre:["","","ねえ、","あのね、","きいて、","ねえねえ、","あ、","ほら、"], post:["","","♪","♡","〜","！","♪♪"] },
+  happy:  { pre:["","","わーい、","えへへ、","ねえ、","やった！ ","うふふ、","ほら、"], post:["","","♪","♡","〜","！","♪♪"] },
+  invite: { pre:["","","ねえねえ、","ほら、","ねえ、","こっちこっち、","わくわく、","あそぼ、"], post:["","","♪","♡","〜","！","♪♪"] },
+  sleepy: { pre:["","","んー、","ふわぁ、","ねむねむ、","もにょ、","ふあぁ、","すやすや、"], post:["","","…","〜","♪","…",""] },
+  sad:    { pre:["","","ねえ、","あのね、","…ねえ、","あの、","しょんぼり、","ぐすん、"], post:["","","…","♡","〜","♪","…"] }
+};
+const LINE_FRAME_GROUP = {
+  personality:"gen", generic:"gen", day:"gen", evening:"gen", night:"gen", camMotion:"gen",
+  callName:"gen", bootName:"gen", approachName:"gen", careName:"gen",
+  pet:"happy", feedFav:"happy", feedNormal:"happy", cleaned:"happy", recover:"happy", grow:"happy",
+  play:"happy", approach:"happy", boot:"happy", morning:"happy", cupWin:"happy",
+  playInvite:"invite",
+  sleep:"sleepy", sleepTalk:"sleepy", wake:"sleepy", wakeNight:"sleepy", playTired:"sleepy",
+  lonely:"sad", sulk:"sad", reconcile:"sad", dirty:"sad", sick:"sad", danger:"sad", feedFull:"sad", cupFail:"sad"
+};
+const LINE_CAT_OF = new Map(); // プール配列 → カテゴリ名（pickFresh がセリフプールを見分ける）
+for(const k in LINES){
+  const v = LINES[k];
+  if(Array.isArray(v)) LINE_CAT_OF.set(v, k);
+  else if(v && typeof v === "object") for(const k2 in v) LINE_CAT_OF.set(v[k2], "personality");
+}
+function composeLine(cat, body){
+  const grp = LINE_FRAMES[LINE_FRAME_GROUP[cat] || "gen"] || LINE_FRAMES.gen;
+  if(Math.random() < 0.45) return body; // 手書きのセリフそのままを優先的に出す
+  const pre = rnd(grp.pre), post = rnd(grp.post);
+  if(!pre && !post) return body;
+  return pre + body + post;
+}
 /* 直近に出たセリフの重複回避 */
 let recentLines = [];
 function pickFresh(pool){
   const fresh = pool.filter(t=>!recentLines.includes(t));
   const t = rnd(fresh.length ? fresh : pool);
-  recentLines.push(t); if(recentLines.length>10) recentLines.shift();
-  return fillVars(t);
+  let out = t;
+  const cat = LINE_CAT_OF.get(pool); // セリフプールなら組み合わせ生成でバリエーションを広げる
+  if(cat) out = composeLine(cat, t);
+  recentLines.push(t); if(out !== t) recentLines.push(out); // 本文と完成形の両方を直近として避ける
+  while(recentLines.length > 12) recentLines.shift();
+  return fillVars(out);
 }
 
 /* ---------- 状態 ---------- */
@@ -507,6 +603,7 @@ let S = null, memories = [], eggTaps = 0;
 let lastPetAt = 0; // 最後に撫でる反応が起きた実時間（Date.now()）。撫でるクールダウン（現実時間15秒）の起点として保存する
 const PET_COOLDOWN_MS = 15*1000;
 let lastInteractAt = 0; // 最後にユーザーが操作した実時間（Date.now()）。24時間ルールの起点
+let lastTouchAt = 0; // 最後に画面へタッチ（操作）した実時間。通常時に2秒タッチが無ければ中央へ戻る待機動作の判定用
 let lastDecayAt = 0; // おなか・水の実時間減衰を最後に適用した実時間（Date.now()）。閉じている間の減衰も次回起動時に差分で反映する
 let screen = "egg"; // egg | main | dead
 let voiceOn = true;
@@ -571,7 +668,7 @@ function saveLocal(){ if(!storageOK) return; try{ localStorage.setItem(CONFIG.SA
 function save(){ saveLocal(); if(shareMode==="shared" && !applyingRemote) scheduleShareSave(); }
 function load(){ try{ const raw=localStorage.getItem(CONFIG.SAVE_KEY); if(!raw) return false; const d=JSON.parse(raw); S=d.S; memories=d.memories||[]; eggTaps=d.eggTaps||0; lastInteractAt=d.lastInteractAt||0; lastDecayAt=d.lastDecayAt||0; lastPetAt=d.lastPetAt||0; return true; }catch(e){ storageOK=false; return false; } }
 /* ユーザーの操作があったことを記録する（実時間24時間ルールの起点を更新） */
-function touch(){ lastInteractAt = Date.now(); if(S) save(); }
+function touch(){ lastInteractAt = Date.now(); lastTouchAt = Date.now(); if(S) save(); }
 /* 実時間チェック: 孵化後の生存中のみ。最後の操作から24時間経っていたら死亡 */
 function checkNeglectDeath(){
   if(screen!=="main" || !S) return false;
@@ -592,6 +689,18 @@ function applyRealDecay(){
   S.stats.belly = clamp(S.stats.belly - CONFIG.DECAY.belly * elapsedH);
   const poopN = (S.poops && S.poops.length) || 0;
   S.stats.water = clamp(S.stats.water - (CONFIG.DECAY.water + poopN * CONFIG.POOP.waterPerHour) * elapsedH); // 汚れの発生源その1: 時間経過。その2は餌やり（doFeed の waterCost）。その3は残っている うんち（1個につき追加で -waterPerHour/実時間1時間）
+  // 苔の発生: 実時間1時間に1つずつ、1個ずつ増える。うんちが残っている間は
+  // 1個につき発生ペース+50%（CONFIG.MOSS.poopBoost）。ページを閉じている間も
+  // lastDecayAt との差分（elapsedH）でまとめて増える（実時間ルールに乗る）
+  ensureMoss();
+  S.mossAcc += elapsedH * CONFIG.MOSS.perHour * (1 + CONFIG.MOSS.poopBoost * poopN);
+  let mossGrew = false;
+  while(S.mossAcc >= 1){
+    S.mossAcc -= 1;
+    if(addMoss(1) > 0) mossGrew = true;
+    else { S.mossAcc = 0; break; } // 上限に達していたら蓄積は捨てる（掃除した直後にドッと増えないように）
+  }
+  if(mossGrew) save();
   const bw = Math.round(S.stats.belly) + "/" + Math.round(S.stats.water);
   if(bw !== lastShownBW){ lastShownBW = bw; renderStats(); syncMoss(); }
 }
@@ -797,6 +906,133 @@ function voiceBlip(freq, dur, vt, vol){
     }
   }catch(e){}
 }
+/* ---------- トモダチ風ボイス（モーラ単位の発音合成） ----------
+   セリフのテキストを かな1音（モーラ）ずつに分解し、各モーラを
+   「子音の立ち上がりノイズ＋母音フォルマント（F1/F2のバンドパス）」で
+   合成して、実際にその言葉を発音しているように喋らせる。
+   声タイプ10種の個性（ピッチ・速度・波形・ビブラート・かすれ・5度重ね・
+   音程の階段化）は従来通りパラメータとして効く。表示（タイプライター＋
+   横スクロール）はモーラ単位で進み、音の進行と同期する */
+const VOWEL_FORMANTS = { a:[730,1090], i:[270,2290], u:[300,870], e:[530,1840], o:[570,840] }; // 母音の F1/F2（Hz）
+const KANA_MORA = {}; // かな → [子音, 母音]
+(function(){
+  const defs = [
+    ["あ","","a"],["い","","i"],["う","","u"],["え","","e"],["お","","o"],
+    ["か","k","a"],["き","k","i"],["く","k","u"],["け","k","e"],["こ","k","o"],
+    ["さ","s","a"],["し","sh","i"],["す","s","u"],["せ","s","e"],["そ","s","o"],
+    ["た","t","a"],["ち","ch","i"],["つ","ts","u"],["て","t","e"],["と","t","o"],
+    ["な","n","a"],["に","n","i"],["ぬ","n","u"],["ね","n","e"],["の","n","o"],
+    ["は","h","a"],["ひ","h","i"],["ふ","f","u"],["へ","h","e"],["ほ","h","o"],
+    ["ま","m","a"],["み","m","i"],["む","m","u"],["め","m","e"],["も","m","o"],
+    ["や","y","a"],["ゆ","y","u"],["よ","y","o"],
+    ["ら","r","a"],["り","r","i"],["る","r","u"],["れ","r","e"],["ろ","r","o"],
+    ["わ","w","a"],["を","w","o"],
+    ["が","g","a"],["ぎ","g","i"],["ぐ","g","u"],["げ","g","e"],["ご","g","o"],
+    ["ざ","z","a"],["じ","j","i"],["ず","z","u"],["ぜ","z","e"],["ぞ","z","o"],
+    ["だ","d","a"],["ぢ","j","i"],["づ","z","u"],["で","d","e"],["ど","d","o"],
+    ["ば","b","a"],["び","b","i"],["ぶ","b","u"],["べ","b","e"],["ぼ","b","o"],
+    ["ぱ","p","a"],["ぴ","p","i"],["ぷ","p","u"],["ぺ","p","e"],["ぽ","p","o"]
+  ];
+  for(const d of defs) KANA_MORA[d[0]] = [d[1], d[2]];
+})();
+/* テキストをモーラ単位に分解する。各ユニットは表示文字列（str）を持ち、
+   kind: mora=通常の拍 / nasal=ん / long=ー / geminate=っ（無音の拍） / skip=音なし。
+   空白・記号は次のモーラの表示にくっつける（音は出さない） */
+function tokenizeMora(text){
+  const units = [];
+  let attach = "";
+  const last = ()=> units.length ? units[units.length-1] : null;
+  for(const rawCh of [...String(text)]){
+    let ch = rawCh;
+    const code = ch.codePointAt(0);
+    if(code >= 0x30A1 && code <= 0x30F6) ch = String.fromCodePoint(code - 0x60); // カタカナ→ひらがな
+    if(ch === "ゃ" || ch === "ゅ" || ch === "ょ"){ // 拗音: 直前のモーラにくっつけて母音を変える
+      const v = ch === "ゃ" ? "a" : ch === "ゅ" ? "u" : "o";
+      const u = last();
+      if(u && u.kind === "mora"){ u.str += rawCh; u.vowel = v; }
+      else units.push({ str: attach + rawCh, kind:"mora", cons:"y", vowel: v });
+      attach = ""; continue;
+    }
+    if(ch === "っ"){ units.push({ str: attach + rawCh, kind:"geminate" }); attach = ""; continue; }
+    if(ch === "ー"){ const u = last(); units.push({ str: attach + rawCh, kind:"long", vowel: (u && u.vowel) || "a" }); attach = ""; continue; }
+    if(ch === "ん"){ units.push({ str: attach + rawCh, kind:"nasal", vowel:"n" }); attach = ""; continue; }
+    const m = KANA_MORA[ch];
+    if(m){ units.push({ str: attach + rawCh, kind:"mora", cons:m[0], vowel:m[1] }); attach = ""; continue; }
+    if(ch === "ぁ" || ch === "ぃ" || ch === "ぅ" || ch === "ぇ" || ch === "ぉ"){
+      const v = { "ぁ":"a", "ぃ":"i", "ぅ":"u", "ぇ":"e", "ぉ":"o" }[ch];
+      units.push({ str: attach + rawCh, kind:"mora", cons:"", vowel: v }); attach = ""; continue;
+    }
+    attach += rawCh; // 空白・記号・英数字などは次のモーラに付けて表示（音は出さない）
+  }
+  if(attach){ const u = last(); if(u) u.str += attach; else units.push({ str: attach, kind:"skip" }); }
+  if(!units.length) units.push({ str: String(text), kind:"skip" });
+  return units;
+}
+let voiceNoiseBuf = null;
+function getVoiceNoiseBuf(){
+  if(voiceNoiseBuf) return voiceNoiseBuf;
+  const len = Math.floor(AC.sampleRate * 0.2);
+  voiceNoiseBuf = AC.createBuffer(1, len, AC.sampleRate);
+  const d = voiceNoiseBuf.getChannelData(0);
+  for(let i=0;i<len;i++) d[i] = Math.random()*2-1;
+  return voiceNoiseBuf;
+}
+/* 1モーラ分の発音合成: 声帯の元音を母音フォルマントに通し、子音の種類に
+   応じた立ち上がりノイズを重ねる。freq=基本ピッチ、dur=拍の長さ */
+function voiceMora(m, freq, dur, vt, vol){
+  if(!voiceOn) return;
+  try{
+    if(!AC || AC.state !== "running") return;
+    if(m.kind === "geminate" || m.kind === "skip") return; // っ は詰まる音（無音の拍）
+    const t = AC.currentTime, dest = masterGain || AC.destination;
+    const nasal = m.kind === "nasal";
+    const form = nasal ? [250, 1000] : (VOWEL_FORMANTS[m.vowel] || VOWEL_FORMANTS.a);
+    const out = AC.createGain();
+    out.gain.setValueAtTime(0.0001, t);
+    out.gain.linearRampToValueAtTime(vol * (nasal ? 0.8 : 1), t + Math.min(0.03, dur*0.3));
+    out.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    out.connect(dest);
+    const src = AC.createOscillator();
+    src.type = vt.quantize ? "square" : ((vt.wave === "sine" || vt.wave === "triangle") ? "sawtooth" : vt.wave); // 声帯らしいノコギリ波をフォルマントに通す
+    src.frequency.value = freq * (nasal ? 0.94 : 1);
+    const f1 = AC.createBiquadFilter(); f1.type = "bandpass"; f1.frequency.value = form[0]; f1.Q.value = 1.1;
+    const g1 = AC.createGain(); g1.gain.value = 1.0;
+    const f2 = AC.createBiquadFilter(); f2.type = "bandpass"; f2.frequency.value = form[1]; f2.Q.value = 2.4;
+    const g2 = AC.createGain(); g2.gain.value = 0.55;
+    src.connect(f1); f1.connect(g1); g1.connect(out);
+    src.connect(f2); f2.connect(g2); g2.connect(out);
+    src.start(t); src.stop(t + dur + 0.05);
+    if(vt.vibDepth > 0 && vt.vibRate > 0){ // ビブラート（声タイプの個性）
+      const lfo = AC.createOscillator(), lg = AC.createGain();
+      lfo.frequency.value = vt.vibRate; lg.gain.value = freq * vt.vibDepth;
+      lfo.connect(lg); lg.connect(src.frequency);
+      lfo.start(t); lfo.stop(t + dur + 0.05);
+    }
+    if(vt.fifth > 0){ // はなごえ: 基音＋5度上を薄く重ねる
+      const o2 = AC.createOscillator(), g2b = AC.createGain();
+      o2.type = vt.wave; o2.frequency.value = freq * 1.5;
+      g2b.gain.setValueAtTime(0.0001, t);
+      g2b.gain.linearRampToValueAtTime(vol * vt.fifth * 0.6, t + 0.012);
+      g2b.gain.exponentialRampToValueAtTime(0.001, t + dur);
+      o2.connect(g2b); g2b.connect(dest); o2.start(t); o2.stop(t + dur + 0.05);
+    }
+    // 子音の立ち上がり: 破裂音は短く強いノイズ、摩擦音は長めのノイズ、息の音は弱く
+    const cons = m.cons || "";
+    let nDur = 0, nFreq = 4000, nVol = 0;
+    if(cons.length === 1 && "kgtdpb".indexOf(cons) >= 0){ nDur = 0.03; nFreq = 1800; nVol = 0.38; }
+    else if(cons === "s" || cons === "sh" || cons === "ch" || cons === "ts" || cons === "z" || cons === "j"){ nDur = Math.min(0.07, dur*0.6); nFreq = 5200; nVol = 0.30; }
+    else if(cons === "h" || cons === "f"){ nDur = Math.min(0.05, dur*0.5); nFreq = 3400; nVol = 0.16; }
+    if(nDur > 0){
+      const ns = AC.createBufferSource(); ns.buffer = getVoiceNoiseBuf();
+      const nf = AC.createBiquadFilter(); nf.type = "bandpass"; nf.frequency.value = nFreq; nf.Q.value = 0.8;
+      const ng = AC.createGain();
+      ng.gain.setValueAtTime(vol * nVol, t);
+      ng.gain.exponentialRampToValueAtTime(0.001, t + nDur);
+      ns.connect(nf); nf.connect(ng); ng.connect(dest);
+      ns.start(t); ns.stop(t + nDur + 0.02);
+    }
+  }catch(e){}
+}
 function sfx(kind){
   try{
     if(kind==="pet"){ blip(660,.09,"sine",.14,0); blip(880,.12,"sine",.14,.09); }
@@ -822,27 +1058,29 @@ function say(text, opts){
   const baseCps = (S && S.voice) ? S.voice.cps * vt.speedMul : 10;
   const cps = sleepy ? Math.max(3, baseCps*0.5) : baseCps;
   const stepMs = 1000/cps;
-  let i = 0; el.textContent = ""; el.style.opacity = 1; el.style.transform = "translateX(0px)";
+  const units = tokenizeMora(text); // モーラ単位で表示と発音を同期させる
+  let ui = 0, shown = 0;
+  el.textContent = ""; el.style.opacity = 1; el.style.transform = "translateX(0px)";
   typeTimer = setInterval(()=>{
     try{
-      if(i >= text.length){
+      if(ui >= units.length){
         clearInterval(typeTimer); typeTimer = null;
         clearTimer = setTimeout(()=>{ el.style.opacity = 0; setTimeout(()=>{ el.textContent=""; }, 500); }, 3800); // 言い終わりは数秒留まる
         return;
       }
-      const ch = text[i]; i++;
-      el.textContent = text.slice(0, i);
-      // 今喋っている文字が見える位置へスクロール
+      const u = units[ui]; ui++; shown += u.str.length;
+      el.textContent = text.slice(0, shown);
+      // 今喋っているモーラが見える位置へスクロール
       const overflow = el.scrollWidth - view.clientWidth;
       el.style.transform = overflow > 0 ? "translateX(" + (-overflow) + "px)" : "translateX(0px)";
-      if(ch===" "||ch==="　"||!S || !S.voice) return;
+      if(u.kind === "skip" || !S || !S.voice) return;
       let mul;
       if(vt.quantize){ const steps=[0.84,1,1.19,1.41]; mul = steps[Math.floor(Math.random()*steps.length)]; } // ロボ: 音程は階段状
-      else mul = 1 + (Math.random()*2-1) * vt.jitter; // 1文字ごとのピッチ変化（タイプで幅が違う）
+      else mul = 1 + (Math.random()*2-1) * vt.jitter; // 1モーラごとのピッチ変化（タイプで幅が違う）
       const f = S.voice.pitch * vt.pitchMul * mul * (sleepy?0.8:1);
-      let vol = (sleepy?0.10:0.22) * vt.vol;
+      let vol = (sleepy?0.10:0.24) * vt.vol;
       if(vt.kasure && Math.random() < vt.kasure) vol *= 0.3; // おじいの かすれ（時々 音量が落ちる）
-      voiceBlip(f, Math.min(0.11, stepMs/1000*1.4) * vt.lenMul, vt, vol);
+      voiceMora(u, f, Math.min(0.13, stepMs/1000*1.5) * vt.lenMul, vt, vol); // そのモーラを実際に発音する
     }catch(e){ clearInterval(typeTimer); typeTimer=null; }
   }, stepMs);
 }
@@ -979,21 +1217,19 @@ setInterval(()=>{ // 約7fps
 /* ============================================================
 水槽の背景 — 画像は使わず、水色のベタ塗り（単色）のみ。
 岩穴・水草などの背景要素は描かない。
-時間帯の表現は色味のオーバーレイ、水の汚れも茶色オーバーレイで表す。
+水槽の明るさ・色味は時間帯では変えない（夜でも暗くしない・常に一定）。
+暗くなるのは電気マークの消灯モード（#sleepShade）だけ。
+時間帯で変わるのは行動（速さ・眠気など）だけ。水の汚れは茶色オーバーレイで表す。
 ============================================================ */
 const tc = document.getElementById("tankCanvas"), tctx = tc.getContext("2d");
-const BG_TINT = { morning:"rgba(255,216,150,.10)", day:null, evening:"rgba(255,116,44,.20)", night:"rgba(8,18,58,.48)" };
 let frame = 0;
 function drawTank(){
   requestAnimationFrame(drawTank);
   frame++;
   if(screen!=="main" || !S) return;
   const per = period();
-  // ベタ塗り（単色の水色）
+  // ベタ塗り（単色の水色。時間帯による色味・明るさの変化は付けない）
   tctx.fillStyle = "#74c9de"; tctx.fillRect(0, 0, 320, 156);
-  // 時間帯の色味（色をのせるだけ）
-  const tint = BG_TINT[per];
-  if(tint){ tctx.fillStyle = tint; tctx.fillRect(0, 0, 320, 156); }
   // 水の汚れ（清潔度に応じて段階的に強く濁らせる：茶→緑がかった濁り＋浮遊ゴミ）
   // 表示用の汚れ具合 dispDirt は実値（1-water/100）へ毎フレーム少しずつ追随するので、
   // 時間経過で清潔度が下がれば汚れは徐々に増え、掃除で上がれば徐々に減る（増減とも滑らか）。
@@ -1002,10 +1238,11 @@ function drawTank(){
   dispDirt += (targetDirt - dispDirt) * 0.045;
   if(Math.abs(targetDirt - dispDirt) < 0.0008) dispDirt = targetDirt;
   const dirt = dispDirt;
-  // 苔キャンバスも表示用汚れに追随させる（掃除モード中だけは擦った跡を守るため再描画しない）
+  // 苔は個数管理（S.mossSpots）: 個数が変わった時だけ描き直す
+  // （掃除モード中だけは擦った跡を守るため再描画しない）
   if((typeof mode==="undefined" || mode!=="clean")){
-    const wantBlobs = dirt <= 0.03 ? 0 : Math.round(dirt * 240);
-    if(wantBlobs !== lastMossBlobs) renderMoss(dirt);
+    const wantBlobs = (S.mossSpots && S.mossSpots.length) || 0;
+    if(wantBlobs !== lastMossBlobs) renderMoss();
   }
   if(dirt > 0.2){
     const murk = Math.min(1, (dirt-0.2)/0.8); // 濁りの進み具合 0..1
@@ -1027,11 +1264,12 @@ function drawTank(){
       }
     }
   }
-  drawPoops(); // うんちは水槽の底に残る（キャラより奥の層に描く）
+  drawPoops(); // うんちは帯に重ならない場所に残る（キャラより奥の層に描く）
   // 移動（時間帯で速さが変わる。あそぶモード中はダッシュで動き回る）
   const speedF = per==="morning"?1.35 : per==="day"?1 : per==="evening"?0.6 : 0.4;
   const playing = (typeof mode!=="undefined" && mode==="play" && !S.sleeping);
   const hiding = playing && (typeof playKind!=="undefined" && playKind==="hide"); // かくれんぼ中は隠れ場所から動かない
+  const cupping = playing && (typeof playKind!=="undefined" && playKind==="cups"); // カップ当て中はコップの前で見守る（ダッシュしない）
   if(hiding && typeof hideSpot!=="undefined" && hideSpot){
     // かくれんぼ: 場所は固定し、「出す／隠れる」の切り替えだけを ゆっくり繰り返す。
     // 出している時間は長めにして、タッチできるタイミングをしっかり作る
@@ -1048,8 +1286,17 @@ function drawTank(){
   if(target.x-pos.x > 6) faceDir = 1; else if(target.x-pos.x < -6) faceDir = -1;
   pos.x += (target.x-pos.x)*lerpF + Math.sin(frame/40)*0.08*(playing?0.3:1);
   pos.y += (target.y-pos.y)*lerpF + Math.sin(frame/46)*0.12*(S.sleeping?0.2:1);
-  if(playing && !hiding && Math.hypot(target.x-pos.x, target.y-pos.y) < 14){ target.x = 56+Math.random()*208; target.y = 52+Math.random()*64; }
-  if(!hiding && Math.random()<(playing?0.02:0.004*speedF) && Date.now()>=frontBoostUntil && !S.sleeping){ target.x = 70+Math.random()*180; target.y = 62+Math.random()*56; }
+  if(playing && !hiding && !cupping && Math.hypot(target.x-pos.x, target.y-pos.y) < 14){ target.x = 56+Math.random()*208; target.y = 52+Math.random()*64; }
+  // 待機動作: 通常時（通常モード・起きている・消灯OFF・寄ってくる反応や仕草の表示中でない）に
+  // 2秒間タッチが無ければ、水槽の中央へゆっくり戻る。睡眠中・あそぶ等のモード中・
+  // 消灯モード中は そちらの動きを優先し、中央復帰はしない
+  const idleBack = (typeof mode==="undefined" || mode==="normal") && !S.sleeping
+    && !(typeof lightsOff!=="undefined" && lightsOff)
+    && Date.now() >= frontBoostUntil
+    && Date.now() >= Math.max(danceUntil, happyUntil, curiousUntil, wantplayUntil, inviteUntil)
+    && Date.now() - lastTouchAt >= 2000;
+  if(idleBack) target = { x:160, y:82 };
+  else if(!hiding && !cupping && Math.random()<(playing?0.02:0.004*speedF) && Date.now()>=frontBoostUntil && !S.sleeping){ target.x = 70+Math.random()*180; target.y = 62+Math.random()*56; }
 }
 function growth(){ const days=S?S.days:1; let g=CONFIG.GROWTH[0]; for(const c of CONFIG.GROWTH){ if(S.pt>=c.pt && (!c.minDays||days>=c.minDays)) g=c; } return g; }
 /* ---------- 見た目の個体差（大きさのみ。色・形は種族シートで決まる） ---------- */
@@ -1110,7 +1357,8 @@ function hatch(){
     sizeName: size.name, sizeMul: size.mul,
     stats: { belly:75, mood:75, energy:85, water:100, health:95 }, // 誕生時は水槽を綺麗に: 清潔度は満タン（100）から始める
     pt:0, days:1, hour:8, careCount:0, feedCount:0, growthAppliedFeedCount:0, sleeping:false, sick:false, sulking:false,
-    poops: [], poopDue: [], // うんち: poops=底に残っている うんち（{x} の配列）、poopDue=出る予定の時刻（ms）の配列。どちらも S 内なのでローカル／共有セーブにそのまま保存される
+    poops: [], poopDue: [], // うんち: poops=残っている うんち（{x, y} の配列。位置は帯に重ならない範囲でランダム）、poopDue=出る予定の時刻（ms）の配列。どちらも S 内なのでローカル／共有セーブにそのまま保存される
+    mossSpots: [], mossAcc: 0, // 苔: mossSpots=生えている苔（1個ずつの斑点データ {x,y,r,sh,sd}）、mossAcc=次の1個までの「時間の貯まり」（実時間・時間単位）。誕生時は水槽が綺麗なので苔はゼロから
     bornNote: new Date().toLocaleDateString("ja-JP") };
   sulkHours=0; zeroHealthHours=0; neglectHours=0; wasSick=false; recentLines=[];
   dispDirt = 0; // 前の子の汚れ表示を引き継がない（誕生直後から水槽は綺麗に見える）
@@ -1362,6 +1610,10 @@ function applyModeUI(){
   document.getElementById("btnFeed").classList.toggle("modeOn", mode==="feed");
   document.getElementById("btnClean").classList.toggle("modeOn", mode==="clean");
   document.getElementById("btnPlay").classList.toggle("modeOn", mode==="play");
+  // 本体下の丸ボタンにも選択状態を同期する
+  document.getElementById("sbFeed").classList.toggle("modeOn", mode==="feed");
+  document.getElementById("sbClean").classList.toggle("modeOn", mode==="clean");
+  document.getElementById("sbPlay").classList.toggle("modeOn", mode==="play");
   updateFoodUI();
   const h = document.getElementById("modeHint");
   if(mode!=="normal" && screen==="main" && !(mode==="feed" && feedPhase!=="choose")){ h.textContent = (mode==="play") ? playHintText() : MODE_HINTS[mode]; h.classList.remove("hidden"); }
@@ -1399,7 +1651,7 @@ function setMode(next){
       if(mode==="feed"){ cancelProj(); feedPhase = "choose"; heldFood = null; }
       mode = "normal";
     }
-    renderMoss(); // 通常モードに戻っても苔は清潔度に応じて表示し続ける
+    renderMoss(); // 通常モードに戻っても苔は表示し続ける（掃除で消した分は帳簿からも消えている）
     applyModeUI();
     return;
   }
@@ -1409,7 +1661,7 @@ function setMode(next){
   mode = next;
   if(mode==="clean"){ beginCleanSession(); }
   if(mode==="feed"){ feedPhase = "choose"; heldFood = null; }
-  renderMoss(); // 苔は全モードで常時表示: モードが変わっても清潔度に応じた量を描く
+  renderMoss(); // 苔は全モードで常時表示: モードが変わっても今の個数をそのまま描く
   if(mode==="play") startPlay();
   applyModeUI();
 }
@@ -1423,6 +1675,7 @@ let playCatches = 0, playTimer = null;
 let playKind = "chase"; // chase | hide（あそぶモードに入るたびランダムで決まる）
 let lastHideSide = -1;
 function playHintText(){
+  if(playKind==="cups") return cupGame ? "カップ当て中！ ラウンド " + cupGame.round + "/3・当てた数 " + playCatches : "カップ当て中！ 餌の 入った コップを 当てて！";
   return playKind==="hide"
     ? "かくれんぼ中！ 端っこで 体を 出したり 隠したり してるよ。タッチで みつけて！（" + playCatches + "/5）"
     : "ダッシュで 逃げるよ。タッチで つかまえて！（" + playCatches + "/5）";
@@ -1491,8 +1744,12 @@ function hideTargetPos(){
 }
 function startPlay(){
   playCatches = 0;
-  playKind = Math.random() < 0.5 ? "hide" : "chase";
-  if(playKind==="hide"){
+  const kinds = ["hide", "chase", "cups"]; // 遊びは3種からランダム（追いかけっこ／かくれんぼ／カップ当て）
+  playKind = kinds[Math.floor(Math.random() * kinds.length)];
+  if(playKind==="cups"){
+    startCupGame();
+    log("🎮 カップ当てが はじまった");
+  } else if(playKind==="hide"){
     lastHideSide = -1;
     target = pickHideSpot();
     setTempAnim("curious", 1200); // きょろきょろしながら隠れに行く
@@ -1506,6 +1763,7 @@ function startPlay(){
 }
 function finishPlay(completed){
   if(playTimer){ clearTimeout(playTimer); playTimer = null; }
+  cleanupCupGame(); // カップ当ての途中終了でもコップを片付ける
   const c = playCatches; playCatches = 0;
   mode = "normal"; applyModeUI();
   if(!S || c<=0) return;
@@ -1515,7 +1773,9 @@ function finishPlay(completed){
   S.pt += pc.pt; S.careCount++;
   sfx("play"); setTempAnim("dance", 2200);
   say(pick(LINES.play));
-  log("🎮 あそんだ（" + (playKind==="hide" ? "かくれんぼ・" : "追いかけっこ・") + c + "回 " + (playKind==="hide" ? "みつけた" : "つかまえた") + (completed ? "・コンプリート！" : "") + "）");
+  const kindName = playKind==="hide" ? "かくれんぼ" : playKind==="cups" ? "カップ当て" : "追いかけっこ";
+  const verb = playKind==="hide" ? "みつけた" : playKind==="cups" ? "当てた" : "つかまえた";
+  log("🎮 あそんだ（" + kindName + "・" + c + "回 " + verb + (completed ? "・コンプリート！" : "") + "）");
   checkGrowth(); afterCare();
 }
 function catchPlay(p){
@@ -1537,19 +1797,142 @@ function catchHide(p){
   if(playCatches >= 5){ finishPlay(true); return; }
   target = pickHideSpot(); // 別の場所へ隠れ直す
 }
+/* ---------- あそぶ: カップ当てゲーム ----------
+   コップを3つ並べ、餌が入っているコップを最初に見せてから伏せてシャッフルし、
+   ユーザーがタップで当てる。3ラウンド行い、3回全部当てたら成功（コンプリート）。
+   途中で外したら その場で失敗・終了。成功・失敗の反応とパラメータ効果は
+   従来のあそぶの枠組み（finishPlay: playCatches=当てたラウンド数）に合わせる。
+   コップの絵は assets/cup.webp（伏せたコップ）。餌は あかむし の絵を使う */
+const CUP_IMG_PATH = "assets/cup.webp";
+let cupGame = null; // { round, correct, phase, cups:[el], slotOf:[slot×3], timers:[] }
+function cupSlotLeft(i){ return [17, 50, 83][i]; } // コップの横位置（中心・%）
+function cupLater(fn, ms){ if(!cupGame) return; const id = setTimeout(()=>{ if(cupGame) fn(); }, ms); cupGame.timers.push(id); }
+function cupHint(t){ const el = document.getElementById("modeHint"); if(el) el.textContent = t; }
+function startCupGame(){
+  cleanupCupGame();
+  target = { x: 160, y: 56 }; // キャラは上の方で見守る
+  const layer = document.getElementById("cupLayer");
+  layer.innerHTML = "";
+  const cups = [];
+  for(let i=0;i<3;i++){
+    const d = document.createElement("div");
+    d.className = "cup"; d.style.left = cupSlotLeft(i) + "%";
+    const food = document.createElement("img");
+    food.className = "cupFood"; food.alt = ""; food.draggable = false;
+    food.src = assetUrl(FOOD_IMG["あかむし"]);
+    const img = document.createElement("img");
+    img.className = "cupImg"; img.alt = "コップ"; img.draggable = false;
+    img.src = assetUrl(CUP_IMG_PATH);
+    d.appendChild(food); d.appendChild(img);
+    (function(idx){ d.addEventListener("pointerdown", (e)=>{ e.preventDefault(); ensureAudio(); onCupTap(idx); }); })(i);
+    layer.appendChild(d);
+    cups.push(d);
+  }
+  layer.classList.remove("hidden");
+  cupGame = { round: 1, correct: 0, phase: "intro", cups: cups, slotOf: [0,1,2], timers: [] };
+  say("カップ当て！ 餌が 入ってる コップを おぼえてね");
+  cupRoundStart();
+}
+function cupRoundStart(){
+  const g = cupGame; if(!g) return;
+  g.correct = Math.floor(Math.random()*3);
+  g.slotOf = [0,1,2];
+  g.cups.forEach((d,i)=>{
+    d.classList.add("noanim");
+    d.style.left = cupSlotLeft(i) + "%";
+    d.classList.toggle("hasFood", i === g.correct);
+    d.classList.remove("up"); d.classList.remove("hop");
+  });
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{ if(cupGame) cupGame.cups.forEach(d=>d.classList.remove("noanim")); }));
+  g.phase = "show";
+  cupHint("ラウンド " + g.round + "/3: 餌は この コップ！ おぼえてね");
+  cupLater(()=>{ // 正解のコップを持ち上げて餌を見せる
+    if(!cupGame || g.phase !== "show") return;
+    g.cups[g.correct].classList.add("up"); sfx("play");
+    cupLater(()=>{
+      if(!cupGame) return;
+      g.cups[g.correct].classList.remove("up"); // 伏せてからシャッフル
+      cupLater(()=>cupShuffle(), 400);
+    }, 1500);
+  }, 550);
+}
+function cupShuffle(){
+  const g = cupGame; if(!g) return;
+  g.phase = "shuffle";
+  cupHint("シャッフル！ よく みてて…");
+  const swaps = 2 + g.round; // ラウンドごとに 3回→4回→5回 と増える
+  let done = 0;
+  const step = ()=>{
+    if(!cupGame || g.phase !== "shuffle") return;
+    if(done >= swaps){
+      g.phase = "pick";
+      cupHint("ラウンド " + g.round + "/3: どれかな？ タップで 当てて！");
+      return;
+    }
+    let a = Math.floor(Math.random()*3), b;
+    do{ b = Math.floor(Math.random()*3); }while(b === a);
+    const cupA = g.slotOf.indexOf(a), cupB = g.slotOf.indexOf(b);
+    g.slotOf[cupA] = b; g.slotOf[cupB] = a;
+    const elA = g.cups[cupA], elB = g.cups[cupB];
+    elA.style.left = cupSlotLeft(b) + "%";
+    elB.style.left = cupSlotLeft(a) + "%";
+    elA.classList.add("hop"); elB.classList.add("hop");
+    setTimeout(()=>{ elA.classList.remove("hop"); elB.classList.remove("hop"); }, 320);
+    done++;
+    cupLater(step, Math.max(340, 540 - g.round*55)); // ラウンドごとに少し速く
+  };
+  step();
+}
+function onCupTap(idx){
+  const g = cupGame;
+  if(!g || g.phase !== "pick" || mode !== "play" || screen !== "main") return;
+  g.phase = "reveal";
+  touch();
+  const tapped = g.cups[idx];
+  if(idx === g.correct){
+    playCatches++;
+    tapped.classList.add("up");
+    sfx("fanfare"); setTempAnim("happy", 1300);
+    say(pick(LINES.cupWin));
+    cupHint("せいかい！（" + g.round + "/3 クリア）");
+    cupLater(()=>{
+      if(!cupGame) return;
+      tapped.classList.remove("up");
+      if(g.round >= 3){ cupLater(()=>{ cleanupCupGame(); finishPlay(true); }, 400); } // 3ラウンド全部当てたら成功
+      else { g.round++; cupLater(()=>cupRoundStart(), 500); }
+    }, 1200);
+  } else {
+    tapped.classList.add("up"); // 外れのコップも開けて見せる
+    sfx("bad"); setTempAnim("curious", 900);
+    say(pick(LINES.cupFail));
+    cupHint("はずれ… 餌は こっちだった！");
+    cupLater(()=>{ if(cupGame) g.cups[g.correct].classList.add("up"); }, 500); // 正解も開けて見せる
+    cupLater(()=>{ cleanupCupGame(); finishPlay(false); }, 1800); // 途中で外したら失敗で終了
+  }
+}
+function cleanupCupGame(){
+  if(cupGame){ cupGame.timers.forEach(id=>clearTimeout(id)); cupGame = null; }
+  const layer = document.getElementById("cupLayer");
+  if(layer){ layer.innerHTML = ""; layer.classList.add("hidden"); }
+}
 function refreshFoodChips(){
   document.querySelectorAll("#foodBand [data-food]").forEach(b=>{ b.classList.toggle("foodsel", b.dataset.food===selectedFood); });
 }
-/* ---------- ガラスの苔（清潔度に応じて生える緑の斑点。全モードで常時表示） ----------
-   苔は掃除モード専用ではない: 通常モード含む全モードで、水槽の清潔度（water）に
-   応じた量を常に表示する。汚いほど多く、きれいなほど少ない／無い。
-   擦って落とす操作だけは従来通り掃除モード専用で、掃除中は destination-out で
-   削った見た目を保持するため再描画しない（syncMoss が掃除中を除外する）。 */
+/* ---------- ガラスの苔（1つずつ生える緑の斑点。全モードで常時表示） ----------
+   苔は掃除モード専用ではない: 通常モード含む全モードで常に表示する。
+   苔は清潔度から自動計算せず、個数として S.mossSpots に保持して1つずつ増やす:
+   ・時間経過で 実時間1時間に1つ（applyRealDecay が実時間の差分で加算。閉じている間も進む）
+   ・餌を食べると 2つ（doFeed の addMoss）
+   ・うんちが残っている間は発生ペースが上がる（1個につき +50%。applyRealDecay）
+   減るのは掃除だけ: 掃除モードで擦ると、見た目は destination-out で削れ、
+   ブラシが中心に当たった苔は帳簿（mossSpots）からも消える（removeMossSpotsNear）。
+   掃除中は削った見た目を保持するため再描画しない（syncMoss が掃除中を除外する）。 */
 const mossC = document.getElementById("mossCanvas"), mossX = mossC.getContext("2d");
 let cleanGain = 0, cleanRewarded = false;
-/* 表示用の汚れ具合（0=澄んでいる…1=真っ汚れ）。実値へは drawTank が毎フレーム少しずつ
-   追随させるため、清潔度の増減どちらにも滑らかに連動する。lastMossBlobs は
-   現在キャンバスに描かれている苔の数で、変わった時だけ描き直すための目印 */
+/* 表示用の汚れ具合（0=澄んでいる…1=真っ汚れ。水の濁りオーバーレイ用）。
+   実値へは drawTank が毎フレーム少しずつ追随させるため、清潔度の増減どちらにも
+   滑らかに連動する。lastMossBlobs は現在キャンバスに描かれている苔の個数で、
+   変わった時だけ描き直すための目印 */
 let dispDirt = -1, lastMossBlobs = -1;
 /* 掃除セリフの条件: 掃除モードで擦って苔を1つでも実際に落としたら、
    その場で掃除セリフを1回出す。ただし1回の掃除セッション
@@ -1590,41 +1973,114 @@ function maybeSayCleanLine(x0,y0,x1,y1){
   cleanLineSaid = true;
   sfx("clean"); approachAnim(); say(pick(LINES.cleaned));
 }
-function syncMoss(){ // 清潔度に合わせて苔を描き直す（掃除モード中は擦った跡を消さないよう何もしない）
+function syncMoss(){ // 苔の個数に合わせて描き直す（掃除モード中は擦った跡を消さないよう何もしない）
   try{ if(screen==="main" && S && (typeof mode==="undefined" || mode!=="clean")) renderMoss(); }catch(e){}
 }
 function seededRand(seed){ let a = seed>>>0; return function(){ a|=0; a=(a+0x6D2B79F5)|0; let t=Math.imul(a^(a>>>15),1|a); t=(t+Math.imul(t^(t>>>7),61|t))^t; return ((t^(t>>>14))>>>0)/4294967296; }; }
-function renderMoss(dirtVal){
+/* 苔1個分の斑点データ（中心・大きさ・色・小斑点の配置シード）。
+   S.mossSpots の要素としてセーブ（ローカル／共有の両方）にそのまま入る */
+function makeMossSpot(){
+  return {
+    x: Math.round(10 + Math.random()*300),
+    y: Math.round(10 + Math.random()*136),
+    r: Math.round((5 + Math.random()*8) * 10) / 10,
+    sh: Math.floor(Math.random()*4),
+    sd: Math.floor(Math.random()*1000000000)
+  };
+}
+/* 旧セーブ互換: 苔データが無い子は、初回だけ今の清潔度に合わせて苔を初期化する
+   （いきなり真っ白にも真っ汚れにもしないための移行措置。以後の増減は新しいルールで） */
+function ensureMoss(){
+  if(!S) return;
+  if(!Array.isArray(S.mossSpots)){
+    const dirt = 1 - (S.stats ? S.stats.water : 100)/100;
+    const n = Math.max(0, Math.min(CONFIG.MOSS.max, Math.round(dirt * 24)));
+    S.mossSpots = [];
+    for(let i=0;i<n;i++) S.mossSpots.push(makeMossSpot());
+  }
+  if(typeof S.mossAcc !== "number" || !(S.mossAcc >= 0)) S.mossAcc = 0;
+}
+/* 苔を n 個増やす（上限つき）。増えた個数を返す。掃除モード中は擦った跡を
+   守るため再描画しない（モードを抜けた時に renderMoss がまとめて描く） */
+function addMoss(n){
+  if(!S) return 0;
+  ensureMoss();
+  let added = 0;
+  while(added < n && S.mossSpots.length < CONFIG.MOSS.max){ S.mossSpots.push(makeMossSpot()); added++; }
+  if(added > 0 && (typeof mode==="undefined" || mode!=="clean")) renderMoss();
+  return added;
+}
+/* 掃除のストローク（区間）が中心に当たった苔を帳簿（S.mossSpots）からも消す。
+   見た目の削りは eraseMoss（ピクセル側）が担当し、こちらは個数の整合用 */
+function removeMossSpotsNear(x0,y0,x1,y1){
+  if(!S || !Array.isArray(S.mossSpots) || !S.mossSpots.length) return;
+  const dx = x1-x0, dy = y1-y0, len2 = dx*dx + dy*dy;
+  S.mossSpots = S.mossSpots.filter(sp=>{
+    let t = 0;
+    if(len2 > 0) t = Math.max(0, Math.min(1, ((sp.x-x0)*dx + (sp.y-y0)*dy)/len2));
+    const cx = x0 + t*dx, cy = y0 + t*dy;
+    const rr = sp.r + 15; // ブラシ幅30（半径15）に苔の半径を足した「当たった」範囲
+    return (sp.x-cx)*(sp.x-cx) + (sp.y-cy)*(sp.y-cy) > rr*rr;
+  });
+}
+function renderMoss(){
   mossX.globalCompositeOperation = "source-over";
   mossX.clearRect(0,0,320,156);
   if(!S){ lastMossBlobs = -1; return; }
-  // 汚れ具合は原則として表示用（滑らか追随）の値を使う。未初期化時のみ実値で代用
-  const dirt = (typeof dirtVal==="number") ? dirtVal : (dispDirt >= 0 ? dispDirt : 1 - S.stats.water/100);
-  if(dirt <= 0.03){ lastMossBlobs = 0; return; }
-  const rand = seededRand(1234567); // 配置は固定（掃除中に苔が動かない）
-  const blobs = Math.round(dirt * 240);
-  lastMossBlobs = blobs;
+  ensureMoss();
+  const spots = S.mossSpots;
+  lastMossBlobs = spots.length;
+  if(!spots.length) return;
   // 縦長画面ではキャンバスが縦に引き伸ばされるため、斑点が丸く見えるよう縦スケールを補正
   const ky = Math.max(0.2, Math.min(1.5, (tankEl.clientWidth*156) / (Math.max(1,tankEl.clientHeight)*320)));
   const shades = ["rgba(64,110,44,.55)","rgba(84,128,52,.5)","rgba(52,92,38,.6)","rgba(104,146,66,.45)"];
-  for(let i=0;i<blobs;i++){
-    const bx = rand()*320, by = rand()*156, br = 3 + rand()*9;
-    mossX.fillStyle = shades[i%shades.length];
-    mossX.save(); mossX.translate(bx, by); mossX.scale(1, ky);
+  for(const sp of spots){
+    const rand = seededRand(sp.sd); // 苔ごとの固定シード: 小斑点の配置は描き直しても変わらない
+    mossX.fillStyle = shades[sp.sh % shades.length];
+    mossX.save(); mossX.translate(sp.x, sp.y); mossX.scale(1, ky);
     for(let j=0;j<5;j++){
       mossX.beginPath();
-      mossX.arc((rand()-0.5)*br*1.5, (rand()-0.5)*br*1.5, br*(0.35+rand()*0.55), 0, Math.PI*2);
+      mossX.arc((rand()-0.5)*sp.r*1.5, (rand()-0.5)*sp.r*1.5, sp.r*(0.35+rand()*0.55), 0, Math.PI*2);
       mossX.fill();
     }
     mossX.restore();
   }
 }
 /* ---------- うんち ----------
-   餌を食べると少し経ってから（実時間1〜3分後）キャラが うんちをし、水槽の底に残る。
-   表示サイズはキャラの表示幅の1/3。残っている間は水が少しずつ汚れ（applyRealDecay で
-   清潔度に追加の減衰）、掃除モードで擦ると苔と同じ扱いで消える（applyPoopErase）。
-   有無・個数・出る予定は S.poops / S.poopDue に入るので、ローカル／共有セーブに保存される。 */
+   餌を食べると少し経ってから（実時間1〜3分後）キャラが うんちをする。
+   出る場所は、画面下のステータス帯・ボタン帯（と上のセリフ帯）に重ならない
+   範囲の中のランダムな場所（poopSafeBand）。帯の裏側に出ると帯に隠れて
+   掃除で擦れなくなるため、必ず帯より上の見える範囲に出す。
+   表示サイズはキャラの表示幅の1/3。残っている間は水が少しずつ汚れ
+   （applyRealDecay で清潔度に追加の減衰）、苔の発生ペースも上がる
+   （applyRealDecay の MOSS.poopBoost）。掃除モードで擦ると苔と同じ扱いで
+   消える（applyPoopErase）。
+   有無・個数・位置・出る予定は S.poops / S.poopDue に入るので、ローカル／共有セーブに保存される。 */
 const POOP_IMG = assetImg("assets/poop.webp");
+/* うんちを出してよい論理y範囲: 上のセリフ帯と下のステータス帯・ボタン帯に
+   かぶらない範囲（hideSafeBand の実測）。画面が覆われていて帯を測れない時でも
+   帯の裏に出ないよう、CSS上の最小の高さぶんは必ず空ける */
+function poopSafeBand(){
+  const band = hideSafeBand();
+  let top = band.top, bottom = band.bottom;
+  try{
+    const tr = tankEl.getBoundingClientRect();
+    if(tr.height > 0){
+      const devW = tankEl.clientWidth || tr.width;
+      const topMin = (Math.max(40, devW * 0.105) + 8) / tr.height * 156;   // セリフ帯の最小高さ＋余白
+      const botMin = (Math.max(60, devW * 0.15) + Math.max(38, devW * 0.10) + 12) / tr.height * 156; // ボタン帯＋ステータス帯の最小高さ＋余白
+      if(top < topMin) top = topMin;
+      if(bottom > 156 - botMin) bottom = 156 - botMin;
+    }
+  }catch(e){}
+  if(bottom - top < 30){ top = 34; bottom = 122; } // 万一のフォールバック（中央寄り）
+  return { top: top, bottom: bottom };
+}
+function poopY(p, s){ // うんちの中心y（論理座標）。位置を保存した うんちはその y、旧データ（y無し）は安全範囲の下端寄りに置く
+  if(p && typeof p.y === "number") return p.y;
+  const band = poopSafeBand();
+  return Math.max(band.top + s.h/2, band.bottom - s.h/2);
+}
 function poopSize(){ // 表示幅はキャラの実表示幅（成長・個体差・餌の成長分に追随）の1/3
   const g = growth();
   const cw = (CONFIG.CHAR_W[g.key] || 148) * (S.sizeMul||1) * sizeScale();
@@ -1635,16 +2091,31 @@ function poopSize(){ // 表示幅はキャラの実表示幅（成長・個体�
 function drawPoops(){
   if(!S || !S.poops || !S.poops.length || !POOP_IMG.naturalWidth) return;
   const s = poopSize();
-  for(const p of S.poops) tctx.drawImage(POOP_IMG, p.x - s.w/2, 156 - s.h + 2, s.w, s.h); // 底に少し沈めて置く
+  // 縦長画面ではキャンバス（320×156）が縦に引き伸ばされるため、そのまま描くと
+  // うんちが縦長に伸びてしまう。苔と同じ縦スケール補正（ky）を高さに掛けて、
+  // アスペクト比を保ったまま均等に縮小して見えるようにする（大きさはキャラの1/3のまま）
+  const ky = Math.max(0.2, Math.min(1.5, (tankEl.clientWidth*156) / (Math.max(1,tankEl.clientHeight)*320)));
+  const vh = s.h * ky;
+  for(const p of S.poops){
+    const cy = poopY(p, s);
+    tctx.drawImage(POOP_IMG, p.x - s.w/2, cy - vh/2, s.w, vh);
+  }
 }
 function spawnPoop(){
   if(!S) return;
   if(!Array.isArray(S.poops)) S.poops = [];
   if(S.poops.length >= CONFIG.POOP.max) return;
   const s = poopSize();
-  const x = Math.max(s.w/2 + 2, Math.min(320 - s.w/2 - 2, pos.x + (Math.random()*30 - 15))); // キャラの今いる場所の底に出る
-  S.poops.push({ x: Math.round(x) });
-  log("💩 うんちをした（底に " + S.poops.length + "個）");
+  // 出る場所はランダム。ただし下のテキスト帯（ステータス帯・ボタン帯）に重なると
+  // 帯の裏に隠れて掃除で消せなくなるので、帯にかぶらない範囲（poopSafeBand）の中だけに出す
+  const band = poopSafeBand();
+  // 出現位置は画面の端ではなく中央寄りの範囲（横は中央60%、縦は安全範囲の中央70%）からランダム
+  const x = Math.max(s.w/2 + 2, Math.min(320 - s.w/2 - 2, 320*0.2 + Math.random() * (320*0.6)));
+  const bandH = band.bottom - band.top;
+  const yTop = band.top + bandH*0.15 + s.h/2, yBot = band.bottom - bandH*0.15 - s.h/2;
+  const y = yBot > yTop ? yTop + Math.random() * (yBot - yTop) : (band.top + band.bottom) / 2;
+  S.poops.push({ x: Math.round(x), y: Math.round(y) });
+  log("💩 うんちをした（" + S.poops.length + "個）");
   if(!S.sleeping && Math.random() < 0.7) say(pick(LINES.poop));
 }
 function processPoopDue(){ // 予定時刻を過ぎた うんちを出す（アプリを閉じている間に過ぎた分も、次回チェック時にまとめて出る）
@@ -1660,10 +2131,11 @@ function processPoopDue(){ // 予定時刻を過ぎた うんちを出す（ア�
 function erasePoop(x0,y0,x1,y1){ // 掃除のストローク（区間）が当たった うんちを消す。消えた個数を返す
   if(!S || !S.poops || !S.poops.length) return 0;
   const s = poopSize();
-  const cy = 156 - s.h/2 + 2, r = s.w/2 + 14; // ブラシ幅30に合わせて少し広めに判定
+  const r = s.w/2 + 14; // ブラシ幅30に合わせて少し広めに判定
   const dx = x1-x0, dy = y1-y0, len2 = dx*dx + dy*dy;
   let erased = 0;
   S.poops = S.poops.filter(p=>{
+    const cy = poopY(p, s); // うんちごとに保存された位置（中心y）で判定する
     let t = 0;
     if(len2 > 0) t = Math.max(0, Math.min(1, ((p.x-x0)*dx + (cy-y0)*dy)/len2));
     const cx = x0 + t*dx, cyy = y0 + t*dy;
@@ -1710,9 +2182,10 @@ function doFeed(food){
   if(S.sick) gain = Math.round(gain/2);
   st.belly = clamp(st.belly+gain);
   if(fav) st.mood = clamp(st.mood + c.favMood);
-  st.water = clamp(st.water - c.waterCost); // 汚れの発生源その2: 餌やり（食べ残し・フン）。苔の表示量はこの清潔度に連動する
+  st.water = clamp(st.water - c.waterCost); // 汚れの発生源その2: 餌やり（食べ残し・フン）
   S.pt += c.pt; S.careCount++;
   S.feedCount = (S.feedCount||0) + 1; // 餌をもらった累計回数。成長量 = 累計回数×0.1mm（反映は翌朝。applyMorningGrowth 参照）
+  addMoss(CONFIG.MOSS.perFeed); // 餌をあげたら苔が2つ増える（食べ残し・フンのイメージ）
   // 食べたら少し経ってから うんちが出る（予定時刻を S に保存。processPoopDue が実際の出現を担当）
   if(!Array.isArray(S.poopDue)) S.poopDue = [];
   if(S.poopDue.length < CONFIG.POOP.max) S.poopDue.push(Date.now() + CONFIG.POOP.delayMinMs + Math.random()*(CONFIG.POOP.delayMaxMs - CONFIG.POOP.delayMinMs));
@@ -1762,10 +2235,12 @@ function spawnHeart(px, py, big){
   setTimeout(()=>{ s.remove(); }, 1150);
 }
 /* ---------- モード切替ボタン ---------- */
-document.getElementById("btnFeed").addEventListener("click", ()=>{
+function onFeedBtn(){
   ensureAudio(); if(!S || screen!=="main") return; touch(); if(wakeTap()) return;
   setMode("feed");
-});
+}
+document.getElementById("btnFeed").addEventListener("click", onFeedBtn);
+document.getElementById("sbFeed").addEventListener("click", onFeedBtn);
 document.getElementById("btnFoodCancel").addEventListener("click", ()=>{ setMode("feed"); });
 document.querySelectorAll("#foodBand [data-food]").forEach(b=>{
   b.addEventListener("click", ()=>{ // 餌を選んだら: チップは下へスライドして消え、選んだ餌が「手持ちの餌」として画面下に出る
@@ -1775,10 +2250,12 @@ document.querySelectorAll("#foodBand [data-food]").forEach(b=>{
     applyModeUI();
   });
 });
-document.getElementById("btnClean").addEventListener("click", ()=>{
+function onCleanBtn(){
   ensureAudio(); if(!S || screen!=="main") return; touch(); if(wakeTap()) return;
   setMode("clean");
-});
+}
+document.getElementById("btnClean").addEventListener("click", onCleanBtn);
+document.getElementById("sbClean").addEventListener("click", onCleanBtn);
 function doPet(){
   if(!S) return; touch(); if(wakeTap()) return;
   inviteUntil = 0; // 「遊んでほしい」の誘いにタップで応えた時も、反応は なでる に統一
@@ -1786,14 +2263,16 @@ function doPet(){
   S.pt += CONFIG.CARE.pet.pt; S.careCount++;
   sfx("pet"); approachAnim(); say(pick(LINES.pet)); checkGrowth(); afterCare();
 }
-document.getElementById("btnPlay").addEventListener("click", ()=>{
+function onPlayBtn(){
   ensureAudio(); if(!S || screen!=="main") return; touch();
   if(mode!=="play"){
     if(wakeTap()) return;
     if(S.stats.energy < CONFIG.CARE.play.needEnergy){ say(pick(LINES.playTired)); return; }
   }
   setMode("play");
-});
+}
+document.getElementById("btnPlay").addEventListener("click", onPlayBtn);
+document.getElementById("sbPlay").addEventListener("click", onPlayBtn);
 /* 「はなす」ボタンは廃止。話すのは画面タップ（通常モードのタップ＝寄ってきてセリフを話す）が担う */
 document.getElementById("btnSensor").addEventListener("click", ()=>{
   ensureAudio(); if(!S) return; touch(); if(wakeTap()) return;
@@ -1826,10 +2305,11 @@ tankEl.addEventListener("pointerdown", (e)=>{
       else flashHint("下の 餌を つかんで、上へ スワイプしてね");
     }
   }
-  else if(mode==="clean"){ maybeSayCleanLine(p.lx, p.ly, p.lx, p.ly); eraseMoss(p.lx, p.ly, p.lx, p.ly); applyPoopErase(p.lx, p.ly, p.lx, p.ly); }
+  else if(mode==="clean"){ maybeSayCleanLine(p.lx, p.ly, p.lx, p.ly); eraseMoss(p.lx, p.ly, p.lx, p.ly); removeMossSpotsNear(p.lx, p.ly, p.lx, p.ly); applyPoopErase(p.lx, p.ly, p.lx, p.ly); }
   else if(mode==="play"){
     const cr = charEl.getBoundingClientRect();
-    if(playKind==="hide"){
+    if(playKind==="cups"){ /* カップ当てはコップ自体のタップで受ける（キャラ捕獲の判定はしない） */ }
+    else if(playKind==="hide"){
       // かくれんぼ: 見えている部分（水槽の内側に収まった範囲）へのタッチだけを「みつけた」とする
       const tr = tankEl.getBoundingClientRect();
       const vx0 = Math.max(cr.left, tr.left), vx1 = Math.min(cr.right, tr.right);
@@ -1858,6 +2338,7 @@ tankEl.addEventListener("pointermove", (e)=>{
   if(mode==="clean"){
     maybeSayCleanLine(lastPt.lx, lastPt.ly, p.lx, p.ly);
     eraseMoss(lastPt.lx, lastPt.ly, p.lx, p.ly);
+    removeMossSpotsNear(lastPt.lx, lastPt.ly, p.lx, p.ly); // 擦った苔は個数の帳簿からも消す
     applyPoopErase(lastPt.lx, lastPt.ly, p.lx, p.ly); // うんちも擦れば消える（苔と同じ扱い）
     const seg = Math.hypot(p.lx-lastPt.lx, p.ly-lastPt.ly);
     if(seg > 0){
@@ -1921,8 +2402,8 @@ tankEl.addEventListener("pointercancel", endTankPointer);
 const STAT_DEFS = [["belly","おなか","#f59e4c"],["mood","きげん","#e85d8a"],["energy","げんき","#7bc950"],["water","みず","#2e9db4"],["health","たいちょう","#9b7ede"]];
 function renderStats(){
   const box = document.getElementById("status"); if(!S){ box.innerHTML=""; return; }
-  box.innerHTML = STAT_DEFS.map(([k,label,col])=>{ const v=Math.round(S.stats[k]); return '<div class="st"><span>'+label+'</span><div class="bar"><i style="width:'+v+'%;background:'+col+'"></i></div><b>'+v+'</b></div>'; }).join("");
-  syncMoss(); // 清潔度が変わったら苔の量も全モードで追従させる（掃除中は syncMoss 側で除外）
+  box.innerHTML = STAT_DEFS.map(([k,label,col])=>{ const v=Math.round(S.stats[k]); const low = v<25; return '<div class="st"><span>'+label+'</span><div class="bar"><i style="width:'+v+'%;background:'+(low ? "#e0483e" : col)+'"></i></div><b'+(low ? ' style="color:#d43a2f"' : '')+'>'+v+'</b></div>'; }).join("");
+  syncMoss(); // 苔の表示も全モードで追従させる（掃除中は syncMoss 側で除外）
 }
 /* 上部バー（名前・種族などのキャラ情報表示）は廃止。情報はセリフ帯の名前表示のみ */
 function showScreen(){
@@ -2152,11 +2633,13 @@ function refreshFromRemote(){
   // 家族の変更を取り込んだ後の画面の合わせ直し（世話・孵化・星になった等）
   mode = "normal"; cancelProj(); tempAnim = null; animQueue = [];
   if(playTimer){ clearTimeout(playTimer); playTimer = null; } playCatches = 0;
+  cleanupCupGame();
   if(S){
     if(!S.species || S.species==="fluffy" || S.species==="stubby"){ S.species = "sakura"; S.speciesName = "さくらピンク"; }
     if(S.sizeMul===undefined){ S.sizeMul = 1.0; S.sizeName = "ふつう"; }
     if(S.feedCount===undefined) S.feedCount = 0; if(S.growthAppliedFeedCount===undefined) S.growthAppliedFeedCount = 0; // 旧セーブ互換: 餌の累計回数と朝反映済み回数
     if(!Array.isArray(S.poops)) S.poops = []; if(!Array.isArray(S.poopDue)) S.poopDue = []; // 旧セーブ互換: うんち
+    if(!Array.isArray(S.mossSpots) || typeof S.mossAcc!=="number") ensureMoss(); // 旧セーブ互換: 苔（初回だけ今の清潔度に合わせて初期化）
     if(S.voice && !S.voice.type) S.voice.type = "normal";
     if(screen!=="dead"){ screen = "main"; checkGrowth._last = growth().stage; }
     pos = {x:160, y:82}; target = {x:160, y:82};
@@ -2500,6 +2983,7 @@ function finishBoot(){
     if(S.sizeMul===undefined){ S.sizeMul = 1.0; S.sizeName = "ふつう"; }
     if(S.feedCount===undefined) S.feedCount = 0; if(S.growthAppliedFeedCount===undefined) S.growthAppliedFeedCount = 0; // 旧セーブ互換: 餌の累計回数と朝反映済み回数
     if(!Array.isArray(S.poops)) S.poops = []; if(!Array.isArray(S.poopDue)) S.poopDue = []; // 旧セーブ互換: うんち
+    if(!Array.isArray(S.mossSpots) || typeof S.mossAcc!=="number") ensureMoss(); // 旧セーブ互換: 苔（初回だけ今の清潔度に合わせて初期化）
     if(S.voice && !S.voice.type) S.voice.type = "normal"; // 旧セーブの声は「ふつう」として読み替える
     if(!lastInteractAt) lastInteractAt = Date.now(); // 最終操作時刻が無い旧セーブは 読み込み時刻を起点にする（即死させない）
     if(!lastDecayAt) lastDecayAt = Date.now(); // 減衰の起点が無い旧セーブは 読み込み時刻を起点にする（遡って減らさない）
