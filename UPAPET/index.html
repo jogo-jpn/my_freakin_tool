@@ -50,8 +50,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Maru G
 #idleClock.show{opacity:1;pointer-events:auto;cursor:grab;touch-action:none}
 /* セリフ帯（1行スクロール、水槽に重ねる半透明オーバーレイ） */
 .speech{position:absolute;left:0;right:0;top:var(--sat);z-index:8;min-height:max(40px,10.5cqw);display:flex;align-items:center;gap:1.6cqw;padding:.6cqw 2cqw;background:rgba(43,33,24,.82);color:#ffe9c9;pointer-events:none}
-.speech .nm{flex:0 0 auto;font-size:4.2cqw;color:#ffb7cd;font-weight:700;white-space:nowrap;max-width:26%;overflow:hidden;text-overflow:ellipsis;padding-right:1.4cqw;border-right:1px solid rgba(255,233,201,.28);pointer-events:auto;touch-action:none;-webkit-touch-callout:none;cursor:pointer}
-.speech .nm.pressing{color:#fff}
+.speech .nm{flex:0 0 auto;font-size:4.2cqw;color:#ffb7cd;font-weight:700;white-space:nowrap;max-width:26%;overflow:hidden;text-overflow:ellipsis;padding-right:1.4cqw;border-right:1px solid rgba(255,233,201,.28)}
 .speechView{flex:1 1 auto;min-width:0;overflow:hidden;white-space:nowrap;mask-image:linear-gradient(90deg,#000 0,#000 95%,transparent 100%);-webkit-mask-image:linear-gradient(90deg,#000 0,#000 95%,transparent 100%)}
 #speechText{display:inline-block;font-size:4.8cqw;letter-spacing:.02em;transition:transform .1s linear,opacity .5s;will-change:transform}
 /* 水槽（画面いっぱい） */
@@ -90,6 +89,8 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Maru G
 .btnband button{flex:1;font-family:inherit;font-size:4.2cqw;font-weight:700;border:0;background:rgba(255,253,248,.94);color:#3a2b33;cursor:pointer;padding:0;white-space:nowrap}
 .btnband button:active{background:#ffe3ec}
 .btnband button.modeOn{background:#e85d8a;color:#fff;box-shadow:inset 0 0 0 2px rgba(255,255,255,.55)}
+.btnband button.gearBtn{flex:0 0 auto;padding:0 3.4cqw;display:flex;align-items:center;justify-content:center;color:#8a6a54}
+.btnband button.gearBtn svg{width:5.8cqw;height:5.8cqw;display:block}
 /* 餌チップ（餌やりモード中だけ、ステータスの上に浮かぶ） */
 .foodChips{position:absolute;left:0;right:0;bottom:calc(max(60px,15cqw) + max(38px,10cqw) + env(safe-area-inset-bottom) + 8px);z-index:9;display:flex;flex-wrap:wrap;gap:8px;justify-content:center;padding:0 10px;background:none;min-height:0;transition:transform .38s ease,opacity .38s ease}
 .foodChips.chipsAway{transform:translateY(190%);opacity:0;pointer-events:none}
@@ -130,8 +131,8 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Maru G
 .screen input[type="password"],.screen input[type="text"]{font-family:inherit;font-size:5.2cqw;padding:2.2cqw;border:1.5px solid var(--line);border-radius:8px;background:var(--btn);color:var(--ink);width:100%;margin-top:2cqw}
 .gateErr{color:#c0392b;font-size:4.7cqw;font-weight:700;min-height:5.5cqw;margin-top:1.5cqw;line-height:1.45}
 #gateScreen .row{margin-top:2.5cqw}
-/* パスワード画面・設定画面（名前の長押しで入る。消灯の暗幕より手前に出す） */
-#passScreen,#settingsScreen{z-index:40}
+/* 設定画面（画面下の歯車ボタンから開く。消灯の暗幕より手前に出す） */
+#settingsScreen{z-index:40}
 #settingsScreen{overflow-y:auto;touch-action:pan-y}
 .screen select{font-family:inherit;font-size:5.2cqw;padding:2cqw;border:1.5px solid var(--line);border-radius:8px;background:var(--btn);color:var(--ink)}
 .setSec{font-size:5.8cqw;font-weight:800;margin:3.6cqw 0 0;padding-top:2.8cqw;border-top:1px solid var(--line)}
@@ -197,7 +198,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Maru G
   </div>
   <div class="status" id="status"></div>
   <div class="btnband" id="btnBand">
-    <button id="btnFeed">ごはん</button><button id="btnClean">そうじ</button><button id="btnPlay">あそぶ</button>
+    <button id="btnFeed">ごはん</button><button id="btnClean">そうじ</button><button id="btnPlay">あそぶ</button><button id="btnSettingsGear" class="gearBtn" aria-label="せっていを ひらく"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></button>
   </div>
   <div class="foodChips hidden" id="foodBand">
     <button data-food="あかむし"><img data-asset="assets/food-akamushi.png" alt="" draggable="false">あかむし</button><button data-food="えび"><img data-asset="assets/food-ebi.png" alt="" draggable="false">えび</button><button data-food="ペレット"><img data-asset="assets/food-pellet.png" alt="" draggable="false">ペレット</button><button id="btnFoodCancel">やめる</button>
@@ -255,13 +256,6 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Maru G
     <div class="gateErr" id="nameErr"></div>
     <div class="row"><button id="btnNameSkip">あとで</button><button id="btnNameSave" class="primary">この名前で はじめる</button></div>
   </section>
-  <section class="screen hidden" id="passScreen">
-    <h2>🔒 パスワード</h2>
-    <div class="line">設定画面を ひらくには、パスワードが 必要です。</div>
-    <input id="settingsPassIn" type="password" placeholder="パスワード" autocomplete="current-password">
-    <div class="gateErr" id="settingsPassErr"></div>
-    <div class="row"><button id="btnPassBack">もどる</button><button id="btnPassOpen" class="primary">ひらく</button></div>
-  </section>
   <section class="screen hidden" id="settingsScreen">
     <h2>⚙️ せってい</h2>
     <div class="setSec first">あなたの名前（この端末）</div>
@@ -277,11 +271,6 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Maru G
       <option value="fast">早回し・テスト用（1時間／5秒）</option>
       <option value="super">超早回し・テスト用（1時間／1秒）</option>
     </select></div>
-    <div class="setSec">設定画面のパスワード</div>
-    <input id="setPassNew" type="password" placeholder="新しいパスワード（4文字以上）" autocomplete="new-password">
-    <input id="setPassNew2" type="password" placeholder="新しいパスワードを もう一度" autocomplete="new-password">
-    <div class="setMsg" id="setPassMsg"></div>
-    <div class="setRow"><span class="lab">パスワードは この端末だけに 保存されます。</span><button id="btnSetPass">変更</button></div>
     <div class="setSec">合言葉（育てる子）</div>
     <div class="setRow"><span class="lab">合言葉ごとに 別の子を 育てられます。合言葉を 変えると、その合言葉の子に 切り替わります（いまの子は その合言葉のまま 残ります）。</span><button id="btnSetPassphrase">合言葉を変える</button></div>
     <div id="setPassphraseConfirm" class="hidden">
@@ -2358,7 +2347,6 @@ function showScreen(){
   document.getElementById("device").classList.toggle("covered", screen!=="main");
   document.getElementById("gateScreen").classList.toggle("hidden", screen!=="gate");
   document.getElementById("nameScreen").classList.toggle("hidden", screen!=="name");
-  document.getElementById("passScreen").classList.toggle("hidden", screen!=="pass");
   document.getElementById("settingsScreen").classList.toggle("hidden", screen!=="settings");
   document.getElementById("eggScreen").classList.toggle("hidden", screen!=="egg");
   document.getElementById("deadScreen").classList.toggle("hidden", screen!=="dead");
@@ -2743,64 +2731,11 @@ document.getElementById("btnNameSkip").addEventListener("click", ()=>{
 });
 refreshUserNameUI();
 
-/* ---------- 設定画面（左上の名前を長押し → パスワード → 設定） ----------
-   左上に表示されるペットの名前（セリフ帯の名前表示）を長押しすると
-   パスワード入力が出て、正しいパスワードで設定画面が開く。
-   パスワードは端末ごとに localStorage へ保存し、家族共有のセーブ
-   （Firestore の payloadString や端末内セーブ）には絶対に入れない。
-   初期パスワードは小文字で「papa」。設定画面の中で変更できる */
-const SETTINGS_PASS_KEY = "upapet_settings_pass";
-const DEFAULT_SETTINGS_PASS = "papa";
-let settingsPass = DEFAULT_SETTINGS_PASS;
-try{ const sp = localStorage.getItem(SETTINGS_PASS_KEY); if(sp) settingsPass = sp; }catch(e){}
-function openPassScreen(){
-  document.getElementById("settingsPassIn").value = "";
-  document.getElementById("settingsPassErr").textContent = "";
-  screen = "pass"; showScreen();
-  const inp = document.getElementById("settingsPassIn");
-  setTimeout(()=>{ try{ inp.focus(); }catch(e){} }, 60);
-}
+/* ---------- 設定画面（画面下の歯車ボタンから直接開く。パスワード認証は廃止） ---------- */
 function closeToMain(){
   screen = (S ? "main" : "egg"); showScreen();
 }
-document.getElementById("btnPassBack").addEventListener("click", ()=>{ ensureAudio(); closeToMain(); });
-document.getElementById("btnPassOpen").addEventListener("click", ()=>{
-  ensureAudio();
-  const v = document.getElementById("settingsPassIn").value;
-  const err = document.getElementById("settingsPassErr");
-  if(v === settingsPass){ // パスワードが合った時だけ設定画面へ。違えば入れない
-    err.textContent = "";
-    document.getElementById("settingsPassIn").value = "";
-    openSettings();
-  } else {
-    err.textContent = "パスワードが ちがいます";
-    document.getElementById("settingsPassIn").value = "";
-  }
-});
-document.getElementById("settingsPassIn").addEventListener("keydown", (e)=>{ if(e.key==="Enter") document.getElementById("btnPassOpen").click(); });
-/* 名前の長押し判定（約0.7秒）。普通のタップでは開かない。
-   指が大きく動いたら長押しをやめる（スクロール等の誤作動防止） */
-(function(){
-  const nm = document.getElementById("speechName"); if(!nm) return;
-  let timer = null, sx = 0, sy = 0;
-  const cancel = ()=>{ if(timer){ clearTimeout(timer); timer = null; } nm.classList.remove("pressing"); };
-  nm.addEventListener("pointerdown", (e)=>{
-    if(screen!=="main") return;
-    sx = e.clientX; sy = e.clientY;
-    nm.classList.add("pressing");
-    if(timer) clearTimeout(timer);
-    timer = setTimeout(()=>{
-      timer = null; nm.classList.remove("pressing");
-      try{ if(navigator.vibrate) navigator.vibrate(30); }catch(err){}
-      openPassScreen();
-    }, 700);
-  });
-  nm.addEventListener("pointermove", (e)=>{ if(timer && Math.hypot(e.clientX - sx, e.clientY - sy) > 12) cancel(); });
-  nm.addEventListener("pointerup", cancel);
-  nm.addEventListener("pointercancel", cancel);
-  nm.addEventListener("pointerleave", cancel);
-  nm.addEventListener("contextmenu", (e)=>{ e.preventDefault(); }); // 長押し時のメニュー表示を防ぐ
-})();
+document.getElementById("btnSettingsGear").addEventListener("click", ()=>{ ensureAudio(); openSettings(); });
 /* ---------- 設定画面の中身（設定項目はここに集約） ----------
    声・カメラ・リセット・速度は本体側の処理（toggleVoice / toggleCam /
    doReset / gameSpeed 変数）を直接使う（状態は1か所で管理する） */
@@ -2813,9 +2748,6 @@ function syncSettingsUI(){
   if(ss) ss.value = gameSpeed;
   document.getElementById("setResetConfirm").classList.add("hidden");
   const pc = document.getElementById("setPassphraseConfirm"); if(pc) pc.classList.add("hidden");
-  const pm = document.getElementById("setPassMsg"); pm.textContent = ""; pm.classList.remove("ok");
-  document.getElementById("setPassNew").value = "";
-  document.getElementById("setPassNew2").value = "";
 }
 function openSettings(){
   syncSettingsUI();
@@ -2837,20 +2769,6 @@ document.getElementById("btnSetCam").addEventListener("click", (e)=>{
 });
 document.getElementById("setSpeedSel").addEventListener("change", (e)=>{
   gameSpeed = e.target.value;
-});
-document.getElementById("btnSetPass").addEventListener("click", ()=>{
-  ensureAudio();
-  const msg = document.getElementById("setPassMsg");
-  const p1 = document.getElementById("setPassNew").value, p2 = document.getElementById("setPassNew2").value;
-  msg.classList.remove("ok");
-  if(!p1 || p1.length < 4){ msg.textContent = "パスワードは 4文字以上に してね"; return; }
-  if(p1 !== p2){ msg.textContent = "2つの パスワードが ちがいます"; return; }
-  settingsPass = p1;
-  try{ localStorage.setItem(SETTINGS_PASS_KEY, settingsPass); }catch(e){}
-  document.getElementById("setPassNew").value = "";
-  document.getElementById("setPassNew2").value = "";
-  msg.textContent = "パスワードを 変更しました"; msg.classList.add("ok");
-  log("🔒 設定画面のパスワードを変更した（この端末だけに保存）");
 });
 document.getElementById("btnSetReset").addEventListener("click", ()=>{
   document.getElementById("setResetConfirm").classList.remove("hidden");
