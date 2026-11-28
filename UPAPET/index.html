@@ -12,12 +12,10 @@
 :root{--bg:#fdf3e7;--panel:#fffaf2;--ink:#3a2b33;--sub:#7a6672;--accent:#e85d8a;--accent2:#2e9db4;--line:#e8d5c4;--btn:#fff;--sat:env(safe-area-inset-top);--sab:env(safe-area-inset-bottom)}
 @media (prefers-color-scheme: dark){:root{--bg:#1d1820;--panel:#2a2230;--ink:#f5e9ee;--sub:#bfaebb;--line:#4a3d4e;--btn:#352b3c}}
 *{box-sizing:border-box}
-/* ページ全体の引っ張り（バウンス）・引っ張って更新を抑止する。
-   通常のスクロール自体は残すので、下のシム専用エリアへは今まで通り移動できる */
+/* ページ全体の引っ張り（バウンス）・引っ張って更新を抑止する */
 html,body{overscroll-behavior:none}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Maru Gothic ProN","Hiragino Sans","Yu Gothic",sans-serif;-webkit-tap-highlight-color:transparent}
 .wrap{max-width:none;margin:0;padding:0;display:flex;flex-direction:column;align-items:center}
-.simui,.log{align-self:stretch}
 /* ============================================================
    仮想デバイス本体（たまごっち風）: ゲーム画面全体をパステル本体の
    「画面窓」の中に入れる。本体側にチェーン穴・飾りボタン・星/ハート/
@@ -43,8 +41,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Maru G
 @media (max-width:480px){.shell{padding:36px 10px 10px;height:98dvh}}
 /* ゲーム画面（.device）内ではブラウザのスクロール／ダブルタップ拡大／ピンチ拡大を
    一切させない（touch-action:none）。操作は全て pointer イベントで受けるので、
-   タップ・スワイプ・擦る操作は今まで通り効く。抑止はゲーム画面の中だけに限定し、
-   画面外（シム専用エリア）のスクロールには影響しない */
+   タップ・スワイプ・擦る操作は今まで通り効く。抑止はゲーム画面の中だけに限定する */
 .device{container-type:inline-size;position:relative;width:100%;flex:1 1 auto;min-height:0;height:auto;background:#20303c;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:none;border-radius:14px;border:4px solid #7c4a63;box-shadow:inset 0 0 0 2px rgba(0,0,0,.28),inset 0 0 26px rgba(0,0,0,.38),0 2px 6px rgba(190,90,140,.3)}
 /* 無操作時の現在時刻（水槽の真ん中。5秒タップが無いと自動で大きく出て、
    どこかへのタップで消える。見た目はこの1種に固定で、タップで切り替わったりはしない。
@@ -167,18 +164,9 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Maru G
 .memorial.starred #starForm{opacity:1;transform:translateX(-50%) scale(1);transition:opacity 1.2s ease,transform 1.2s ease;animation:starTwinkle 1.1s ease-in-out 1.2s infinite alternate}
 @keyframes starTwinkle{from{filter:drop-shadow(0 0 6px rgba(255,230,140,.65)) brightness(1)}to{filter:drop-shadow(0 0 17px rgba(255,240,170,1)) brightness(1.3)}}
 @media (prefers-reduced-motion: reduce){#deadImgWrap{transition-duration:.9s}.spark{animation-duration:1.2s}}
-/* シミュレーション専用UI（実機画面の外） */
-.simui{margin-top:12px;padding:0 12px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;font-size:18px;color:var(--sub)}
-.simui button,.simui select{font-family:inherit;font-size:18px;min-height:38px;border-radius:9px;border:1.5px solid var(--line);background:var(--btn);color:var(--ink);padding:5px 10px;cursor:pointer}
-.simui input[type="text"]{font-family:inherit;font-size:18px;min-height:38px;border-radius:9px;border:1.5px solid var(--line);background:var(--btn);color:var(--ink);padding:5px 10px;width:11em;max-width:60vw}
-.log{font-size:17px;color:var(--sub);line-height:1.7;max-height:110px;overflow:auto;margin:8px 12px 30px}
-.camBox{display:inline-flex;align-items:center;gap:8px;vertical-align:middle}
-#camVideo{width:96px;height:72px;object-fit:cover;border-radius:9px;background:#20303c;border:1.5px solid var(--line);display:none}
-#camVideo.on{display:block}
-.camDot{width:14px;height:14px;border-radius:50%;background:#cbbcb2;flex:0 0 auto;transition:background .15s,box-shadow .15s}
-.camDot.hot{background:#ff5d5d;box-shadow:0 0 0 4px rgba(255,93,93,.25)}
-.camMeter{display:inline-block;width:92px;height:10px;background:#eadfd6;border-radius:99px;overflow:hidden;vertical-align:middle}
-.camMeter i{display:block;height:100%;width:0%;background:#2e9db4;transition:width .08s linear}
+/* カメラ動き検知の作業用要素（画面には出さない。設定画面のカメラON/OFFで使う） */
+.camHidden{position:absolute;left:-9999px;top:0;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none}
+.camHidden video{width:1px;height:1px}
 </style>
 </head>
 <body>
@@ -313,40 +301,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Maru G
   <div class="shellBtns"><span class="sbWrap"><button class="sb sb1" id="sbFeed" aria-label="ごはん（えさ）モード切り替え"></button><span class="sbLab">ごはん</span></span><span class="sbWrap"><button class="sb sb2" id="sbClean" aria-label="そうじモード切り替え"></button><span class="sbLab">そうじ</span></span><span class="sbWrap"><button class="sb sb3" id="sbPlay" aria-label="あそぶモード切り替え"></button><span class="sbLab">あそぶ</span></span></div>
 </div>
 
-<div class="simui">
-  <span>シミュレーション専用：</span>
-  <span>共有 <span id="shareState">接続中…</span></span>
-  <label>速度 <select id="speedSel">
-    <option value="normal">ふつう（1時間／30秒）</option>
-    <option value="fast">早回し・テスト用（1時間／5秒）</option>
-    <option value="super">超早回し・テスト用（1時間／1秒）</option>
-  </select></label>
-  <span>声 <button id="btnVoice">ON</button></span>
-  <span>音テスト <button id="btnSoundTest">♪ 鳴らす</button></span>
-  <span id="audioState">音声：未初期化（最初のタップで開始）</span>
-  <span>カメラ <button id="btnCam">OFF</button></span>
-  <span class="camBox"><video id="camVideo" muted playsinline autoplay></video><span class="camDot" id="camDot" title="動き検知インジケーター"></span><span class="camMeter"><i id="camBar"></i></span></span>
-  <canvas id="camCanvas" width="64" height="48" style="display:none"></canvas>
-  <span id="camState">カメラ：OFF</span>
-  <span>リセット <button id="btnReset">リセット（テスト用）</button></span>
-  <span>近接センサー（テスト） <button id="btnSensor">人が近づいた</button></span>
-</div>
-<div class="simui" style="margin-top:2px">
-  <span>あなたの名前（この端末） <input id="userNameSetting" type="text" placeholder="未設定" maxlength="10" autocomplete="off"> <button id="btnUserNameSave">変更</button></span>
-  <span id="userNameState">名前：未設定</span>
-</div>
-<div class="simui" style="margin-top:2px">
-  <span>※ 近接センサー（テスト）は、人が 近づいたときの 反応を ボタンで 再現する テスト用機能です。</span>
-</div>
-<div class="simui" style="margin-top:2px">
-  <span>※ カメラは動き検知専用です。映像は保存・録画しません。動きを検知すると赤い丸が光り、キャラが気づいて寄ってきます。</span>
-</div>
-<div class="simui hidden" id="resetConfirm">
-  <span style="color:#c0392b;font-weight:700">現在の子・セーブデータ・おもいで記録を 全て消して、新しい卵から 始めます。よろしいですか？</span>
-  <button id="btnResetYes">消去して リセット</button>
-  <button id="btnResetNo">やめる</button>
-</div>
-<div class="log" id="log"></div>
+<div class="camHidden" aria-hidden="true"><video id="camVideo" muted playsinline autoplay></video><canvas id="camCanvas" width="64" height="48"></canvas></div>
 </div>
 
 <script>
@@ -607,6 +562,7 @@ let lastTouchAt = 0; // 最後に画面へタッチ（操作）した実時間�
 let lastDecayAt = 0; // おなか・水の実時間減衰を最後に適用した実時間（Date.now()）。閉じている間の減衰も次回起動時に差分で反映する
 let screen = "egg"; // egg | main | dead
 let voiceOn = true;
+let gameSpeed = "normal"; // ゲームの速さ（設定画面の速度セレクタで変更する）
 let lastTick = Date.now(), hourAcc = 0;
 let sulkHours = 0, zeroHealthHours = 0, neglectHours = 0, wasSick = false;
 let pos = {x:160, y:82}, target = {x:160, y:82}, frontBoostUntil = 0;
@@ -629,7 +585,7 @@ function pickWithName(normalPool, namePool, chance){
 }
 function pick(pool){ return pickFresh(pool); }
 function period(){ if(!S) return "day"; const h=S.hour; if(h>=6&&h<10) return "morning"; if(h>=10&&h<17) return "day"; if(h>=17&&h<21) return "evening"; return "night"; }
-function log(msg){ try{ const el=document.getElementById("log"); const d=document.createElement("div"); d.textContent=msg; el.prepend(d); while(el.children.length>14) el.lastChild.remove(); }catch(e){} }
+function log(msg){ try{ console.log(msg); }catch(e){} }
 
 /* ---------- 端末ごとのユーザー名 ----------
    家族が各自のスマホで開く前提で、名前は「その端末を使う人」のもの。
@@ -644,9 +600,7 @@ try{
   nameAsked = localStorage.getItem(USER_NAME_ASKED_KEY) === "1";
 }catch(e){}
 function refreshUserNameUI(){
-  const st = document.getElementById("userNameState");
-  if(st) st.textContent = userName ? "名前：" + userName + "（この端末だけ）" : "名前：未設定";
-  const inp = document.getElementById("userNameSetting");
+  const inp = document.getElementById("setUserName");
   if(inp && document.activeElement !== inp) inp.value = userName;
 }
 function saveUserName(n){
@@ -750,7 +704,7 @@ function ensureAudio(){
       const buf = AC.createBuffer(1, 1, AC.sampleRate);
       const src = AC.createBufferSource(); src.buffer = buf; src.connect(masterGain); src.start(0);
     }catch(e){}
-    if(AC.state === "running"){ const el=document.getElementById("audioState"); if(el) el.textContent = "音声：準備OK"; }
+
   }catch(e){ /* 音が出なくても育成は続ける */ }
 }
 /* ---------- 無操作時の現在時刻表示（水槽の真ん中） ----------
@@ -836,8 +790,8 @@ document.addEventListener("touchend", ensureAudio, {passive:true});
 document.addEventListener("click", ensureAudio, {passive:true});
 /* ---------- ブラウザのズーム／スクロール抑止（ゲーム画面内のみ） ----------
    CSS の touch-action:none / user-scalable=no を無視するブラウザ（主に iOS Safari）
-   向けの保険。対象はゲーム画面（#device）の中だけに限定し、下のシム専用エリアの
-   スクロールには一切触らない。ゲーム操作は pointerdown / pointermove で処理して
+   向けの保険。対象はゲーム画面（#device）の中だけに限定する。
+   ゲーム操作は pointerdown / pointermove で処理して
    いるため、touchend / touchmove の preventDefault では止まらない（通常のタップ・
    スワイプ・擦る操作は今まで通り効く） */
 (function(){
@@ -1429,7 +1383,7 @@ setInterval(()=>{
     applyRealDecay(); // おなか・水の実時間減衰（速度設定に依存せず、現実の時計で進む）
     processPoopDue(); // 餌を食べてから時間が経った うんちを出す
     hourAcc += now - lastTick;
-    const per = CONFIG.SPEED_MS[document.getElementById("speedSel").value] || CONFIG.SPEED_MS.normal;
+    const per = CONFIG.SPEED_MS[gameSpeed] || CONFIG.SPEED_MS.normal;
     while(hourAcc>=per){ hourAcc-=per; gameHour(); if(screen!=="main") break; }
   }
   lastTick = now;
@@ -2274,12 +2228,6 @@ function onPlayBtn(){
 document.getElementById("btnPlay").addEventListener("click", onPlayBtn);
 document.getElementById("sbPlay").addEventListener("click", onPlayBtn);
 /* 「はなす」ボタンは廃止。話すのは画面タップ（通常モードのタップ＝寄ってきてセリフを話す）が担う */
-document.getElementById("btnSensor").addEventListener("click", ()=>{
-  ensureAudio(); if(!S) return; touch(); if(wakeTap()) return;
-  approachAnim();
-  say(pickWithName(LINES.approach, LINES.approachName, 0.85));
-  log("👋 人が近づいたのを感じて 寄ってきた");
-});
 /* ---------- 水槽タッチ（1本指のみ。モードで振る舞いが変わる） ---------- */
 const tankEl = document.getElementById("tank");
 let activePtr = null, lastPt = null, feedSwipe = null, petStrokeAcc = 0, petHeartAcc = 0, lastCleanInt = -1;
@@ -2419,29 +2367,21 @@ function showScreen(){
   if(screen==="main" && S){ renderStats(); syncMoss(); }
   applyModeUI();
 }
-document.getElementById("btnVoice").addEventListener("click", (e)=>{
-  voiceOn = !voiceOn; e.target.textContent = voiceOn ? "ON" : "OFF";
-  if(voiceOn) ensureAudio(); else { try{ if(AC) AC.suspend(); }catch(err){} document.getElementById("audioState").textContent = "音声：OFF"; }
-});
-document.getElementById("btnSoundTest").addEventListener("click", ()=>{
-  if(!voiceOn){ voiceOn = true; document.getElementById("btnVoice").textContent = "ON"; }
-  ensureAudio();
-  setTimeout(()=>{
-    sfx("fanfare");
-    const el = document.getElementById("audioState");
-    if(el) el.textContent = (AC && AC.state === "running") ? "音声：準備OK（テスト音を鳴らしました）" : "音声：開始できませんでした（もう一度タップしてください）";
-  }, 120);
-});
-/* ---------- カメラ動き検知（シミュレーション専用・保存/録画は一切しない） ----------
-   ONで getUserMedia(映像のみ・前面カメラ優先) を取得し、小さなプレビューを表示する。
+/* 声のON/OFF（設定画面のボタンから使う） */
+function toggleVoice(){
+  voiceOn = !voiceOn;
+  if(voiceOn) ensureAudio(); else { try{ if(AC) AC.suspend(); }catch(err){} }
+}
+/* ---------- カメラ動き検知（保存/録画は一切しない） ----------
+   設定画面でONにすると getUserMedia(映像のみ・前面カメラ優先) を取得する。
    映像は 64×48 の隠しキャンバスに描いてグレースケール化し、前フレームとの平均差分が
-   しきい値を超えたら「動きがあった」と判定する（インジケーターとバーで目に見える）。
+   しきい値を超えたら「動きがあった」と判定する。
    検知したら camReact() でキャラが気づいて寄ってきて、登録アクション "motion"
    （ACTION_DEFS 参照）と専用セリフ LINES.camMotion で反応する。動きが続く間も
    CAM_COOLDOWN_MS の間隔を空けて再反応する。映像は保存・録画・送信しない。 */
 let camOn = false, camStream = null, camTimer = null, camPrev = null, camLastReactAt = 0;
 const CAM_W = 64, CAM_H = 48, CAM_THRESHOLD = 18, CAM_COOLDOWN_MS = 4000; // しきい値は感度を下げるため引き上げ済み: 小さな動きや明るさの揺れ（平均差分18以下）では反応しない
-function camSetState(txt){ const el = document.getElementById("camState"); if(el) el.textContent = txt; }
+function camSetState(txt){ log("📷 " + txt); }
 function camReact(){
   if(screen!=="main" || !S || S.sleeping) return;
   camLastReactAt = Date.now();
@@ -2456,10 +2396,7 @@ function stopCam(){
   if(camTimer){ clearInterval(camTimer); camTimer = null; }
   if(camStream){ try{ camStream.getTracks().forEach(t=>t.stop()); }catch(e){} camStream = null; }
   const v = document.getElementById("camVideo");
-  if(v){ try{ v.pause(); }catch(e){} v.srcObject = null; v.classList.remove("on"); }
-  const b = document.getElementById("btnCam"); if(b) b.textContent = "OFF";
-  const bar = document.getElementById("camBar"); if(bar) bar.style.width = "0%";
-  const dot = document.getElementById("camDot"); if(dot) dot.classList.remove("hot");
+  if(v){ try{ v.pause(); }catch(e){} v.srcObject = null; }
 }
 function camLoop(){
   if(!camOn) return;
@@ -2475,14 +2412,12 @@ function camLoop(){
       let sum = 0;
       for(let j=0; j<gray.length; j++) sum += Math.abs(gray[j]-camPrev[j]);
       const diff = sum / gray.length; // 平均差分 0〜255
-      const bar = document.getElementById("camBar"); if(bar) bar.style.width = Math.min(100, Math.round(diff*4)) + "%";
-      const dot = document.getElementById("camDot"); if(dot) dot.classList.toggle("hot", diff > CAM_THRESHOLD);
       if(diff > CAM_THRESHOLD && Date.now() - camLastReactAt >= CAM_COOLDOWN_MS) camReact();
     }
     camPrev = gray;
   }catch(e){}
 }
-document.getElementById("btnCam").addEventListener("click", async ()=>{
+async function toggleCam(){
   if(camOn){ stopCam(); camSetState("カメラ：OFF"); return; }
   if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
     camSetState("カメラが使えませんでした（この環境はカメラ非対応です）");
@@ -2504,9 +2439,7 @@ document.getElementById("btnCam").addEventListener("click", async ()=>{
     const v = document.getElementById("camVideo");
     v.srcObject = camStream;
     const p = v.play(); if(p && p.catch) p.catch(function(){});
-    v.classList.add("on");
     camOn = true; camPrev = null; camLastReactAt = 0;
-    document.getElementById("btnCam").textContent = "ON";
     camSetState("カメラ：動きを見ています（保存・録画はしません）");
     camTimer = setInterval(camLoop, 150);
     log("📷 カメラON：動き検知を開始");
@@ -2514,15 +2447,9 @@ document.getElementById("btnCam").addEventListener("click", async ()=>{
     stopCam();
     camSetState("カメラが使えませんでした（開始できませんでした）");
   }
-});
-/* ---------- テスト用リセット（シミュレーション専用） ---------- */
-document.getElementById("btnReset").addEventListener("click", ()=>{
-  document.getElementById("resetConfirm").classList.remove("hidden");
-});
-document.getElementById("btnResetNo").addEventListener("click", ()=>{
-  document.getElementById("resetConfirm").classList.add("hidden");
-});
-document.getElementById("btnResetYes").addEventListener("click", ()=>{
+}
+/* ---------- リセット（設定画面から使う。全データを消して新しい卵から） ---------- */
+function doReset(){
   try{ localStorage.removeItem(CONFIG.SAVE_KEY); }catch(e){}
   S = null; memories = []; eggTaps = 0; lastInteractAt = 0; lastDecayAt = 0; lastPetAt = 0; lastShownBW = "";
   sulkHours = 0; zeroHealthHours = 0; neglectHours = 0; wasSick = false; recentLines = [];
@@ -2534,10 +2461,9 @@ document.getElementById("btnResetYes").addEventListener("click", ()=>{
   document.getElementById("foodBand").classList.add("hidden");
   mode = "normal"; cancelProj(); applyModeUI();
   try{ mossX.clearRect(0,0,320,156); }catch(e){}
-  document.getElementById("resetConfirm").classList.add("hidden");
   screen = "egg"; showScreen(); save();
-  log("🧪 テスト用リセット：全データを消去して 新しい卵から開始");
-});
+  log("🧪 リセット：全データを消去して 新しい卵から開始");
+}
 document.getElementById("btnFarewell").addEventListener("click", ()=>{ startAscension(); });
 document.getElementById("deadScreen").addEventListener("pointerdown", ()=>{ startAscension(); });
 
@@ -2575,7 +2501,7 @@ let fbDb = null, shareDocRef = null, shareUnsub = null;
 let sharePassHash = null, pendingDocData = null;
 let sharedUpdatedAt = 0; // いま手元にある共有データの updatedAt（これより新しいものだけ取り込む）
 let applyingRemote = false, shareDirty = false, shareSaveTimer = null;
-function setShareState(t){ const el = document.getElementById("shareState"); if(el) el.textContent = t; }
+function setShareState(t){ log("🐾 " + t); }
 function gateShow(which){
   ["gateLoading","gateSetup","gateEnter","gateOffline"].forEach(id=>{
     const el = document.getElementById(id); if(el) el.classList.toggle("hidden", id!==which);
@@ -2815,12 +2741,6 @@ document.getElementById("btnNameSkip").addEventListener("click", ()=>{
   saveUserName(""); // 名前なしで始める（聞いたことだけ覚える。セリフは今まで通り）
   if(pendingBoot){ pendingBoot = false; finishBoot(); }
 });
-document.getElementById("btnUserNameSave").addEventListener("click", ()=>{
-  ensureAudio();
-  saveUserName(document.getElementById("userNameSetting").value);
-  log(userName ? "👋 この端末の名前を「" + userName + "」に変更した" : "👋 この端末の名前を 未設定に戻した");
-  if(screen==="main" && S && userName) say(pick(LINES.callName));
-});
 refreshUserNameUI();
 
 /* ---------- 設定画面（左上の名前を長押し → パスワード → 設定） ----------
@@ -2881,17 +2801,16 @@ document.getElementById("settingsPassIn").addEventListener("keydown", (e)=>{ if(
   nm.addEventListener("pointerleave", cancel);
   nm.addEventListener("contextmenu", (e)=>{ e.preventDefault(); }); // 長押し時のメニュー表示を防ぐ
 })();
-/* ---------- 設定画面の中身（既存の設定項目をここに集約） ----------
-   声・カメラ・リセットは、シミュレーション専用UI側の既存ボタンの処理を
-   そのまま共用する（状態は1か所で管理され、二重管理にならない）。
-   速度は既存の速度セレクタの値を書き換える（ゲームループはそちらを読む） */
+/* ---------- 設定画面の中身（設定項目はここに集約） ----------
+   声・カメラ・リセット・速度は本体側の処理（toggleVoice / toggleCam /
+   doReset / gameSpeed 変数）を直接使う（状態は1か所で管理する） */
 function syncSettingsUI(){
   const un = document.getElementById("setUserName");
   if(un && document.activeElement !== un) un.value = userName;
   document.getElementById("btnSetVoice").textContent = voiceOn ? "ON" : "OFF";
   document.getElementById("btnSetCam").textContent = camOn ? "ON" : "OFF";
-  const ss = document.getElementById("setSpeedSel"), ms = document.getElementById("speedSel");
-  if(ss && ms) ss.value = ms.value;
+  const ss = document.getElementById("setSpeedSel");
+  if(ss) ss.value = gameSpeed;
   document.getElementById("setResetConfirm").classList.add("hidden");
   const pc = document.getElementById("setPassphraseConfirm"); if(pc) pc.classList.add("hidden");
   const pm = document.getElementById("setPassMsg"); pm.textContent = ""; pm.classList.remove("ok");
@@ -2909,15 +2828,15 @@ document.getElementById("btnSetUserName").addEventListener("click", ()=>{
   log(userName ? "👋 この端末の名前を「" + userName + "」に変更した" : "👋 この端末の名前を 未設定に戻した");
 });
 document.getElementById("btnSetVoice").addEventListener("click", (e)=>{
-  document.getElementById("btnVoice").click(); // 既存の声ON/OFF処理を共用
+  toggleVoice();
   e.target.textContent = voiceOn ? "ON" : "OFF";
 });
 document.getElementById("btnSetCam").addEventListener("click", (e)=>{
-  document.getElementById("btnCam").click(); // 既存のカメラON/OFF処理を共用
+  toggleCam();
   setTimeout(()=>{ e.target.textContent = camOn ? "ON" : "OFF"; }, 1200); // カメラ許可の結果を待って表示を合わせる
 });
 document.getElementById("setSpeedSel").addEventListener("change", (e)=>{
-  const ms = document.getElementById("speedSel"); if(ms) ms.value = e.target.value;
+  gameSpeed = e.target.value;
 });
 document.getElementById("btnSetPass").addEventListener("click", ()=>{
   ensureAudio();
@@ -2940,7 +2859,7 @@ document.getElementById("btnSetResetNo").addEventListener("click", ()=>{
   document.getElementById("setResetConfirm").classList.add("hidden");
 });
 document.getElementById("btnSetResetYes").addEventListener("click", ()=>{
-  document.getElementById("btnResetYes").click(); // 既存のリセット処理を共用（画面は卵へ移る）
+  doReset(); // 全データを消去して卵の画面へ移る
 });
 /* ---------- 合言葉を変える（別の子に切り替え） ----------
    いまの子は その合言葉のドキュメントに残したまま、端末に控えた
