@@ -232,7 +232,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Maru G
       <div class="line">共有の 水槽に つないでいます…</div>
     </div>
     <div id="gateSetup" class="hidden">
-      <div class="line">家族みんなで 同じ子を 育てるための「合言葉」を 決めてね。ほかの家族は、この合言葉を 入れると 同じ子に 会えます。合言葉ごとに 育てる子は 別々です。まだ誰も 使っていない合言葉では、新しい子（卵の状態）から 始まります。設定画面から 合言葉を 変えれば、別の子に 切り替えられます。合言葉は 日本語（ひらがな・カタカナ・漢字）でも 英数字でも 使えます。</div>
+      <div class="line">家族みんなで 同じ子を 育てるための「合言葉」を 決めてね。ほかの家族は、この合言葉を 入れると 同じ子に 会えます。合言葉ごとに 育てる子は 別々です。まだ誰も 使っていない合言葉では、新しい子（卵の状態）から 始まります。設定画面の「他の部屋に行く」から、別の部屋の子に 切り替えられます。合言葉は 日本語（ひらがな・カタカナ・漢字）でも 英数字でも 使えます。</div>
       <input id="passNew1" type="text" placeholder="合言葉（4文字以上・日本語もOK）" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" lang="ja">
       <input id="passNew2" type="text" placeholder="合言葉を もう一度" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" lang="ja">
       <div class="gateErr" id="setupErr"></div>
@@ -271,12 +271,11 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Maru G
       <option value="fast">早回し・テスト用（1時間／5秒）</option>
       <option value="super">超早回し・テスト用（1時間／1秒）</option>
     </select></div>
-    <div class="setSec">合言葉（育てる子）</div>
-    <div class="setRow"><span class="lab">合言葉ごとに 別の子を 育てられます。合言葉を 変えると、その合言葉の子に 切り替わります（いまの子は その合言葉のまま 残ります）。</span><button id="btnSetPassphrase">合言葉を変える</button></div>
-    <div id="setPassphraseConfirm" class="hidden">
-      <div class="setMsg">合言葉を 変えますか？ いまの子の データは 消えず、その合言葉で また 会えます。</div>
-      <div class="row"><button id="btnSetPassphraseNo">やめる</button><button id="btnSetPassphraseYes">変える（別の子に切り替え）</button></div>
-    </div>
+    <div class="setSec">他の部屋に行く</div>
+    <div class="setNote">合言葉ごとに「部屋」が あり、部屋ごとに 別の子を 育てています。行きたい部屋の 合言葉を 入れると、その部屋の子に 会えます。いまの子は いまの合言葉の 部屋に そのまま 残るので、また その合言葉を 入れれば 戻ってこられます。まだ誰も 使っていない合言葉（4文字以上）を 入れると、その部屋では 新しい子（卵の状態）から 始まります。</div>
+    <input id="setRoomPass" type="text" placeholder="行きたい部屋の合言葉（日本語もOK）" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" lang="ja">
+    <div class="gateErr" id="roomErr"></div>
+    <div class="row" style="margin-top:2cqw"><button id="btnGoRoom" class="primary">この部屋に行く</button></div>
     <div class="setSec">リセット</div>
     <div class="setRow"><span class="lab">現在の子・セーブデータを 全て消して、新しい卵から 始めます。</span><button id="btnSetReset">リセット</button></div>
     <div id="setResetConfirm" class="hidden">
@@ -2464,7 +2463,8 @@ JSON文字列）, updatedAt } で、passHash はドキュメントIDと同じ値
 - 合言葉: 入力した合言葉のハッシュで決まるドキュメントを読み書きする。
   まだ無い合言葉では新しい子（卵の状態）から始まる。通った端末は
   ハッシュを端末側に控え、次回から入力を省略する。設定画面の
-  「合言葉を変える」で控えを消し、別の合言葉の子へ切り替えられる。
+  「他の部屋に行く」で別の合言葉を入れると、その部屋の子へ移動できる
+  （いまの子は いまの合言葉のドキュメントに残ったままになる）。
 - 移行: 旧方式の子は upapet_shared/main に passHash 付きで残っている。
   入力した合言葉のハッシュが main の passHash と一致したら、その子を
   その合言葉のドキュメントへ移して引き継ぐ。
@@ -2695,7 +2695,7 @@ document.getElementById("btnPassEnter").addEventListener("click", async ()=>{
 });
 /* 合言葉欄の Enter キー: 日本語入力（IME）の変換確定の Enter では
    送信せず、変換が終わった後の Enter だけをボタン押下として扱う */
-[["passIn","btnPassEnter"],["passNew1","btnPassSetup"],["passNew2","btnPassSetup"]].forEach(([inputId, btnId])=>{
+[["passIn","btnPassEnter"],["passNew1","btnPassSetup"],["passNew2","btnPassSetup"],["setRoomPass","btnGoRoom"]].forEach(([inputId, btnId])=>{
   const inp = document.getElementById(inputId);
   if(!inp) return;
   inp.addEventListener("keydown", (e)=>{
@@ -2747,7 +2747,8 @@ function syncSettingsUI(){
   const ss = document.getElementById("setSpeedSel");
   if(ss) ss.value = gameSpeed;
   document.getElementById("setResetConfirm").classList.add("hidden");
-  const pc = document.getElementById("setPassphraseConfirm"); if(pc) pc.classList.add("hidden");
+  const rp = document.getElementById("setRoomPass"); if(rp && document.activeElement !== rp) rp.value = "";
+  const re = document.getElementById("roomErr"); if(re) re.textContent = "";
 }
 function openSettings(){
   syncSettingsUI();
@@ -2779,32 +2780,38 @@ document.getElementById("btnSetResetNo").addEventListener("click", ()=>{
 document.getElementById("btnSetResetYes").addEventListener("click", ()=>{
   doReset(); // 全データを消去して卵の画面へ移る
 });
-/* ---------- 合言葉を変える（別の子に切り替え） ----------
-   いまの子は その合言葉のドキュメントに残したまま、端末に控えた
-   合言葉（ハッシュ）だけを消して合言葉入力からやり直す。別の合言葉を
-   入れれば その合言葉の子に切り替わり、初めての合言葉なら卵から始まる */
-document.getElementById("btnSetPassphrase").addEventListener("click", ()=>{
-  document.getElementById("setPassphraseConfirm").classList.remove("hidden");
-});
-document.getElementById("btnSetPassphraseNo").addEventListener("click", ()=>{
-  document.getElementById("setPassphraseConfirm").classList.add("hidden");
-});
-document.getElementById("btnSetPassphraseYes").addEventListener("click", ()=>{
+/* ---------- 他の部屋に行く（別の合言葉の子へ移動） ----------
+   「部屋」＝合言葉ごとの子。行きたい部屋の合言葉を入れると、その合言葉の
+   子が そのまま開く（初めての合言葉なら 新しい子＝卵から始まる）。
+   いまの子は、離れる前に最新状態を その合言葉の置き場へ送るので、
+   いまの合言葉のまま残り、また その合言葉を入れれば戻ってこられる */
+let goingRoom = false;
+document.getElementById("btnGoRoom").addEventListener("click", async ()=>{
   ensureAudio();
-  try{ if(shareDirty) flushShareSave(); }catch(e){} // いまの子の最新状態を その合言葉の置き場へ送ってから離れる
-  if(shareSaveTimer){ clearTimeout(shareSaveTimer); shareSaveTimer = null; }
-  if(shareUnsub){ try{ shareUnsub(); }catch(e){} shareUnsub = null; }
-  try{ localStorage.removeItem(PASS_FLAG_KEY); }catch(e){} // 端末に控えた合言葉を消す（合言葉の平文は元々保存していない）
-  shareMode = "booting"; sharePassHash = null; shareDocRef = null; pendingDocData = null; sharedUpdatedAt = 0; shareDirty = false;
-  resetToFreshPet(); // 前の子が画面に残らないよう卵の状態に戻してから入力画面へ
-  document.getElementById("passIn").value = "";
-  document.getElementById("enterErr").textContent = "";
-  if(fbDb){
-    screen = "gate"; showScreen(); gateShow("gateEnter"); setShareState("合言葉まち");
-  } else {
-    initShare(); // 共有に接続できていなかった場合は接続からやり直す
+  if(goingRoom) return;
+  const err = document.getElementById("roomErr");
+  const p = document.getElementById("setRoomPass").value;
+  if(shareMode!=="shared" || !fbDb){ err.textContent = "共有に つながっていないので、部屋の 移動は できません"; return; }
+  if(!p){ err.textContent = "行きたい部屋の 合言葉を 入れてね"; return; }
+  if(passLen(p) < 4){ err.textContent = "合言葉は 4文字以上に してね"; return; }
+  goingRoom = true;
+  err.textContent = "部屋に 移動しています…";
+  try{
+    const hash = await hashPass(p);
+    if(hash === sharePassHash){ err.textContent = "それは いま いる部屋の 合言葉だよ"; goingRoom = false; return; }
+    try{ if(shareDirty) flushShareSave(); }catch(e){} // いまの子の最新状態を その合言葉の置き場へ送ってから離れる
+    if(shareSaveTimer){ clearTimeout(shareSaveTimer); shareSaveTimer = null; }
+    if(shareUnsub){ try{ shareUnsub(); }catch(e){} shareUnsub = null; }
+    shareMode = "booting"; sharePassHash = null; shareDocRef = null; pendingDocData = null; sharedUpdatedAt = 0; shareDirty = false;
+    await openPetForHash(hash); // その合言葉の子を開く（端末の控えも その合言葉に切り替わる）。acceptShared→finishBoot で水槽／卵の画面へ移る
+    document.getElementById("setRoomPass").value = "";
+    err.textContent = "";
+    log("🐾 他の部屋に行く: 別の合言葉の子へ 移動した");
+  }catch(e){
+    err.textContent = "部屋に 行けませんでした。接続を 確認して もう一度 試してね";
+    initShare(); // 失敗したら、端末に控えた いまの合言葉の子を 開き直す
   }
-  log("🐾 合言葉を変える: 合言葉の入力から やり直す（別の子に切り替え）");
+  goingRoom = false;
 });
 
 /* ---------- 起動 ---------- */
